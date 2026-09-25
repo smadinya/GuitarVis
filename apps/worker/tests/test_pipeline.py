@@ -19,7 +19,7 @@ from guitarvis_core.contracts import (
     TabNote,
 )
 from guitarvis_core.tabdoc import Beat, Chord, TabDocument, Timing
-from guitarvis_worker.pipeline import StageProgress, run_pipeline
+from guitarvis_worker.pipeline import PipelineResult, StageProgress, run_pipeline
 
 
 class StubSeparator:
@@ -87,6 +87,10 @@ def audio(tmp_path: Path) -> IngestedAudio:
 
 
 def run(tmp_path: Path, **overrides: Any) -> TabDocument:
+    return run_result(tmp_path, **overrides).document
+
+
+def run_result(tmp_path: Path, **overrides: Any) -> PipelineResult:
     kwargs: dict[str, Any] = {
         "separator": StubSeparator(),
         "transcriber": StubTranscriber(),
@@ -166,6 +170,30 @@ def test_unimplemented_fretboard_stage_degrades(tmp_path: Path) -> None:
     # says nothing about whether stage 3 (timing, chords) succeeded, so the
     # warning must not assert that they did.
     assert not any("unaffected" in w.lower() for w in doc.warnings)
+
+
+def test_transcribed_note_count_is_reported_even_though_notes_stays_empty(
+    tmp_path: Path,
+) -> None:
+    # notes is deliberately empty until 004-fretboard-mapper lands; the
+    # transcribed event count is the only evidence transcription worked.
+    result = run_result(
+        tmp_path,
+        transcriber=StubTranscriber(
+            [NoteEvent(1.0, 0.5, 52, 0.8), NoteEvent(2.0, 0.5, 55, 0.7)]
+        ),
+        mapper=UnimplementedMapper(),
+    )
+
+    assert result.transcribed_note_count == 2
+    assert result.document.notes == []
+
+
+def test_transcribed_note_count_is_zero_on_transcription_failure(
+    tmp_path: Path,
+) -> None:
+    result = run_result(tmp_path, transcriber=FailingTranscriber())
+    assert result.transcribed_note_count == 0
 
 
 def test_structure_warnings_reach_the_document(tmp_path: Path) -> None:

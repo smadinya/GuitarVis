@@ -53,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         audio = UploadSource(args.audio, max_duration_sec=args.max_duration).fetch()
-        document = run_pipeline(
+        result = run_pipeline(
             audio,
             separator=DemucsSeparator(device=args.device),
             transcriber=BasicPitchTranscriber(),
@@ -66,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error [{error.reason.value}]: {error}", file=sys.stderr)
         return 2
 
+    document = result.document
     try:
         Path(args.output).write_text(document.model_dump_json(indent=2))
     except OSError as error:
@@ -77,7 +78,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(
-        f"wrote {args.output}: {len(document.notes)} notes, "
+        f"wrote {args.output}: {result.transcribed_note_count} note events "
+        f"transcribed, {len(document.notes)} notes placed, "
         f"{len(document.chords)} chords, {len(document.timing.beats)} beats",
         file=sys.stderr,
     )

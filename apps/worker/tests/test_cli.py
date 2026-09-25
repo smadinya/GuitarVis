@@ -76,6 +76,17 @@ def test_writes_a_valid_document_and_exits_zero(
 
 
 @requires_ffprobe
+def test_summary_line_reports_the_transcribed_note_count(
+    tmp_path: Path, stub_stages: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    out = tmp_path / "song.json"
+    code = cli.main(["process", str(write_wav(tmp_path / "song.wav")), "-o", str(out)])
+
+    assert code == 0
+    assert "0 note events transcribed" in capsys.readouterr().err
+
+
+@requires_ffprobe
 def test_reports_the_fretboard_stage_is_not_implemented(
     tmp_path: Path, stub_stages: None, capsys: pytest.CaptureFixture[str]
 ) -> None:

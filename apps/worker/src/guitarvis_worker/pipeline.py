@@ -50,6 +50,22 @@ class StageProgress:
 ProgressCallback = Callable[[StageProgress], None]
 
 
+@dataclass(frozen=True)
+class PipelineResult:
+    """What `run_pipeline` hands back: the document plus what stage 2 saw.
+
+    `transcribed_note_count` exists because `document.notes` is deliberately
+    empty until 004-fretboard-mapper lands — it is the only evidence this
+    phase produces that transcription worked. Returned alongside the document
+    rather than folded into a warning string so a caller (the CLI, or any
+    future job runner) gets it as data, not something it has to parse back
+    out of prose.
+    """
+
+    document: TabDocument
+    transcribed_note_count: int
+
+
 def _report(progress: ProgressCallback | None, stage: str) -> None:
     if progress is not None:
         progress(StageProgress(stage=stage, percent=STAGE_PERCENT[stage]))
@@ -64,7 +80,7 @@ def run_pipeline(
     mapper: FretboardMapper,
     tuning: Sequence[str] = STANDARD_TUNING,
     progress: ProgressCallback | None = None,
-) -> TabDocument:
+) -> PipelineResult:
     """Turn ingested audio into a tab document."""
     warnings: list[str] = []
 
@@ -149,7 +165,7 @@ def run_pipeline(
                 FailureReason.INTERNAL, f"Fretboard assignment is inconsistent: {exc}"
             ) from exc
 
-    return TabDocument(
+    document = TabDocument(
         source=Source(
             title=audio.title,
             duration_sec=audio.duration_sec,
@@ -162,3 +178,4 @@ def run_pipeline(
         sections=structure.sections,
         warnings=warnings,
     )
+    return PipelineResult(document=document, transcribed_note_count=len(events))
