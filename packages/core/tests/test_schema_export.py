@@ -51,4 +51,5 @@ def test_schema_describes_the_documented_top_level_fields() -> None:
         "notes",
         "chords",
         "sections",
+        "warnings",
     }

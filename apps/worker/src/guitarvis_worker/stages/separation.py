@@ -9,11 +9,13 @@ document with a quality warning. This stage dominates job time.
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from guitarvis_core.contracts import SeparationResult
+
 
 class DemucsSeparator:
     """Implements guitarvis_core.contracts.Separator."""
 
-    def isolate(self, audio_path: Path) -> Path:
+    def isolate(self, audio_path: Path) -> SeparationResult:
         raise NotImplementedError(
             "Stage 1 lands in 003-pipeline-skeleton; see "
             "docs/specs/001-guitarvis-design/spec.md"

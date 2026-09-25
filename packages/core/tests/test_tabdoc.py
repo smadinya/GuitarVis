@@ -8,7 +8,13 @@ import json
 from pathlib import Path
 
 import pytest
-from guitarvis_core.tabdoc import SCHEMA_VERSION, TabDocument
+from guitarvis_core.tabdoc import (
+    SCHEMA_VERSION,
+    Instrument,
+    Source,
+    TabDocument,
+    Timing,
+)
 from pydantic import ValidationError
 
 FIXTURE = Path(__file__).parent / "fixtures" / "minimal.tabdoc.json"
@@ -79,3 +85,24 @@ def test_optional_tracks_default_to_empty() -> None:
 
     assert doc.chords == []
     assert doc.sections == []
+
+
+def test_document_defaults_to_no_warnings() -> None:
+    doc = TabDocument(
+        source=Source(title="t", duration_sec=1.0, audio_url="file:///t.wav"),
+        instrument=Instrument(),
+        timing=Timing(),
+    )
+    assert doc.warnings == []
+
+
+def test_warnings_round_trip() -> None:
+    doc = TabDocument(
+        source=Source(title="t", duration_sec=1.0, audio_url="file:///t.wav"),
+        instrument=Instrument(),
+        timing=Timing(),
+        warnings=["used the 4-stem fallback"],
+    )
+    assert TabDocument.model_validate_json(doc.model_dump_json()).warnings == [
+        "used the 4-stem fallback"
+    ]

@@ -13,6 +13,10 @@ export interface TabDocument {
   sections?: Section[];
   source: Source;
   timing: Timing;
+  /**
+   * Quality degradation the client must surface. A tab the user cannot tell is degraded is worse than one labelled as such.
+   */
+  warnings?: string[];
 }
 export interface Chord {
   confidence: number;

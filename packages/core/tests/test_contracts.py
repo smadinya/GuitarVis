@@ -6,15 +6,19 @@ the same interface. That is the single upgrade point the staged architecture
 exists to protect.
 """
 
+import dataclasses
 from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
 from guitarvis_core.contracts import (
+    AudioSource,
     FailureReason,
     FretboardMapper,
+    IngestedAudio,
     NoteEvent,
     PipelineError,
+    SeparationResult,
     Separator,
     StructureAnalyzer,
     StructureResult,
@@ -59,8 +63,8 @@ def test_note_event_carries_no_fingering() -> None:
 
 def test_a_fake_separator_satisfies_the_protocol() -> None:
     class FakeSeparator:
-        def isolate(self, audio_path: Path) -> Path:
-            return audio_path
+        def isolate(self, audio_path: Path) -> SeparationResult:
+            return SeparationResult(stem_path=audio_path)
 
     assert isinstance(FakeSeparator(), Separator)
 
@@ -93,3 +97,30 @@ def test_a_fake_mapper_satisfies_the_protocol() -> None:
 
 def test_an_unrelated_object_does_not_satisfy_the_protocol() -> None:
     assert not isinstance(object(), Separator)
+
+
+def test_ingested_audio_is_frozen() -> None:
+    audio = IngestedAudio(path=Path("song.wav"), title="song", duration_sec=1.0)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        audio.title = "other"  # type: ignore[misc]
+
+
+def test_upload_shaped_object_satisfies_audio_source() -> None:
+    class Stub:
+        def fetch(self) -> IngestedAudio:
+            return IngestedAudio(path=Path("a.wav"), title="a", duration_sec=1.0)
+
+    assert isinstance(Stub(), AudioSource)
+
+
+def test_separation_result_defaults_to_no_warnings() -> None:
+    result = SeparationResult(stem_path=Path("guitar.wav"))
+    assert result.warnings == []
+
+
+def test_separator_protocol_returns_separation_result() -> None:
+    class Stub:
+        def isolate(self, audio_path: Path) -> SeparationResult:
+            return SeparationResult(stem_path=audio_path)
+
+    assert isinstance(Stub(), Separator)
