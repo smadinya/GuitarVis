@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Refuse commits on main.
+#
+# GuitarVis changes land through a pull request from a spec branch, and the
+# branch name is its docs/specs/NNN-short-name/ folder name.
+set -euo pipefail
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if [ "$branch" = "main" ]; then
+  cat >&2 <<'MSG'
+✗ Commit refused: you are on main.
+
+  Work belongs on a spec branch named after its spec folder:
+
+      git checkout -b 003-pipeline-skeleton
+
+  See CONTRIBUTING.md. Bypass with --no-verify only for a genuine exception.
+MSG
+  exit 1
+fi
