@@ -15,6 +15,7 @@ from guitarvis_core.contracts import (
     FailureReason,
     FretboardMapper,
     IngestedAudio,
+    NoteEvent,
     PipelineError,
     Separator,
     StructureAnalyzer,
@@ -73,10 +74,21 @@ def run_pipeline(
     warnings.extend(separation.warnings)
     _report(progress, "separation")
 
-    # Stage 2.
-    events = transcriber.transcribe(separation.stem_path)
-    if not events:
-        warnings.append("No notes were detected in the isolated guitar part.")
+    # Stage 2. Optional like stages 3 and 4: a raised exception costs notes,
+    # not the whole job. A genuinely empty result (no exception, no notes)
+    # gets its own, more specific warning, so a caller can tell "found
+    # nothing" apart from "blew up".
+    events: list[NoteEvent] = []
+    try:
+        events = transcriber.transcribe(separation.stem_path)
+    except Exception as exc:  # every transcriber failure degrades alike
+        warnings.append(
+            f"Transcription failed ({exc.__class__.__name__}), so no notes "
+            "could be detected."
+        )
+    else:
+        if not events:
+            warnings.append("No notes were detected in the isolated guitar part.")
     _report(progress, "transcription")
 
     # Stage 3. Optional: notes carry their own onsets, so losing the beat grid

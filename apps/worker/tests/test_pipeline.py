@@ -43,6 +43,11 @@ class StubTranscriber:
         return list(self.events)
 
 
+class FailingTranscriber:
+    def transcribe(self, stem_path: Path) -> list[NoteEvent]:
+        raise RuntimeError("model failed to load")
+
+
 class StubAnalyzer:
     def __init__(self, result: StructureResult | None = None) -> None:
         self.result = result or StructureResult(timing=Timing(), chords=[], sections=[])
@@ -168,6 +173,33 @@ def test_empty_transcription_warns_but_still_returns_a_document(tmp_path: Path) 
     doc = run(tmp_path, transcriber=StubTranscriber([]))
     assert doc.notes == []
     assert any("no notes" in w.lower() for w in doc.warnings)
+
+
+def test_transcription_failure_degrades_instead_of_failing(tmp_path: Path) -> None:
+    doc = run(tmp_path, transcriber=FailingTranscriber())
+    assert doc.notes == []
+    assert any("transcription failed" in w.lower() for w in doc.warnings)
+    # A raised exception is distinguishable from a genuinely empty result: the
+    # empty-result warning is worded differently and must not also appear.
+    assert "No notes were detected in the isolated guitar part." not in doc.warnings
+
+
+def test_progress_still_reports_when_stages_degrade(tmp_path: Path) -> None:
+    seen: list[StageProgress] = []
+    run(
+        tmp_path,
+        analyzer=FailingAnalyzer(),
+        mapper=UnimplementedMapper(),
+        progress=seen.append,
+    )
+
+    assert [p.stage for p in seen] == [
+        "separation",
+        "transcription",
+        "structure",
+        "fretboard",
+    ]
+    assert [p.percent for p in seen] == [40, 65, 80, 100]
 
 
 def test_a_note_violating_the_invariant_is_rejected(tmp_path: Path) -> None:
