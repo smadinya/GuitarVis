@@ -1000,8 +1000,7 @@ def pitch_of(string_index: int, fret: int, tuning: Sequence[str]) -> int:
         raise ValueError(f"fret must not be negative: {fret}")
     if not 0 <= string_index < len(tuning):
         raise IndexError(
-            f"string {string_index} does not exist on a "
-            f"{len(tuning)}-string instrument"
+            f"string {string_index} does not exist on a {len(tuning)}-string instrument"
         )
 
     return parse_pitch(tuning[string_index]) + fret
