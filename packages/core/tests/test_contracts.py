@@ -16,9 +16,12 @@ from guitarvis_core.contracts import (
     NoteEvent,
     PipelineError,
     Separator,
+    StructureAnalyzer,
+    StructureResult,
     TabNote,
     Transcriber,
 )
+from guitarvis_core.tabdoc import Timing
 
 
 def test_failure_reasons_match_the_spec_exactly() -> None:
@@ -68,6 +71,14 @@ def test_a_fake_transcriber_satisfies_the_protocol() -> None:
             return []
 
     assert isinstance(FakeTranscriber(), Transcriber)
+
+
+def test_a_fake_structure_analyzer_satisfies_the_protocol() -> None:
+    class FakeStructureAnalyzer:
+        def analyze(self, stem_path: Path, mix_path: Path) -> StructureResult:
+            return StructureResult(timing=Timing(), chords=[], sections=[])
+
+    assert isinstance(FakeStructureAnalyzer(), StructureAnalyzer)
 
 
 def test_a_fake_mapper_satisfies_the_protocol() -> None:

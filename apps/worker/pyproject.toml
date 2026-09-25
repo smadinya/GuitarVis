@@ -9,7 +9,7 @@ dependencies = ["guitarvis-core"]
 # Phase 1 (003-pipeline-skeleton) installs these with `uv sync --extra ml`.
 #
 # basic-pitch is deliberately absent. Version 0.4.0 — the latest release —
-# requires tensorflow<2.15.1 unconditionally on Linux for Python >= 3.11, and no
+# requires tensorflow<2.15.1 unconditionally on non-Darwin platforms for Python >= 3.11, and no
 # cp312 wheel of that tensorflow exists, so it cannot be installed on this
 # project's target Python. Forcing a newer tensorflow past that pin resolves the
 # lock and then fails at model load, because TF 2.16 moved to Keras 3. Stage 2's

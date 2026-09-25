@@ -6,6 +6,7 @@ NotImplementedError assertions are what stop a stub from being mistaken for a
 working stage during phase 1.
 """
 
+import importlib
 from pathlib import Path
 
 import pytest
@@ -58,12 +59,23 @@ def test_fretboard_is_not_implemented_yet() -> None:
         ViterbiFretboardMapper().assign([], STANDARD_TUNING)
 
 
-def test_stage_modules_do_not_import_the_ml_stack_at_module_level() -> None:
+@pytest.mark.parametrize(
+    "module_name",
+    [
+        "guitarvis_worker.stages.separation",
+        "guitarvis_worker.stages.transcription",
+        "guitarvis_worker.stages.structure",
+        "guitarvis_worker.stages.fretboard",
+    ],
+)
+def test_stage_modules_do_not_import_the_ml_stack_at_module_level(
+    module_name: str,
+) -> None:
     """Heavy imports belong inside the methods that use them.
 
     uv sync installs the worker without its ml extra, so a module-level
     `import torch` would break collection of this very test file.
     """
-    import guitarvis_worker.stages.separation as separation
+    module = importlib.import_module(module_name)
 
-    assert separation is not None
+    assert module is not None

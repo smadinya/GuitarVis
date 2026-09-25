@@ -37,7 +37,7 @@ Work is organised as numbered spec folders under `docs/specs/`:
 docs/specs/
 ├── 001-guitarvis-design/      spec.md
 ├── 002-repo-bootstrap/        spec.md  plan.md
-└── 003-pipeline-skeleton/     spec.md  plan.md
+└── 003-pipeline-skeleton/     spec.md  plan.md  ← next, not yet created
 ```
 
 Folder names are `NNN-short-name`: three digits, zero-padded, monotonic, never

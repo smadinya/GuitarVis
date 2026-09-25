@@ -9,6 +9,12 @@
 UV  := uv
 NPM := npm --prefix web
 
+# Empty by default so a developer who just edited pyproject.toml can still
+# `make install` and get a re-resolved lock. CI overrides this to --locked so
+# a drifted lockfile fails loudly there, matching how `npm ci` already
+# enforces the lockfile on the Node side.
+UV_SYNC_FLAGS ?=
+
 # mypy is pointed at the source trees rather than the repo root: with a src
 # layout it resolves package names from these directories, and tests stay out
 # of the strict contract rules.
@@ -22,7 +28,7 @@ help: ## Show this help
 	  | awk -F':.*?## ' '{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 install: ## Install dependencies and wire up the git hooks
-	$(UV) sync
+	$(UV) sync $(UV_SYNC_FLAGS)
 	$(NPM) ci
 	git config core.hooksPath .githooks
 	@echo "✓ hooks active — commits on main will be refused"

@@ -5,7 +5,7 @@
 # branch name is its docs/specs/NNN-short-name/ folder name.
 set -euo pipefail
 
-branch="$(git rev-parse --abbrev-ref HEAD)"
+branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
 
 if [ "$branch" = "main" ]; then
   cat >&2 <<'MSG'

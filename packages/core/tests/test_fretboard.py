@@ -65,6 +65,18 @@ def test_pitch_of_rejects_an_out_of_range_string() -> None:
         pitch_of(6, 0, STANDARD_TUNING)
 
 
+def test_pitch_of_rejects_a_negative_fret() -> None:
+    with pytest.raises(ValueError):
+        pitch_of(0, -1, STANDARD_TUNING)
+
+
+def test_pitch_of_rejects_a_negative_string_index() -> None:
+    """Python would otherwise index from the end and return a real pitch
+    for the wrong string."""
+    with pytest.raises(IndexError):
+        pitch_of(-1, 0, STANDARD_TUNING)
+
+
 def test_check_invariant_accepts_a_consistent_note() -> None:
     note = Note(id="n_0", t=0.0, dur=0.5, midi=52, string=2, fret=2, confidence=1.0)
 

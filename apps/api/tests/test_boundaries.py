@@ -8,6 +8,12 @@ Two checks, because they fail at different times. The AST scan catches a
 forbidden import even when the package is not installed, which is the normal
 state of this repo. The sys.modules check catches an import smuggled in
 through a transitive dependency.
+
+Neither check is complete: an AST scan cannot see a dynamic
+`importlib.import_module("torch")`, and neither can an import-time
+`sys.modules` probe, since that call would not execute until some code path
+runs. This is worth revisiting once the api gains route handlers that could
+import lazily.
 """
 
 import ast
