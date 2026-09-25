@@ -409,11 +409,13 @@ dependencies = ["guitarvis-core"]
 
 # Heavy ML dependencies are opt-in so that `uv sync` and CI stay light.
 # Phase 1 (003-pipeline-skeleton) installs these with `uv sync --extra ml`.
+#
+# basic-pitch is deliberately absent — it cannot install on this project's
+# Python 3.12. See the comment in apps/worker/pyproject.toml.
 [project.optional-dependencies]
 ml = [
     "torch>=2.4",
     "demucs>=4.0",
-    "basic-pitch>=0.4",
     "librosa>=0.10",
 ]
 

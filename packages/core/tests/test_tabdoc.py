@@ -22,6 +22,17 @@ def test_schema_version_is_one() -> None:
     assert SCHEMA_VERSION == 1
 
 
+def test_a_different_schema_version_is_rejected() -> None:
+    """schema_version exists so a client can refuse a document it does not
+    understand. That only holds if an unrecognised version actually fails
+    validation rather than being silently accepted."""
+    raw = load_fixture()
+    raw["schema_version"] = 99
+
+    with pytest.raises(ValidationError, match="99"):
+        TabDocument.model_validate(raw)
+
+
 def test_fixture_validates() -> None:
     doc = TabDocument.model_validate(load_fixture())
 

@@ -23,8 +23,11 @@ the hook that refuses commits on `main`.
 | `make typecheck` | mypy and `tsc --noEmit` |
 | `make test` | pytest and vitest |
 | `make schema` | Regenerate the JSON Schema and the web types |
+| `make schema-check` | Fail if the committed schema/web types are stale |
 | `make check` | Everything CI runs |
 | `make eval` | GuitarSet evaluation — measured, never gated |
+| `make clean` | Remove caches and build output |
+| `make help` | List these targets with their one-line descriptions |
 
 The worker's ML dependencies are an optional extra and are not installed by
 default. When you need them: `uv sync --extra ml`.

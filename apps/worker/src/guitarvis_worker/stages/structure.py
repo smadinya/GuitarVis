@@ -7,6 +7,7 @@ unreliable the field stays empty and the UI omits them.
 """
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from guitarvis_core.contracts import StructureResult
 
@@ -19,3 +20,10 @@ class LibrosaStructureAnalyzer:
             "Stage 3 lands in 003-pipeline-skeleton; see "
             "docs/specs/001-guitarvis-design/spec.md"
         )
+
+
+if TYPE_CHECKING:  # Static conformance: isinstance compares method names
+    from guitarvis_core.contracts import StructureAnalyzer  # only, so this
+
+    _conforms: StructureAnalyzer = LibrosaStructureAnalyzer()  # assignment is
+    # what actually checks the signature.

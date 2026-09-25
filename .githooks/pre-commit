@@ -5,7 +5,15 @@
 # branch name is its docs/specs/NNN-short-name/ folder name.
 set -euo pipefail
 
-branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+# git symbolic-ref, not `git rev-parse --abbrev-ref HEAD`: rev-parse fails
+# with exit 128 on an unborn branch (a fresh repo before its first commit),
+# and swallowing that with `|| true` used to leave `branch` empty — which
+# never equals "main", so the very first commit on main slipped through
+# unchecked. symbolic-ref resolves the ref name without needing a commit to
+# exist, so it works in that case too. If it fails for a different reason
+# (e.g. detached HEAD), `set -e` above aborts the commit with git's own
+# error rather than silently permitting it.
+branch="$(git symbolic-ref --short HEAD)"
 
 if [ "$branch" = "main" ]; then
   cat >&2 <<'MSG'

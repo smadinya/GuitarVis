@@ -24,6 +24,14 @@ never be added to `.gitignore`.
 Do not wire it in. Do not add a threshold job. Do not have a workflow read
 `eval/results/`.
 
+`apps/eval/tests/test_eval_never_gates_ci.py` enforces one narrow piece of
+this mechanically: it fails if any test file under `apps/eval/tests/` — which
+`make check` does collect, via `testpaths` in `pyproject.toml` — contains the
+literal path `eval/results`. It catches a test written to read that directory
+and assert on a metric; it does not catch a threshold added anywhere else
+(a workflow file, a script, a test in another package), so it is a tripwire
+for the most likely mistake, not a complete guarantee.
+
 A suite that fails because a model got two percent worse on a Tuesday is a
 suite people learn to ignore — and then a real failure goes unnoticed.
 Correctness is tested and gates the build; quality is measured and does not.

@@ -24,6 +24,7 @@ one means writing the next ADR.
 
 | Question | v1 default |
 |---|---|
+| Stage 2 transcription backend | Undecided — basic-pitch 0.4.0 cannot install on Python 3.12 (requires tensorflow<2.15.1, no cp312 wheel); see the comment in apps/worker/pyproject.toml |
 | Chord source: detected from the stem, or derived from notes | Detected from the stem |
 | Beat tracker: `librosa` or `madmom` | `librosa` — **`madmom`'s non-commercial clause needs an answer before any commercial launch** |
 | Tuning detection | Assume standard tuning |
@@ -37,3 +38,4 @@ one means writing the next ADR.
 | Accounts and persistence | Anonymous, session-scoped |
 | Hosting and GPU | Undecided; needed before public users |
 | Retention policy for stored copyrighted audio | Undecided; **needed before launch** |
+| Schema evolution for external (non-in-repo) validators | Undecided — `extra="forbid"` closes every model's JSON Schema, so an additive optional-field change, safe for in-repo `TabDocument.model_validate` consumers, still breaks a client validating against a bundled copy of `schema/tab-document.schema.json` (e.g. a future iOS app); no compatibility policy exists yet for that case |

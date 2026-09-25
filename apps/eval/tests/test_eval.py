@@ -23,7 +23,11 @@ def test_results_directory_is_tracked() -> None:
         cwd=REPO_ROOT,
         capture_output=True,
     )
-    assert ignored.returncode != 0, "eval/results/ must never be gitignored"
+    # check-ignore exits 1 for "not ignored" (what we want) and 0 for
+    # "ignored" (what we're guarding against), but it also exits 128 on a
+    # fatal error (e.g. git itself unavailable, or not run inside a repo) —
+    # `!= 0` would let that pass for the wrong reason. Pin to exactly 1.
+    assert ignored.returncode == 1, "eval/results/ must never be gitignored"
 
 
 def test_harness_entry_point_exists_and_reports_its_status() -> None:

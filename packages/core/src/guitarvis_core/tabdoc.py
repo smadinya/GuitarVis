@@ -16,7 +16,7 @@ no structure they do not need.
 
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 SCHEMA_VERSION = 1
 
@@ -26,8 +26,12 @@ STANDARD_TUNING = ("E2", "A2", "D3", "G3", "B3", "E4")
 class Strict(BaseModel):
     """Base for every document model.
 
-    extra="forbid" is the point: a client that sends a field this version does
-    not know about should be told, not silently ignored.
+    extra="forbid" is the point. Clients consume tab documents; they do not
+    produce them — the pipeline is the only writer. The producer that matters
+    here is a future version of this pipeline: a v2 field this version does
+    not know about must raise a validation error when an old client parses a
+    new document, rather than silently dropping the field and rendering an
+    incomplete or wrong tab.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -53,6 +57,10 @@ class Instrument(Strict):
         default_factory=lambda: list(STANDARD_TUNING),
         description="Scientific pitch names, low string first.",
     )
+    # v1 is always capo 0 (see docs/decisions/README.md's open-decision
+    # table); when capo detection lands, Note.fret must stay measured from
+    # the nut, matching this field, not from the capo. check_invariant
+    # below assumes the same thing.
     capo: int = Field(default=0, ge=0)
     string_count: int = Field(default=6, ge=1)
 
@@ -101,3 +109,21 @@ class TabDocument(Strict):
     notes: list[Note] = Field(default_factory=list)
     chords: list[Chord] = Field(default_factory=list)
     sections: list[Section] = Field(default_factory=list)
+
+    # A validator rather than `Literal[SCHEMA_VERSION]` on the field itself:
+    # a Literal type changes the generated JSON Schema's `schema_version`
+    # property (from a plain integer to a single-value const/enum), which
+    # would make `make schema` produce a diff unrelated to any real change.
+    # This keeps the schema exactly as it is today and only adds runtime
+    # rejection.
+    @field_validator("schema_version")
+    @classmethod
+    def _reject_unknown_schema_version(cls, value: int) -> int:
+        if value != SCHEMA_VERSION:
+            raise ValueError(
+                f"unsupported schema_version {value!r}: this client understands "
+                f"schema_version {SCHEMA_VERSION} only. Refusing to guess at a "
+                "document from a different version rather than risk rendering "
+                "it wrong."
+            )
+        return value

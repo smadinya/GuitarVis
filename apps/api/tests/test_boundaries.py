@@ -39,9 +39,15 @@ def imported_roots(source_file: Path) -> set[str]:
 
 
 def test_api_source_imports_nothing_from_the_ml_stack() -> None:
+    scanned_files = sorted(API_SOURCE.rglob("*.py"))
+    assert scanned_files, (
+        f"no source files found under {API_SOURCE}; the scan would pass "
+        "vacuously if the layout changed and this stopped finding anything"
+    )
+
     offenders: dict[str, set[str]] = {}
 
-    for source_file in sorted(API_SOURCE.rglob("*.py")):
+    for source_file in scanned_files:
         forbidden = imported_roots(source_file) & FORBIDDEN_ROOTS
         if forbidden:
             offenders[str(source_file)] = forbidden

@@ -53,6 +53,11 @@ def check_invariant(note: Note, tuning: Sequence[str]) -> None:
 
     Call this on every note leaving stage 4. A tab that renders the wrong fret
     is worse than no tab: a beginner cannot tell it from a hard passage.
+
+    `note.fret` is always measured from the nut, never from the capo. v1
+    only ever produces capo 0 (see Instrument.capo), so this distinction is
+    currently invisible, but it is the single most likely thing to make a
+    future client render every fret wrong once capo detection lands.
     """
     produced = pitch_of(note.string, note.fret, tuning)
     if produced != note.midi:

@@ -27,6 +27,19 @@ constraint; a new enum member that old clients can ignore.
 **Breaking, bump required:** removing a field; renaming one; retyping one;
 making an optional field required; narrowing a constraint.
 
+This "additive, no bump" rule is true only for a client that reads the
+document in-repo, through the generated TypeScript types or by calling
+`TabDocument.model_validate`. It is **false** for anything that validates the
+raw JSON against the *committed JSON Schema* independently — a future iOS
+client bundling `schema/tab-document.schema.json`, for instance. Because every
+model uses `extra="forbid"` (`additionalProperties: false` on the root and all
+eight `$defs`) and `Technique` is a closed enum, a v2 document with a new
+optional field, or a new `Technique` member, fails whole-document validation
+against a bundled v1 schema. A schema-validating client must still update to
+accept a v1-additive change, even though a `model_validate`-based client does
+not. State this when documenting a "safe" additive change to anyone building
+an external validator.
+
 Bumping means every client must be updated to accept the new version.
 `schema_version` exists so a client can refuse a document it does not
 understand rather than render it wrong.
@@ -59,14 +72,23 @@ send empty scaffolding.
 
 ## `extra="forbid"`
 
-Every model refuses unknown fields. That is deliberate: a client sending a
-field this version does not know about should be told, not silently ignored.
+Every model refuses unknown fields. Clients consume tab documents; they never
+produce them — the pipeline is the only writer. This is deliberate so that an
+old client parsing a newer document (produced by a later pipeline version)
+raises a validation error instead of silently dropping the field it does not
+recognise and rendering an incomplete or wrong tab.
+
+This also closes every model's generated JSON Schema
+(`additionalProperties: false` at the root and in all eight `$defs`, plus
+`Technique` as a closed enum). See "When to bump `SCHEMA_VERSION`" above for
+why that makes "additive, no bump" false for a client validating against the
+committed schema file rather than through `TabDocument.model_validate`.
 
 ## Check before you push
 
 ```bash
 uv run pytest packages/core/tests/test_tabdoc.py packages/core/tests/test_schema_export.py
-cd web && npm test; cd ..
+npm --prefix web test
 ```
 
 The shared fixture `packages/core/tests/fixtures/minimal.tabdoc.json` is
@@ -75,9 +97,11 @@ fixture or both suites fail — which is the intended behaviour, not an
 inconvenience.
 
 `npm test` is `tsc --noEmit && vitest run` — both halves matter. The contract
-check in `web/src/types/tabDocument.test.ts` is split across them: esbuild
-erases `import type` before vitest ever runs, so `vitest run` alone only
-checks the fixture's runtime values and cannot see whether its shape still
-matches the generated `TabDocument` type. Only `tsc --noEmit` checks the
-shape. Running `npx vitest run` by itself is not sufficient proof the contract
-holds — always run (or let `npm test` / `make check` run) both.
+check in `web/src/types/tabDocument.test.ts` is split across them: the fixture
+JSON is imported directly and assigned, with no cast, to a `TabDocument`-typed
+constant, so `tsc --noEmit` structurally checks the fixture's shape against the
+generated type. esbuild erases that type-only checking machinery before vitest
+ever runs, so `vitest run` alone only checks the fixture's runtime values and
+cannot see whether its shape still matches `TabDocument`. Only `tsc --noEmit`
+checks the shape. Running `npx vitest run` by itself is not sufficient proof
+the contract holds — always run (or let `npm test` / `make check` run) both.

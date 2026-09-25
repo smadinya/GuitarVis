@@ -5,30 +5,31 @@
  * the diff check cannot see: a generator that is silently emitting the wrong
  * types, where both sides are consistently wrong.
  *
- * THIS FILE IS NOT SELF-SUFFICIENT. `import type { TabDocument }` below is
- * erased by esbuild before vitest ever runs, so `vitest run` alone only
- * checks the fixture's runtime VALUES (the asserted numbers/strings/lengths)
- * — it cannot see the fixture's SHAPE against the generated type at all. The
- * SHAPE half — "does this fixture actually satisfy the TabDocument
- * interface" — is verified only by `tsc --noEmit`. Do not run this suite by
- * itself as proof the contract holds; run it alongside typechecking (`npm
- * test` does both — see package.json — and so does `make check`).
+ * The fixture is imported directly as a JSON module (`resolveJsonModule` is
+ * on in tsconfig.json) and assigned to a `TabDocument`-typed constant below,
+ * with no cast in between. `tsc --noEmit` structurally checks the fixture's
+ * actual SHAPE against the generated type this way — a cast such as `as
+ * TabDocument` would instead just tell the compiler to trust the assertion,
+ * which checks nothing. `vitest run` alone still only checks the fixture's
+ * runtime VALUES (the asserted numbers/strings/lengths); the SHAPE half is
+ * verified only by `tsc --noEmit`. Do not run this suite by itself as proof
+ * the contract holds; run it alongside typechecking (`npm test` does both —
+ * see package.json — and so does `make check`).
  */
-import { readFileSync } from "node:fs";
-
 import { describe, expect, it } from "vitest";
 
+import fixtureJson from "../../../packages/core/tests/fixtures/minimal.tabdoc.json";
 import type { TabDocument } from "./tabDocument";
 
-// Resolved from this file, not from the working directory, so the test does
-// not depend on where the runner was invoked.
-const FIXTURE = new URL(
-  "../../../packages/core/tests/fixtures/minimal.tabdoc.json",
-  import.meta.url,
-);
+// The direct assignment (no `as TabDocument`) is the actual shape check:
+// tsc rejects this line if the JSON module's inferred type no longer
+// structurally matches TabDocument.
+const FIXTURE: TabDocument = fixtureJson;
 
 function loadFixture(): TabDocument {
-  return JSON.parse(readFileSync(FIXTURE, "utf8")) as TabDocument;
+  // Return a fresh copy per call so tests that mutate their own copy (see
+  // the "omitted optional track" test below) cannot affect one another.
+  return structuredClone(FIXTURE);
 }
 
 describe("the tab document contract", () => {

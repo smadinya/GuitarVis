@@ -14,8 +14,13 @@ dependencies = ["guitarvis-core"]
 # project's target Python. Forcing a newer tensorflow past that pin resolves the
 # lock and then fails at model load, because TF 2.16 moved to Keras 3. Stage 2's
 # transcription backend is therefore an open choice for 003-pipeline-skeleton:
-# pin the worker to 3.11, use a different polyphonic transcriber, or drive
-# basic-pitch's ONNX export directly. See docs/specs/001-guitarvis-design/spec.md.
+# pin the worker to 3.11 (conflicts with `requires-python = ">=3.12"` in all
+# four manifests — every manifest would need to move together, not just this
+# one), use a different polyphonic transcriber, or drive basic-pitch's ONNX
+# export directly (this means vendoring the exported model and running
+# onnxruntime yourself; the tensorflow pin is unconditional in basic-pitch's
+# own install_requires, so installing the basic-pitch package at all still
+# pulls tensorflow in). See docs/specs/001-guitarvis-design/spec.md.
 [project.optional-dependencies]
 ml = [
     "torch>=2.4",

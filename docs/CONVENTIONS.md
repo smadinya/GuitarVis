@@ -48,7 +48,13 @@ Rules that outlive any one change. The reasoning lives in
   fallback.
 - Changing a field means running `make schema` and committing both generated
   artifacts. Adding an optional field is additive; removing or retyping one
-  requires bumping `SCHEMA_VERSION`.
+  requires bumping `SCHEMA_VERSION`. **This asymmetry does not hold for an
+  external validator.** `extra="forbid"` makes every model's JSON Schema
+  closed (`additionalProperties: false`, plus `Technique` as a closed enum),
+  so a client validating a document against a bundled copy of
+  `schema/tab-document.schema.json` — rather than against `TabDocument` itself
+  — rejects a whole v2 document over one new optional field. Treat an
+  additive change as breaking for any consumer of the committed schema file.
 
 ## Testing
 
@@ -79,3 +85,8 @@ Where a rule matters, it is enforced by something that fails:
 
 Adding a rule to this document without a mechanism is worth doing, but expect
 it to decay.
+
+`check_invariant` is tested directly (`packages/core/tests/test_fretboard.py`)
+but nothing calls it in the pipeline yet — stage 4 (`ViterbiFretboardMapper`)
+is still a stub. It activates as a real gate once phase 2 (004-fretboard-mapper)
+wires it into the mapper's output.

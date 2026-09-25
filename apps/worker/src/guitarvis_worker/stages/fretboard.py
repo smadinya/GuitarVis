@@ -10,6 +10,7 @@ emits must satisfy guitarvis_core.fretboard.check_invariant.
 """
 
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from guitarvis_core.contracts import NoteEvent, TabNote
 
@@ -24,3 +25,10 @@ class ViterbiFretboardMapper:
             "Stage 4 lands in 004-fretboard-mapper; see "
             "docs/specs/001-guitarvis-design/spec.md"
         )
+
+
+if TYPE_CHECKING:  # Static conformance: isinstance compares method names
+    from guitarvis_core.contracts import FretboardMapper  # only, so this
+
+    _conforms: FretboardMapper = ViterbiFretboardMapper()  # assignment is
+    # what actually checks the signature.
