@@ -374,13 +374,17 @@ def test_undecodable_file_is_unsupported_format(tmp_path: Path) -> None:
 
 def test_overlong_input_is_too_long(tmp_path: Path) -> None:
     with pytest.raises(PipelineError) as excinfo:
-        UploadSource(write_wav(tmp_path / "a.wav", seconds=2.0), max_duration_sec=1.0).fetch()
+        UploadSource(
+            write_wav(tmp_path / "a.wav", seconds=2.0), max_duration_sec=1.0
+        ).fetch()
     assert excinfo.value.reason is FailureReason.TOO_LONG
 
 
 def test_too_long_message_tells_the_user_what_to_do(tmp_path: Path) -> None:
     with pytest.raises(PipelineError, match="single song"):
-        UploadSource(write_wav(tmp_path / "a.wav", seconds=2.0), max_duration_sec=1.0).fetch()
+        UploadSource(
+            write_wav(tmp_path / "a.wav", seconds=2.0), max_duration_sec=1.0
+        ).fetch()
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -424,9 +428,12 @@ def probe_duration(path: Path) -> float:
         completed = subprocess.run(
             [
                 "ffprobe",
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "json",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "json",
                 str(path),
             ],
             capture_output=True,
@@ -701,9 +708,13 @@ class DemucsSeparator:
         """
         out_dir = audio_path.parent / "stems"
         command = [
-            sys.executable, "-m", "demucs",
-            "-n", model,
-            "-o", str(out_dir),
+            sys.executable,
+            "-m",
+            "demucs",
+            "-n",
+            model,
+            "-o",
+            str(out_dir),
             str(audio_path),
         ]
         if self.device:
@@ -934,9 +945,7 @@ class BasicPitchTranscriber:
         import basic_pitch
         from basic_pitch.inference import predict
 
-        _, _, note_events = predict(
-            str(stem_path), basic_pitch.ICASSP_2022_MODEL_PATH
-        )
+        _, _, note_events = predict(str(stem_path), basic_pitch.ICASSP_2022_MODEL_PATH)
         return note_events
 
 
@@ -1054,7 +1063,10 @@ def test_repeated_labels_collapse_into_one_chord() -> None:
         confidences=[0.9, 0.8, 0.7, 0.9, 0.8],
         end_time=5.0,
     )
-    assert [(c.symbol, c.t, c.dur) for c in chords] == [("Am", 0.0, 2.0), ("G", 2.0, 3.0)]
+    assert [(c.symbol, c.t, c.dur) for c in chords] == [
+        ("Am", 0.0, 2.0),
+        ("G", 2.0, 3.0),
+    ]
 
 
 def test_merged_confidence_is_the_mean() -> None:
@@ -1112,9 +1124,7 @@ def chord_templates() -> list[tuple[str, tuple[float, ...]]]:
     return templates
 
 
-def beats_to_events(
-    beat_times: Sequence[float], beats_per_bar: int = 4
-) -> list[Beat]:
+def beats_to_events(beat_times: Sequence[float], beats_per_bar: int = 4) -> list[Beat]:
     """Number a flat list of beat times into bars and beats.
 
     Bar 1 starts at the first detected beat; downbeat detection is not
@@ -1188,15 +1198,15 @@ class LibrosaStructureAnalyzer:
         stem, stem_rate = librosa.load(str(stem_path), mono=True)
         chroma = librosa.feature.chroma_cqt(y=stem, sr=stem_rate)
         duration = float(librosa.get_duration(y=stem, sr=stem_rate))
-        frame_times = librosa.frames_to_time(
-            np.arange(chroma.shape[1]), sr=stem_rate
-        )
+        frame_times = librosa.frames_to_time(np.arange(chroma.shape[1]), sr=stem_rate)
 
         # Without a beat grid, fall back to fixed one-second segments: the
         # chord track should survive beat tracking failing.
-        segments = beat_times if len(beat_times) >= 2 else [
-            float(t) for t in np.arange(0.0, duration, 1.0)
-        ]
+        segments = (
+            beat_times
+            if len(beat_times) >= 2
+            else [float(t) for t in np.arange(0.0, duration, 1.0)]
+        )
 
         templates = [(name, np.array(vector)) for name, vector in chord_templates()]
         symbols: list[str | None] = []
@@ -1683,8 +1693,12 @@ class StubAnalyzer:
 @pytest.fixture
 def stub_stages(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli, "DemucsSeparator", lambda **kwargs: StubSeparator())
-    monkeypatch.setattr(cli, "BasicPitchTranscriber", lambda **kwargs: StubTranscriber())
-    monkeypatch.setattr(cli, "LibrosaStructureAnalyzer", lambda **kwargs: StubAnalyzer())
+    monkeypatch.setattr(
+        cli, "BasicPitchTranscriber", lambda **kwargs: StubTranscriber()
+    )
+    monkeypatch.setattr(
+        cli, "LibrosaStructureAnalyzer", lambda **kwargs: StubAnalyzer()
+    )
 
 
 def test_writes_a_valid_document_and_exits_zero(
@@ -1725,8 +1739,10 @@ def test_too_long_reports_its_own_reason(
         [
             "process",
             str(write_wav(tmp_path / "song.wav", seconds=2.0)),
-            "-o", str(tmp_path / "o.json"),
-            "--max-duration", "1",
+            "-o",
+            str(tmp_path / "o.json"),
+            "--max-duration",
+            "1",
         ]
     )
     assert code == 2
@@ -1774,7 +1790,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     run = subparsers.add_parser("process", help="turn an audio file into tablature")
     run.add_argument("audio", help="path to an audio file")
-    run.add_argument("-o", "--output", required=True, help="where to write the document")
+    run.add_argument(
+        "-o", "--output", required=True, help="where to write the document"
+    )
     run.add_argument(
         "--tuning",
         default=",".join(STANDARD_TUNING),
