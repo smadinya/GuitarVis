@@ -4,9 +4,9 @@ Takes a recording of a song, isolates the guitar, transcribes what it plays,
 and renders the result as tablature you can play along with — in three synced
 views: scrolling tab, a 2D fretboard, and a 3D guitar.
 
-**Status: pre-implementation.** The repository is bootstrapped and the design
-is settled; phase 1 of 6 is next. There is nothing to run yet beyond the test
-suite.
+**Status: phase 1 of 6 done.** The pipeline skeleton — ingestion, the four
+stages, the degradation ladder, and a CLI that runs them end to end — is in
+place. Phase 2 (the fretboard mapper and evaluation harness) is next.
 
 ## How it works
 
@@ -65,6 +65,22 @@ make help      # every command
 ```
 
 Requires Python 3.12+, Node 22+, and [uv](https://docs.astral.sh/uv/).
+
+## Running the pipeline
+
+The worker ships a CLI that runs ingestion and all four stages against a
+local audio file:
+
+```bash
+uv sync --extra ml
+uv run guitarvis-worker process song.mp3 -o song.json
+```
+
+This needs `ffmpeg` (for duration probing) and, the first time, a download of
+the Demucs and basic-pitch model weights. `notes` in the output stays empty
+until 004-fretboard-mapper lands — stage 4 is not implemented yet, so the
+pipeline degrades gracefully rather than failing the job, and the document
+carries a warning saying so.
 
 ## Documentation
 

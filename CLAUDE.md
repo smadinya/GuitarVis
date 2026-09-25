@@ -42,8 +42,8 @@ any default that would write specs elsewhere — see
 
 ## Build phases
 
-1. Pipeline skeleton (CLI, no UI) ← **next**
-2. Fretboard mapper and evaluation harness
+1. Pipeline skeleton (CLI, no UI)
+2. Fretboard mapper and evaluation harness ← **next**
 3. API and job queue
 4. Web client: tab view and sync
 5. 2D fretboard, then 3D guitar
