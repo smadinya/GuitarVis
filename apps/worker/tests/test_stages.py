@@ -67,11 +67,6 @@ def test_stages_satisfy_their_protocols() -> None:
     assert isinstance(ViterbiFretboardMapper(), FretboardMapper)
 
 
-def test_transcription_is_not_implemented_yet() -> None:
-    with pytest.raises(NotImplementedError, match="003-pipeline-skeleton"):
-        BasicPitchTranscriber().transcribe(Path("stem.wav"))
-
-
 def test_structure_is_not_implemented_yet() -> None:
     with pytest.raises(NotImplementedError, match="003-pipeline-skeleton"):
         LibrosaStructureAnalyzer().analyze(Path("stem.wav"), Path("mix.wav"))
