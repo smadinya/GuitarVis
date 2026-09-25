@@ -69,7 +69,7 @@ Every task's requirements implicitly include this section.
 - Consumes: nothing.
 - Produces: the branch discipline every later task commits under; `git config core.hooksPath .githooks`, which Task 11 folds into `make install`.
 
-- [ ] **Step 1: Migrate the parent spec to the repo convention**
+- [x] **Step 1: Migrate the parent spec to the repo convention**
 
 ```bash
 mkdir -p docs/specs/001-guitarvis-design
@@ -78,12 +78,12 @@ git mv docs/superpowers/specs/2026-09-24-guitarvis-design.md \
 rmdir docs/superpowers/specs docs/superpowers
 ```
 
-- [ ] **Step 2: Verify the move left nothing behind**
+- [x] **Step 2: Verify the move left nothing behind**
 
 Run: `ls docs && ls docs/specs/001-guitarvis-design && test ! -d docs/superpowers && echo OK`
 Expected: `CONVENTIONS.md` is absent (not yet written), `specs` present, `spec.md` listed, `OK` printed.
 
-- [ ] **Step 3: Write `.gitignore`**
+- [x] **Step 3: Write `.gitignore`**
 
 ```gitignore
 # Python
@@ -138,7 +138,7 @@ storage/
 # ──────────────────────────────────────────────────────────────────────
 ```
 
-- [ ] **Step 4: Write `LICENSE`**
+- [x] **Step 4: Write `LICENSE`**
 
 ```
 MIT License
@@ -164,7 +164,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-- [ ] **Step 5: Write `.githooks/pre-commit`**
+- [x] **Step 5: Write `.githooks/pre-commit`**
 
 ```bash
 #!/usr/bin/env bash
@@ -190,14 +190,14 @@ MSG
 fi
 ```
 
-- [ ] **Step 6: Make the hook executable and activate it**
+- [x] **Step 6: Make the hook executable and activate it**
 
 ```bash
 chmod +x .githooks/pre-commit
 git config core.hooksPath .githooks
 ```
 
-- [ ] **Step 7: Write `.github/pull_request_template.md`**
+- [x] **Step 7: Write `.github/pull_request_template.md`**
 
 ```markdown
 **Spec:** docs/specs/NNN-short-name/spec.md
@@ -211,9 +211,9 @@ git config core.hooksPath .githooks
 
 ## Verification
 
-- [ ] `make check` passes locally
-- [ ] Contract artifacts regenerated if `tabdoc.py` changed (`make schema`)
-- [ ] Plan checkboxes in `docs/specs/NNN-short-name/plan.md` updated
+- [x] `make check` passes locally
+- [x] Contract artifacts regenerated if `tabdoc.py` changed (`make schema`)
+- [x] Plan checkboxes in `docs/specs/NNN-short-name/plan.md` updated
 
 ## Deviations from the spec
 
@@ -221,7 +221,7 @@ git config core.hooksPath .githooks
      valid answer, and a common one. -->
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add .gitignore LICENSE .githooks .github docs/specs/001-guitarvis-design
@@ -238,7 +238,7 @@ EOF
 )"
 ```
 
-- [ ] **Step 9: Prove the hook refuses a commit on `main`**
+- [x] **Step 9: Prove the hook refuses a commit on `main`**
 
 This cannot be tested in place. `core.hooksPath` points at `.githooks/`, which
 does not exist in `main`'s tree until this branch merges — checking out `main`
@@ -258,7 +258,7 @@ git commit --allow-empty -m "should be refused"
 ```
 Expected: FAIL, exit code 1, with the "Commit refused: you are on main" message.
 
-- [ ] **Step 10: Prove the hook permits a commit on a spec branch**
+- [x] **Step 10: Prove the hook permits a commit on a spec branch**
 
 Still in the throwaway clone:
 
@@ -268,7 +268,7 @@ git commit --allow-empty -m "should be permitted"
 ```
 Expected: PASS — the commit is created.
 
-- [ ] **Step 11: Discard the throwaway clone**
+- [x] **Step 11: Discard the throwaway clone**
 
 ```bash
 cd - && rm -rf "$T"
@@ -291,7 +291,7 @@ run it in a clone rather than by committing to `main` and resetting afterwards.
 - Consumes: Task 1's branch discipline.
 - Produces: `guitarvis_core.__version__: str` (`"0.1.0"`); a working `uv sync` and `uv run pytest`; the workspace every later Python task adds a member to.
 
-- [ ] **Step 1: Install uv**
+- [x] **Step 1: Install uv**
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -300,7 +300,7 @@ uv --version
 ```
 Expected: a version string. Add `$HOME/.local/bin` to your shell profile so later sessions find it.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Create `packages/core/tests/test_package.py`:
 
@@ -327,12 +327,12 @@ def test_importing_core_loads_no_ml_modules() -> None:
         assert forbidden not in sys.modules, f"core pulled in {forbidden}"
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `uv run pytest packages/core/tests/test_package.py -v`
 Expected: FAIL — uv cannot build the workspace, or `ModuleNotFoundError: No module named 'guitarvis_core'`.
 
-- [ ] **Step 4: Write the workspace root `pyproject.toml`**
+- [x] **Step 4: Write the workspace root `pyproject.toml`**
 
 ```toml
 [project]
@@ -373,7 +373,7 @@ addopts = "-q"
 
 Note: the four workspace members are all listed now, but only `core` exists yet. Tasks 6–8 create the rest; `uv sync` will fail until then unless you create the stub members in this task. To keep each task independently runnable, create the three remaining member directories with a minimal `pyproject.toml` here, and let Tasks 6–8 fill in their contents.
 
-- [ ] **Step 5: Create minimal manifests for the not-yet-built members**
+- [x] **Step 5: Create minimal manifests for the not-yet-built members**
 
 ```bash
 mkdir -p apps/api/src/guitarvis_api apps/worker/src/guitarvis_worker apps/eval/src/guitarvis_eval
@@ -453,7 +453,7 @@ touch apps/worker/src/guitarvis_worker/__init__.py
 touch apps/eval/src/guitarvis_eval/__init__.py
 ```
 
-- [ ] **Step 6: Write `packages/core/pyproject.toml`**
+- [x] **Step 6: Write `packages/core/pyproject.toml`**
 
 ```toml
 [project]
@@ -471,7 +471,7 @@ build-backend = "hatchling.build"
 packages = ["src/guitarvis_core"]
 ```
 
-- [ ] **Step 7: Write `packages/core/src/guitarvis_core/__init__.py`**
+- [x] **Step 7: Write `packages/core/src/guitarvis_core/__init__.py`**
 
 ```python
 """Shared contract between the GuitarVis pipeline and every client.
@@ -483,7 +483,7 @@ api imports it, and api must never load torch.
 __version__ = "0.1.0"
 ```
 
-- [ ] **Step 8: Write `ruff.toml`**
+- [x] **Step 8: Write `ruff.toml`**
 
 ```toml
 line-length = 88
@@ -496,7 +496,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 quote-style = "double"
 ```
 
-- [ ] **Step 9: Write `mypy.ini`**
+- [x] **Step 9: Write `mypy.ini`**
 
 ```ini
 [mypy]
@@ -536,17 +536,17 @@ warn_return_any = True
 strict_equality = True
 ```
 
-- [ ] **Step 10: Sync and run the test to verify it passes**
+- [x] **Step 10: Sync and run the test to verify it passes**
 
 Run: `uv sync && uv run pytest packages/core/tests/test_package.py -v`
 Expected: PASS, 2 passed. `uv.lock` is created, and `uv sync` completes without downloading torch.
 
-- [ ] **Step 11: Confirm the sync stayed light**
+- [x] **Step 11: Confirm the sync stayed light**
 
 Run: `uv run python -c "import torch" 2>&1 | tail -1`
 Expected: `ModuleNotFoundError: No module named 'torch'` — the ml extra was not installed.
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add pyproject.toml uv.lock ruff.toml mypy.ini packages apps
@@ -576,7 +576,7 @@ EOF
 - Consumes: `guitarvis_core` package from Task 2.
 - Produces: `SCHEMA_VERSION: int`; models `TabDocument`, `Source`, `Instrument`, `Beat`, `Timing`, `Note`, `Chord`, `Section`, `Technique`. Task 5 imports `Timing`, `Chord`, `Section`. Task 10 imports `TabDocument`. The fixture path `packages/core/tests/fixtures/minimal.tabdoc.json` is read by Task 10's vitest test.
 
-- [ ] **Step 1: Write the fixture**
+- [x] **Step 1: Write the fixture**
 
 Create `packages/core/tests/fixtures/minimal.tabdoc.json`. This file is read by
 pytest *and* by vitest, so it is the one artifact both languages agree on.
@@ -633,7 +633,7 @@ pytest *and* by vitest, so it is the one artifact both languages agree on.
 }
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Create `packages/core/tests/test_tabdoc.py`:
 
@@ -711,12 +711,12 @@ def test_optional_tracks_default_to_empty() -> None:
     assert doc.sections == []
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `uv run pytest packages/core/tests/test_tabdoc.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'guitarvis_core.tabdoc'`.
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 Create `packages/core/src/guitarvis_core/tabdoc.py`:
 
@@ -826,12 +826,12 @@ class TabDocument(Strict):
     sections: list[Section] = Field(default_factory=list)
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `uv run pytest packages/core/tests/test_tabdoc.py -v`
 Expected: PASS, 6 passed.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/core/src/guitarvis_core/tabdoc.py packages/core/tests
@@ -860,7 +860,7 @@ EOF
 - Consumes: `guitarvis_core.tabdoc.Note`, `STANDARD_TUNING`.
 - Produces: `parse_pitch(name: str) -> int`, `pitch_of(string_index: int, fret: int, tuning: Sequence[str]) -> int`, `check_invariant(note: Note, tuning: Sequence[str]) -> None`, `InvariantViolation(Exception)`. Phase 2's `FretboardMapper` calls all of these.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `packages/core/tests/test_fretboard.py`:
 
@@ -948,12 +948,12 @@ def test_check_invariant_rejects_an_inconsistent_note() -> None:
     assert "n_0" in str(excinfo.value)
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest packages/core/tests/test_fretboard.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'guitarvis_core.fretboard'`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `packages/core/src/guitarvis_core/fretboard.py`:
 
@@ -1022,12 +1022,12 @@ def check_invariant(note: Note, tuning: Sequence[str]) -> None:
         )
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `uv run pytest packages/core/tests/test_fretboard.py -v`
 Expected: PASS, 15 passed (9 parametrised cases plus 6 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/guitarvis_core/fretboard.py packages/core/tests/test_fretboard.py
@@ -1056,7 +1056,7 @@ EOF
 - Consumes: `guitarvis_core.tabdoc.{Timing, Chord, Section}`.
 - Produces: `NoteEvent`, `TabNote`, `StructureResult` (frozen dataclasses); Protocols `Separator`, `Transcriber`, `StructureAnalyzer`, `FretboardMapper`; `FailureReason` (str Enum); `PipelineError`. Task 7's stage stubs implement the Protocols.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `packages/core/tests/test_contracts.py`:
 
@@ -1148,12 +1148,12 @@ def test_an_unrelated_object_does_not_satisfy_the_protocol() -> None:
     assert not isinstance(object(), Separator)
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest packages/core/tests/test_contracts.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'guitarvis_core.contracts'`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `packages/core/src/guitarvis_core/contracts.py`:
 
@@ -1266,17 +1266,17 @@ class FretboardMapper(Protocol):
     ) -> list[TabNote]: ...
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `uv run pytest packages/core/tests/test_contracts.py -v`
 Expected: PASS, 8 passed.
 
-- [ ] **Step 5: Run the whole core suite and the type checker**
+- [x] **Step 5: Run the whole core suite and the type checker**
 
 Run: `uv run pytest packages/core -v && uv run mypy packages/core/src`
 Expected: all tests pass; mypy reports no issues.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/core/src/guitarvis_core/contracts.py packages/core/tests/test_contracts.py
@@ -1306,7 +1306,7 @@ EOF
 - Consumes: `guitarvis_core` from Task 2.
 - Produces: `guitarvis_api.app:app` (a `FastAPI` instance with no routes); `guitarvis_api.__version__`. Phase 3 adds routes to this object.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/api/tests/test_boundaries.py`:
 
@@ -1378,13 +1378,13 @@ def test_importing_api_loads_no_ml_modules() -> None:
     )
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest apps/api/tests/test_boundaries.py -v`
 Expected: FAIL — `test_importing_api_loads_no_ml_modules` errors because
 `guitarvis_api.app` does not exist yet.
 
-- [ ] **Step 3: Add fastapi to the api manifest**
+- [x] **Step 3: Add fastapi to the api manifest**
 
 Edit `apps/api/pyproject.toml`, replacing the `dependencies` line:
 
@@ -1395,7 +1395,7 @@ dependencies = [
 ]
 ```
 
-- [ ] **Step 4: Write the api shell**
+- [x] **Step 4: Write the api shell**
 
 `apps/api/src/guitarvis_api/__init__.py`:
 
@@ -1428,12 +1428,12 @@ app = FastAPI(
 )
 ```
 
-- [ ] **Step 5: Sync and run the test to verify it passes**
+- [x] **Step 5: Sync and run the test to verify it passes**
 
 Run: `uv sync && uv run pytest apps/api/tests/test_boundaries.py -v`
 Expected: PASS, 2 passed.
 
-- [ ] **Step 6: Prove the boundary test actually fires**
+- [x] **Step 6: Prove the boundary test actually fires**
 
 This mechanism is worth nothing unless it fails when violated. Temporarily add
 a forbidden import to `apps/api/src/guitarvis_api/app.py`:
@@ -1446,7 +1446,7 @@ Run: `uv run pytest apps/api/tests/test_boundaries.py -v`
 Expected: FAIL — `test_api_source_imports_nothing_from_the_ml_stack` reports
 `{'.../app.py': {'numpy'}}` with the message "That code belongs in apps/worker."
 
-- [ ] **Step 7: Remove the temporary import and confirm green**
+- [x] **Step 7: Remove the temporary import and confirm green**
 
 ```bash
 # delete the `import numpy` line from apps/api/src/guitarvis_api/app.py
@@ -1455,7 +1455,7 @@ git diff --stat   # expect: no change to app.py beyond Step 4's content
 ```
 Expected: PASS, 2 passed.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add apps/api uv.lock
@@ -1486,7 +1486,7 @@ EOF
 - Consumes: the Protocols from Task 5.
 - Produces: `DemucsSeparator`, `BasicPitchTranscriber`, `LibrosaStructureAnalyzer`, `ViterbiFretboardMapper`. Phase 1 (`003-pipeline-skeleton`) replaces each `NotImplementedError` with a body.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/worker/tests/test_stages.py`:
 
@@ -1556,12 +1556,12 @@ def test_stage_modules_do_not_import_the_ml_stack_at_module_level() -> None:
     assert separation is not None
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest apps/worker/tests/test_stages.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'guitarvis_worker.stages'`.
 
-- [ ] **Step 3: Write the worker package docstring**
+- [x] **Step 3: Write the worker package docstring**
 
 `apps/worker/src/guitarvis_worker/__init__.py`:
 
@@ -1576,7 +1576,7 @@ an API change.
 __version__ = "0.1.0"
 ```
 
-- [ ] **Step 4: Write the stage stubs**
+- [x] **Step 4: Write the stage stubs**
 
 `apps/worker/src/guitarvis_worker/stages/__init__.py`:
 
@@ -1704,12 +1704,12 @@ Stage 4's message names `004-fretboard-mapper` rather than
 mapper with the evaluation harness that measures it. Step 1's test already
 asserts this.
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `uv sync && uv run pytest apps/worker/tests/test_stages.py -v`
 Expected: PASS, 6 passed.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/worker
@@ -1739,7 +1739,7 @@ EOF
 - Consumes: `guitarvis_core`.
 - Produces: `python -m guitarvis_eval` as the entry point Task 11's `make eval` calls.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/eval/tests/test_eval.py`:
 
@@ -1783,12 +1783,12 @@ def test_harness_entry_point_exists_and_reports_its_status() -> None:
     assert "004-fretboard-mapper" in result.stderr
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest apps/eval/tests/test_eval.py -v`
 Expected: FAIL — `eval/results` does not exist; `python -m guitarvis_eval` has no `__main__`.
 
-- [ ] **Step 3: Write the eval package**
+- [x] **Step 3: Write the eval package**
 
 `apps/eval/src/guitarvis_eval/__init__.py`:
 
@@ -1833,7 +1833,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 4: Write `eval/results/README.md`**
+- [x] **Step 4: Write `eval/results/README.md`**
 
 ```markdown
 # Evaluation results
@@ -1854,12 +1854,12 @@ Metrics, per the design spec:
 These numbers are measured, never gated. No CI job may read them.
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `uv sync && uv run pytest apps/eval/tests/test_eval.py -v`
 Expected: PASS, 2 passed.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/eval eval
@@ -1890,7 +1890,7 @@ EOF
 The files are hand-written rather than scaffolded with `npm create vite`, which
 prompts interactively and pulls a template that would then need trimming.
 
-- [ ] **Step 1: Write `web/package.json`**
+- [x] **Step 1: Write `web/package.json`**
 
 ```json
 {
@@ -1938,7 +1938,7 @@ vite 5 / vitest 2, which carried a critical and a high advisory in dev tooling a
 sat three majors behind — worth correcting while the web workspace still contains
 one component and no tests.
 
-- [ ] **Step 2: Write the TypeScript configuration**
+- [x] **Step 2: Write the TypeScript configuration**
 
 `web/tsconfig.json`:
 
@@ -1983,7 +1983,7 @@ Note the absence of `noEmit`. A composite project may not disable emit —
 TypeScript rejects the combination with TS6310, "Referenced project may not
 disable emit." This matches how Vite's own React+TS template writes the file.
 
-- [ ] **Step 3: Write `web/vite.config.ts`**
+- [x] **Step 3: Write `web/vite.config.ts`**
 
 ```ts
 // defineConfig comes from vitest/config, not vite: the vite one does not type
@@ -2000,7 +2000,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 4: Write `web/eslint.config.js`**
+- [x] **Step 4: Write `web/eslint.config.js`**
 
 ```js
 import js from "@eslint/js";
@@ -2016,7 +2016,7 @@ export default tseslint.config(
 The generated types file is excluded: it is regenerated by `make schema` and
 hand-editing it is the mistake the drift check exists to catch.
 
-- [ ] **Step 5: Write the application shell**
+- [x] **Step 5: Write the application shell**
 
 `web/index.html`:
 
@@ -2076,7 +2076,7 @@ export function App() {
 }
 ```
 
-- [ ] **Step 6: Install and generate the lockfile**
+- [x] **Step 6: Install and generate the lockfile**
 
 ```bash
 cd web && npm install && cd ..
@@ -2084,7 +2084,7 @@ cd web && npm install && cd ..
 Expected: `web/package-lock.json` is created. It must be committed — Task 11's
 `make install` runs `npm ci`, which requires it.
 
-- [ ] **Step 7: Verify the toolchain boots**
+- [x] **Step 7: Verify the toolchain boots**
 
 ```bash
 cd web
@@ -2096,7 +2096,7 @@ cd ..
 Expected: all three exit 0. `--passWithNoTests` is a one-off for this task;
 Task 10 adds the first real test and the Makefile never uses the flag.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add web
@@ -2128,7 +2128,7 @@ EOF
 - Consumes: `TabDocument` from Task 3; the fixture at `packages/core/tests/fixtures/minimal.tabdoc.json`; the web workspace from Task 9.
 - Produces: `python -m guitarvis_core.schema_export <path>`; npm script `generate-types`; the exported TypeScript type `TabDocument`. Task 11's `make schema` and `make schema-check` call both.
 
-- [ ] **Step 1: Write the failing Python test**
+- [x] **Step 1: Write the failing Python test**
 
 Create `packages/core/tests/test_schema_export.py`:
 
@@ -2189,12 +2189,12 @@ def test_schema_describes_the_documented_top_level_fields() -> None:
     }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest packages/core/tests/test_schema_export.py -v`
 Expected: FAIL — `No module named guitarvis_core.schema_export`.
 
-- [ ] **Step 3: Write the exporter**
+- [x] **Step 3: Write the exporter**
 
 Create `packages/core/src/guitarvis_core/schema_export.py`:
 
@@ -2236,7 +2236,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 4: Generate the schema and run the Python test**
+- [x] **Step 4: Generate the schema and run the Python test**
 
 ```bash
 uv run python -m guitarvis_core.schema_export schema/tab-document.schema.json
@@ -2244,7 +2244,7 @@ uv run pytest packages/core/tests/test_schema_export.py -v
 ```
 Expected: PASS, 3 passed. `schema/tab-document.schema.json` now exists.
 
-- [ ] **Step 5: Write the TypeScript generator**
+- [x] **Step 5: Write the TypeScript generator**
 
 Create `web/scripts/generate-types.mjs`:
 
@@ -2278,7 +2278,7 @@ writeFileSync(OUTPUT, ts);
 console.log(`wrote ${OUTPUT}`);
 ```
 
-- [ ] **Step 6: Write the failing TypeScript test**
+- [x] **Step 6: Write the failing TypeScript test**
 
 Create `web/src/types/tabDocument.test.ts`:
 
@@ -2338,7 +2338,7 @@ describe("the tab document contract", () => {
 });
 ```
 
-- [ ] **Step 7: Run the TypeScript test to verify it fails**
+- [x] **Step 7: Run the TypeScript test to verify it fails**
 
 ```bash
 cd web && npx vitest run; cd ..
@@ -2346,7 +2346,7 @@ cd web && npx vitest run; cd ..
 Expected: FAIL — `Cannot find module "./tabDocument"`; the types are not
 generated yet.
 
-- [ ] **Step 8: Generate the types and verify the test passes**
+- [x] **Step 8: Generate the types and verify the test passes**
 
 ```bash
 cd web
@@ -2358,7 +2358,7 @@ cd ..
 Expected: `wrote src/types/tabDocument.ts`, then `tsc` exits 0, then 2 tests
 pass.
 
-- [ ] **Step 9: Prove the drift check fires**
+- [x] **Step 9: Prove the drift check fires**
 
 Add a field to `Note` in `packages/core/src/guitarvis_core/tabdoc.py`:
 
@@ -2371,7 +2371,7 @@ uv run pytest packages/core/tests/test_schema_export.py::test_committed_schema_i
 ```
 Expected: FAIL with "schema/tab-document.schema.json is stale; run `make schema`".
 
-- [ ] **Step 10: Remove the temporary field and confirm green**
+- [x] **Step 10: Remove the temporary field and confirm green**
 
 ```bash
 # delete the `vibrato` line from tabdoc.py
@@ -2380,7 +2380,7 @@ git diff --stat packages/core/src/guitarvis_core/tabdoc.py   # expect: empty
 ```
 Expected: all core tests pass, and the file is unchanged from Task 3.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add packages/core/src/guitarvis_core/schema_export.py \
@@ -2411,7 +2411,7 @@ EOF
 - Consumes: every package and npm script from Tasks 2–10.
 - Produces: `make check` as the single command CI runs and the one contributors are told about.
 
-- [ ] **Step 1: Write the `Makefile`**
+- [x] **Step 1: Write the `Makefile`**
 
 ```makefile
 # The command surface. CI runs `make check` and nothing else, so anything that
@@ -2486,7 +2486,7 @@ clean: ## Remove caches and build output
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +
 ```
 
-- [ ] **Step 2: Verify `make check` passes on the current tree**
+- [x] **Step 2: Verify `make check` passes on the current tree**
 
 Run: `make check`
 Expected: ruff clean, mypy clean, pytest green, vitest green, and
@@ -2494,14 +2494,14 @@ Expected: ruff clean, mypy clean, pytest green, vitest green, and
 `make format`, re-run `make check`, and include the formatting in this task's
 commit.
 
-- [ ] **Step 3: Verify `eval` is unreachable from `check`**
+- [x] **Step 3: Verify `eval` is unreachable from `check`**
 
 Run: `make -n check | grep -c guitarvis_eval`
 Expected: `0`. The separation is the measured-not-gated rule expressed in the
 build system, so wiring evaluation into CI would take an edit someone has to
 justify.
 
-- [ ] **Step 4: Write `.github/workflows/ci.yml`**
+- [x] **Step 4: Write `.github/workflows/ci.yml`**
 
 ```yaml
 name: CI
@@ -2540,7 +2540,7 @@ jobs:
         run: make check
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Makefile .github/workflows/ci.yml
@@ -2569,7 +2569,7 @@ EOF
 - Consumes: the command surface from Task 11 — every command named here must exist.
 - Produces: the four documents later specs extend rather than replace.
 
-- [ ] **Step 1: Write `README.md`**
+- [x] **Step 1: Write `README.md`**
 
 ```markdown
 # GuitarVis
@@ -2653,7 +2653,7 @@ Requires Python 3.12+, Node 22+, and [uv](https://docs.astral.sh/uv/).
 MIT. See [LICENSE](LICENSE).
 ```
 
-- [ ] **Step 2: Write `CONTRIBUTING.md`**
+- [x] **Step 2: Write `CONTRIBUTING.md`**
 
 ```markdown
 # Contributing
@@ -2737,7 +2737,7 @@ Write the body to explain *why*, not *what* — the diff already says what.
 - The plan's checkboxes reflect reality
 ```
 
-- [ ] **Step 3: Write `docs/CONVENTIONS.md`**
+- [x] **Step 3: Write `docs/CONVENTIONS.md`**
 
 ```markdown
 # Conventions
@@ -2823,7 +2823,7 @@ Adding a rule to this document without a mechanism is worth doing, but expect
 it to decay.
 ```
 
-- [ ] **Step 4: Write `CLAUDE.md`**
+- [x] **Step 4: Write `CLAUDE.md`**
 
 ```markdown
 # GuitarVis — working notes for Claude
@@ -2888,7 +2888,7 @@ Phases 1–2 hold the technical risk. The rest is conventional work.
   job outright.
 ```
 
-- [ ] **Step 5: Verify every command the docs name actually exists**
+- [x] **Step 5: Verify every command the docs name actually exists**
 
 ```bash
 for target in install lint format typecheck test schema schema-check check eval help; do
@@ -2898,7 +2898,7 @@ done
 Expected: `ok` for all ten. A document promising a command that does not exist
 is worse than no document.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add README.md CONTRIBUTING.md CLAUDE.md docs/CONVENTIONS.md
@@ -2927,7 +2927,7 @@ EOF
 - Consumes: the parent spec, which each ADR links rather than restates.
 - Produces: the numbering pattern and the open-decision backlog later specs add to.
 
-- [ ] **Step 1: Write `docs/decisions/template.md`**
+- [x] **Step 1: Write `docs/decisions/template.md`**
 
 ```markdown
 # NNNN. Title
@@ -2949,7 +2949,7 @@ What was chosen, stated in one or two sentences.
 What this makes easy, what it makes hard, and what would force revisiting it.
 ```
 
-- [ ] **Step 2: Write `docs/decisions/0001-staged-pipeline.md`**
+- [x] **Step 2: Write `docs/decisions/0001-staged-pipeline.md`**
 
 ```markdown
 # 0001. Staged pipeline rather than an end-to-end learned tab model
@@ -2984,7 +2984,7 @@ learned model would be natural. Revisit if transcription quality plateaus below
 usefulness and training data has grown.
 ```
 
-- [ ] **Step 3: Write `docs/decisions/0002-seconds-are-authoritative.md`**
+- [x] **Step 3: Write `docs/decisions/0002-seconds-are-authoritative.md`**
 
 ```markdown
 # 0002. Seconds are authoritative; musical position is derived
@@ -3015,7 +3015,7 @@ Rendering must do more work: bar lines require a lookup into the beat grid
 rather than being implicit in the data. Accepted.
 ```
 
-- [ ] **Step 4: Write `docs/decisions/0003-deterministic-fretboard.md`**
+- [x] **Step 4: Write `docs/decisions/0003-deterministic-fretboard.md`**
 
 ```markdown
 # 0003. Fretboard assignment is deterministic code, not a learned model
@@ -3048,7 +3048,7 @@ notes in a position no guitarist would choose. That is a better failure than a
 wrong note, and it is improvable by tuning costs rather than retraining.
 ```
 
-- [ ] **Step 5: Write `docs/decisions/0004-evaluation-is-measured-not-gated.md`**
+- [x] **Step 5: Write `docs/decisions/0004-evaluation-is-measured-not-gated.md`**
 
 ```markdown
 # 0004. Evaluation is measured, never gated
@@ -3079,7 +3079,7 @@ Nothing automatically stops a quality regression from merging. The tracked
 results file makes it visible instead, which requires someone to look.
 ```
 
-- [ ] **Step 6: Write `docs/decisions/0005-uv-workspace-monorepo.md`**
+- [x] **Step 6: Write `docs/decisions/0005-uv-workspace-monorepo.md`**
 
 ```markdown
 # 0005. A uv workspace monorepo with a shared core package
@@ -3114,7 +3114,7 @@ Generated artifacts in git will occasionally produce merge conflicts in
 contract — and is exactly when a human should look.
 ```
 
-- [ ] **Step 7: Write `docs/decisions/README.md`**
+- [x] **Step 7: Write `docs/decisions/README.md`**
 
 ```markdown
 # Architecture decisions
@@ -3158,7 +3158,7 @@ one means writing the next ADR.
 | Retention policy for stored copyrighted audio | Undecided; **needed before launch** |
 ```
 
-- [ ] **Step 8: Verify every ADR link resolves**
+- [x] **Step 8: Verify every ADR link resolves**
 
 ```bash
 cd docs/decisions
@@ -3171,7 +3171,7 @@ cd ../..
 ```
 Expected: every line starts with `ok`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add docs/decisions
@@ -3202,7 +3202,7 @@ EOF
 - Consumes: everything above; each skill describes mechanisms that now exist.
 - Produces: the guidance a cold session loads before touching the contract, a stage, the evaluation, or a new spec.
 
-- [ ] **Step 1: Write `.claude/skills/spec-workflow/SKILL.md`**
+- [x] **Step 1: Write `.claude/skills/spec-workflow/SKILL.md`**
 
 ```markdown
 ---
@@ -3272,7 +3272,7 @@ technical risk:
 4. Tab view and sync · 5. 2D then 3D fretboard · 6. URL ingestion
 ```
 
-- [ ] **Step 2: Write `.claude/skills/tab-document/SKILL.md`**
+- [x] **Step 2: Write `.claude/skills/tab-document/SKILL.md`**
 
 ```markdown
 ---
@@ -3352,7 +3352,7 @@ fixture or both suites fail — which is the intended behaviour, not an
 inconvenience.
 ```
 
-- [ ] **Step 3: Write `.claude/skills/pipeline-stage/SKILL.md`**
+- [x] **Step 3: Write `.claude/skills/pipeline-stage/SKILL.md`**
 
 ```markdown
 ---
@@ -3435,7 +3435,7 @@ harness's job — see the `eval-harness` skill.
    degradation table above and in the design spec.
 ```
 
-- [ ] **Step 4: Write `.claude/skills/eval-harness/SKILL.md`**
+- [x] **Step 4: Write `.claude/skills/eval-harness/SKILL.md`**
 
 ```markdown
 ---
@@ -3504,7 +3504,7 @@ without a before-number is not a measurement, and the whole reason the pipeline
 is staged is to make that comparison possible.
 ```
 
-- [ ] **Step 5: Verify the skill frontmatter parses and names match directories**
+- [x] **Step 5: Verify the skill frontmatter parses and names match directories**
 
 ```bash
 for f in .claude/skills/*/SKILL.md; do
@@ -3516,13 +3516,13 @@ done
 ```
 Expected: four `ok` lines, no mismatches, no frontmatter warnings.
 
-- [ ] **Step 6: Run the full check one last time**
+- [x] **Step 6: Run the full check one last time**
 
 Run: `make check`
 Expected: PASS — ruff, mypy, pytest, vitest, and the schema drift check all
 green on the complete tree.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add .claude/skills
@@ -3544,7 +3544,7 @@ EOF
 
 ## Final verification
 
-- [ ] **`make check` passes from a clean clone**
+- [x] **`make check` passes from a clean clone**
 
 ```bash
 git clone . /tmp/guitarvis-verify && cd /tmp/guitarvis-verify
@@ -3555,7 +3555,7 @@ cd - && rm -rf /tmp/guitarvis-verify
 Expected: green. This catches anything that works only because of state left in
 the working directory.
 
-- [ ] **Every mechanism has been observed failing**
+- [x] **Every mechanism has been observed failing**
 
 | Mechanism | Proven in |
 |---|---|
@@ -3564,7 +3564,7 @@ the working directory.
 | Schema drift check | Task 10, Step 9 |
 | `make eval` unreachable from `make check` | Task 11, Step 3 |
 
-- [ ] **Open the pull request**
+- [x] **Open the pull request**
 
 ```bash
 gh pr create --title "Bootstrap the repository" --body "$(cat <<'EOF'
