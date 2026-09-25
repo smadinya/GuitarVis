@@ -36,6 +36,15 @@ The workspace stays on Python 3.12 and no TensorFlow enters the tree, so the
 worker's dependency footprint is considerably smaller than planned and stage 2
 needs no GPU.
 
+The override neutralises TensorFlow's *installation*, not its *resolution*:
+`uv.lock` still records the full TensorFlow dependency tree, pinned behind a
+`sys_platform == 'never'` marker that is always false. `uv sync` therefore
+never installs it, but the lockfile still carries and re-resolves those
+entries on every `uv lock` refresh. This is deliberate — it is what makes the
+override a lockfile-visible, diffable decision rather than a requirement that
+silently vanished — but it means `uv.lock` is not evidence that TensorFlow is
+absent from the dependency graph, only from the installed environment.
+
 Two overrides now sit between us and upstream's stated requirements. They are
 not pins that fail loudly when wrong: a future resolution could quietly satisfy
 the real TensorFlow requirement, or an upstream reorganisation of
