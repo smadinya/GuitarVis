@@ -240,28 +240,43 @@ EOF
 
 - [ ] **Step 9: Prove the hook refuses a commit on `main`**
 
-The tree is clean after Step 8, so these empty commits are safe.
+This cannot be tested in place. `core.hooksPath` points at `.githooks/`, which
+does not exist in `main`'s tree until this branch merges — checking out `main`
+removes the directory, and git then silently runs no hook at all. Testing in
+place produces a commit that succeeds and tells you nothing.
+
+Test it in a throwaway clone where `main` does contain the hook:
 
 ```bash
-git checkout main
+T=$(mktemp -d)
+git clone -q . "$T"
+cd "$T"
+git branch -f main origin/002-repo-bootstrap
+git checkout -q main
+git config core.hooksPath .githooks
 git commit --allow-empty -m "should be refused"
 ```
 Expected: FAIL, exit code 1, with the "Commit refused: you are on main" message.
 
 - [ ] **Step 10: Prove the hook permits a commit on a spec branch**
 
+Still in the throwaway clone:
+
 ```bash
-git checkout 002-repo-bootstrap
+git checkout -q -b 003-pipeline-skeleton
 git commit --allow-empty -m "should be permitted"
 ```
 Expected: PASS — the commit is created.
 
-- [ ] **Step 11: Remove the throwaway commit**
+- [ ] **Step 11: Discard the throwaway clone**
 
 ```bash
-git reset --soft HEAD~1
-git status --short   # expect: no changes
+cd - && rm -rf "$T"
+git status --short   # in the real repo: no changes, still on 002-repo-bootstrap
 ```
+
+Nothing in the real repository was touched by the test, which is the reason to
+run it in a clone rather than by committing to `main` and resetting afterwards.
 
 ---
 
