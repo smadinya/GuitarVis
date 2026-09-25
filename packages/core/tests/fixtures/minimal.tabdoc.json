@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "source": {
+    "title": "Fixture Song",
+    "duration_sec": 12.5,
+    "audio_url": "s3://guitarvis-test/fixture.wav"
+  },
+  "instrument": {
+    "tuning": ["E2", "A2", "D3", "G3", "B3", "E4"],
+    "capo": 0,
+    "string_count": 6
+  },
+  "timing": {
+    "beats": [
+      { "t": 0.0, "bar": 1, "beat": 1 },
+      { "t": 0.5, "bar": 1, "beat": 2 }
+    ],
+    "tempo_bpm_avg": 120.0,
+    "time_signature": "4/4"
+  },
+  "notes": [
+    {
+      "id": "n_0000",
+      "t": 0.0,
+      "dur": 0.5,
+      "midi": 40,
+      "string": 0,
+      "fret": 0,
+      "confidence": 0.95,
+      "technique": null
+    },
+    {
+      "id": "n_0001",
+      "t": 0.5,
+      "dur": 0.25,
+      "midi": 52,
+      "string": 2,
+      "fret": 2,
+      "confidence": 0.81,
+      "technique": null
+    }
+  ],
+  "chords": [
+    { "t": 0.0, "dur": 2.0, "symbol": "Em", "confidence": 0.9 }
+  ],
+  "sections": [
+    { "t": 0.0, "dur": 12.5, "label": "intro" }
+  ]
+}
