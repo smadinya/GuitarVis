@@ -81,7 +81,14 @@ def merge_chords(
 
 
 class LibrosaStructureAnalyzer:
-    """Implements guitarvis_core.contracts.StructureAnalyzer."""
+    """Implements guitarvis_core.contracts.StructureAnalyzer.
+
+    Beat tracking and chord detection each run behind their own try/except in
+    `analyze`, matching parent spec 001's ladder table, which gives the two
+    separate rows: losing beats costs bar lines, losing chords costs the
+    chord track, and each fails independently rather than taking the other
+    down with it.
+    """
 
     def __init__(
         self,
@@ -92,6 +99,30 @@ class LibrosaStructureAnalyzer:
         self.min_chord_confidence = min_chord_confidence
 
     def analyze(self, stem_path: Path, mix_path: Path) -> StructureResult:
+        try:
+            timing, beat_times = self._track_beats(mix_path)
+        except Exception:
+            timing, beat_times = Timing(), []
+
+        try:
+            chords = self._detect_chords(stem_path, beat_times)
+        except Exception:
+            chords = []
+
+        return StructureResult(
+            timing=timing,
+            chords=chords,
+            sections=[],  # Section labelling is optional and not attempted in v1.
+        )
+
+    def _track_beats(self, mix_path: Path) -> tuple[Timing, list[float]]:
+        """Beat and tempo tracking on the original mix.
+
+        Kept behind its own method (rather than inlined in `analyze`) so a
+        failure here — a corrupt mix, a librosa/numpy edge case — can be
+        caught without taking chord detection down with it, and so tests can
+        override this seam without needing the ml extra installed.
+        """
         import librosa
         import numpy as np
 
@@ -107,6 +138,22 @@ class LibrosaStructureAnalyzer:
             tempo_bpm_avg=tempo_value if tempo_value and tempo_value > 0 else None,
             time_signature=f"{self.beats_per_bar}/4",
         )
+        return timing, beat_times
+
+    def _detect_chords(
+        self, stem_path: Path, beat_times: Sequence[float]
+    ) -> list[Chord]:
+        """Chroma-template chord detection on the isolated stem.
+
+        Kept behind its own method so a failure here cannot take the beat
+        grid down with it, and so tests can override this seam without
+        needing the ml extra installed. `beat_times` may be empty — whether
+        because beat tracking found nothing or because it failed and
+        `analyze` substituted `[]` — either way this falls back to fixed
+        one-second segments, exactly as it always has.
+        """
+        import librosa
+        import numpy as np
 
         stem, stem_rate = librosa.load(str(stem_path), mono=True)
         chroma = librosa.feature.chroma_cqt(y=stem, sr=stem_rate)
@@ -116,7 +163,7 @@ class LibrosaStructureAnalyzer:
         # Without a beat grid, fall back to fixed one-second segments: the
         # chord track should survive beat tracking failing.
         segments = (
-            beat_times
+            list(beat_times)
             if len(beat_times) >= 2
             else [float(t) for t in np.arange(0.0, duration, 1.0)]
         )
@@ -147,11 +194,7 @@ class LibrosaStructureAnalyzer:
                 symbols.append(name)
                 confidences.append(min(1.0, score))
 
-        return StructureResult(
-            timing=timing,
-            chords=merge_chords(symbols, segments, confidences, duration),
-            sections=[],  # Section labelling is optional and not attempted in v1.
-        )
+        return merge_chords(symbols, segments, confidences, duration)
 
 
 if TYPE_CHECKING:  # Static conformance: isinstance compares method names

@@ -1,9 +1,21 @@
-"""Stage 3's pure logic: bar numbering, chord templates, and run merging."""
+"""Stage 3's pure logic: bar numbering, chord templates, and run merging.
+
+The independent-degradation tests below stub `_track_beats`/`_detect_chords`
+rather than monkeypatching librosa itself: librosa is not installed under the
+default `uv sync` (it lives behind the worker's `ml` extra), so patching its
+module-level functions is not a seam available here. Overriding the private
+method is the same seam `test_transcription.py` already uses for
+`BasicPitchTranscriber._predict`.
+"""
 
 import math
+from collections.abc import Sequence
+from pathlib import Path
 
+from guitarvis_core.tabdoc import Beat, Chord, Timing
 from guitarvis_worker.stages.structure import (
     MIN_CHORD_CONFIDENCE,
+    LibrosaStructureAnalyzer,
     beats_to_events,
     chord_templates,
     merge_chords,
@@ -66,3 +78,48 @@ def test_unlabelled_segments_are_skipped() -> None:
 
 def test_confidence_threshold_is_a_real_threshold() -> None:
     assert 0.0 < MIN_CHORD_CONFIDENCE < 1.0
+
+
+class BeatsFailAnalyzer(LibrosaStructureAnalyzer):
+    """Beat tracking always raises; chord detection is stubbed to prove it
+    still ran."""
+
+    def _track_beats(self, mix_path: Path) -> tuple[Timing, list[float]]:
+        raise RuntimeError("beat tracker exploded")
+
+    def _detect_chords(
+        self, stem_path: Path, beat_times: Sequence[float]
+    ) -> list[Chord]:
+        return [Chord(t=0.0, dur=1.0, symbol="Am", confidence=0.9)]
+
+
+class ChordsFailAnalyzer(LibrosaStructureAnalyzer):
+    """Chord detection always raises; beat tracking is stubbed to prove it
+    still ran."""
+
+    def _track_beats(self, mix_path: Path) -> tuple[Timing, list[float]]:
+        return (
+            Timing(beats=[Beat(t=0.0, bar=1, beat=1)], tempo_bpm_avg=120.0),
+            [0.0, 0.5],
+        )
+
+    def _detect_chords(
+        self, stem_path: Path, beat_times: Sequence[float]
+    ) -> list[Chord]:
+        raise RuntimeError("chord detector exploded")
+
+
+def test_beat_tracking_failure_still_yields_chords(tmp_path: Path) -> None:
+    result = BeatsFailAnalyzer().analyze(tmp_path / "stem.wav", tmp_path / "mix.wav")
+
+    assert result.timing.beats == []
+    assert result.timing.tempo_bpm_avg is None
+    assert [c.symbol for c in result.chords] == ["Am"]
+
+
+def test_chord_detection_failure_still_yields_beats(tmp_path: Path) -> None:
+    result = ChordsFailAnalyzer().analyze(tmp_path / "stem.wav", tmp_path / "mix.wav")
+
+    assert result.chords == []
+    assert result.timing.tempo_bpm_avg == 120.0
+    assert [b.bar for b in result.timing.beats] == [1]
