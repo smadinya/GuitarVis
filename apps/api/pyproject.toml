@@ -3,7 +3,10 @@ name = "guitarvis-api"
 version = "0.1.0"
 description = "HTTP surface. No ML code, no model weights."
 requires-python = ">=3.12"
-dependencies = ["guitarvis-core"]
+dependencies = [
+    "guitarvis-core",
+    "fastapi>=0.115",
+]
 
 [build-system]
 requires = ["hatchling"]
