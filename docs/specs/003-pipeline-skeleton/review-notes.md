@@ -41,11 +41,21 @@ survive it. Spec 004 (fretboard mapper) should read this before starting.
   same test against different numpy major versions is a real place for a
   silent behavioural difference to hide.
 
-- **No real-song end-to-end run has ever been performed.** The dev machine
-  this branch was built on has no `ffmpeg`, so `probe_duration` and everything
-  downstream of it is untested against actual audio — only against synthetic
-  wavs and stubs. The success condition stated in `spec.md` ("a real song
-  processed end to end") has not literally been verified yet.
+- **`--stems-dir X` writes to `X/stems/`, not `X`.** `DemucsSeparator` appends
+  `stems` to whatever `work_dir` it is given, which reads as redundant when the
+  caller has already named a stems directory explicitly. Cosmetic, but it is the
+  first thing a user notices when they pass the flag.
+
+- **Chord detection is noisy on real material.** The first real songs processed
+  produced 17 chords in 14 seconds and 19 in 15, with symbols jumping between
+  distant keys (`A#m, B, F#m, F#, D#m, D, Am, Bm`). Chroma template matching
+  scoring every beat independently, with no smoothing or key prior, is the
+  likely cause. This is real evidence for the parent spec's open decision on
+  chord source, and the first thing the evaluation harness should measure.
+
+- **Beat tracking may double the tempo.** One 15-second clip came back at
+  198.8 BPM with 43 beats, which looks like a half-time/double-time ambiguity
+  rather than a genuine tempo. Worth checking against known-tempo material.
 
 - **`DemucsSeparator(work_dir=None)` still falls back to the audio file's own
   directory.** The CLI always passes `work_dir`, so the fallback is unreachable
@@ -60,4 +70,3 @@ survive it. Spec 004 (fretboard mapper) should read this before starting.
   pipeline run is now caught and mapped to a typed failure, but a non-`OSError`
   raised by `model_dump_json` or `write_text` would still surface as a traceback.
   Narrow gap, one `except` clause to close.
-

@@ -1854,7 +1854,7 @@ guitarvis-worker = "guitarvis_worker.cli:main"
 Run: `uv run pytest apps/worker/tests/test_cli.py -q`
 Expected: pass.
 
-- [ ] **Step 5: Process a real song end to end**
+- [x] **Step 5: Process a real song end to end**
 
 The phase milestone. Use any song you own.
 
@@ -1907,19 +1907,16 @@ git commit -m "feat(worker): add the process CLI and complete the pipeline skele
 
 ## Completion checklist
 
-> **Two boxes stay unticked deliberately.** No real song has been processed end
-> to end: `ffprobe` is absent on the development machine and installing ffmpeg
-> needs sudo. A substitute verification ran the real pipeline (Demucs,
-> basic-pitch, librosa) against synthetic audio below the ingestion layer and
-> produced a schema-valid document; see
-> [review-notes.md](review-notes.md). Everything else was performed as written,
-> except Task 8 step 6, which validated that substitute document rather than a
-> real song's.
+> **All boxes complete.** ffmpeg was installed during the run, and two real
+> songs were processed end to end through the CLI. Both documents validate
+> against the committed schema and carry a populated beat grid, a chord track,
+> and the warning naming 004 — 21 beats / 17 chords at 117 BPM, and 43 beats /
+> 19 chords at 199 BPM. Note counts are zero, as this phase intends.
 
 
 - [x] `make check` passes with no ML dependencies installed.
 - [x] `uv sync --extra ml` resolves with no TensorFlow in the tree.
-- [ ] A real song processes end to end and the output validates against the committed schema.
+- [x] A real song processes end to end and the output validates against the committed schema.
 - [x] The document carries a beat grid, a chord track, and the warning naming 004.
 - [x] `CLAUDE.md`'s phase marker points at phase 2.
 
