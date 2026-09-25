@@ -177,13 +177,16 @@ Each stage is a class behind a narrow interface, taking and returning plain
 data. The worker orchestrates; no stage knows what runs before or after it.
 
 ### Stage 1 · Separation
-`Separator.isolate(audio_path) -> guitar_stem_path`
+`Separator.isolate(audio_path) -> SeparationResult`
 
-Demucs `htdemucs_6s`, which provides a dedicated guitar stem. Output normalized
-to 44.1kHz mono. If the guitar stem is empty or near-silent — common when a
-heavily distorted guitar is attributed elsewhere — fall back to the 4-stem
-`other` track and mark the document with a quality warning. This stage
-dominates job time.
+Demucs `htdemucs_6s`, which provides a dedicated guitar stem. Output is
+whatever Demucs writes — 16-bit stereo at the model's own 44.1kHz, which it
+resamples the input to. Nothing is resampled or downmixed at this stage: stage
+2 resamples internally and stage 3 downmixes to mono, so normalizing here would
+be redundant work on every job.
+If the guitar stem is empty or near-silent — common when a heavily distorted
+guitar is attributed elsewhere — fall back to the 4-stem `other` track and
+mark the document with a quality warning. This stage dominates job time.
 
 ### Stage 2 · Transcription
 `Transcriber.transcribe(stem_path) -> list[NoteEvent]`

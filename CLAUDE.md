@@ -42,8 +42,8 @@ any default that would write specs elsewhere — see
 
 ## Build phases
 
-1. Pipeline skeleton (CLI, no UI) ← **next**
-2. Fretboard mapper and evaluation harness
+1. Pipeline skeleton (CLI, no UI)
+2. Fretboard mapper and evaluation harness ← **next**
 3. API and job queue
 4. Web client: tab view and sync
 5. 2D fretboard, then 3D guitar
@@ -54,6 +54,8 @@ Phases 1–2 hold the technical risk. The rest is conventional work.
 ## Things that will bite you
 
 - The worker's ML dependencies are an optional extra. `uv sync --extra ml`.
+- Ingestion shells out to `ffprobe`. Without ffmpeg installed, ingest tests
+  skip rather than fail — install it to actually run them.
 - `web/src/types/tabDocument.ts` is generated. Editing it by hand fails CI.
 - Transcription accuracy is 70–85% at best. Degrade, never fail: a broken stage
   omits its track and the job continues. Only "no usable guitar audio" fails a

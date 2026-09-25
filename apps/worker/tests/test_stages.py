@@ -67,21 +67,6 @@ def test_stages_satisfy_their_protocols() -> None:
     assert isinstance(ViterbiFretboardMapper(), FretboardMapper)
 
 
-def test_separation_is_not_implemented_yet() -> None:
-    with pytest.raises(NotImplementedError, match="003-pipeline-skeleton"):
-        DemucsSeparator().isolate(Path("song.wav"))
-
-
-def test_transcription_is_not_implemented_yet() -> None:
-    with pytest.raises(NotImplementedError, match="003-pipeline-skeleton"):
-        BasicPitchTranscriber().transcribe(Path("stem.wav"))
-
-
-def test_structure_is_not_implemented_yet() -> None:
-    with pytest.raises(NotImplementedError, match="003-pipeline-skeleton"):
-        LibrosaStructureAnalyzer().analyze(Path("stem.wav"), Path("mix.wav"))
-
-
 def test_fretboard_is_not_implemented_yet() -> None:
     """Stage 4 names a different spec: the parent spec's build phase 2 pairs the
     mapper with the evaluation harness that measures it."""

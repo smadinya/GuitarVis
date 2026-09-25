@@ -262,6 +262,13 @@
     },
     "timing": {
       "$ref": "#/$defs/Timing"
+    },
+    "warnings": {
+      "description": "Quality degradation the client must surface. A tab the user cannot tell is degraded is worse than one labelled as such.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     }
   },
   "required": [

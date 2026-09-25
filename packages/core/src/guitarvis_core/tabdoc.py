@@ -109,6 +109,13 @@ class TabDocument(Strict):
     notes: list[Note] = Field(default_factory=list)
     chords: list[Chord] = Field(default_factory=list)
     sections: list[Section] = Field(default_factory=list)
+    warnings: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Quality degradation the client must surface. A tab the user cannot "
+            "tell is degraded is worse than one labelled as such."
+        ),
+    )
 
     # A validator rather than `Literal[SCHEMA_VERSION]` on the field itself:
     # a Literal type changes the generated JSON Schema's `schema_version`

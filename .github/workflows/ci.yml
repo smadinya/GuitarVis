@@ -28,6 +28,12 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
+      # ffprobe (from ffmpeg) is what ingestion uses to probe uploaded audio.
+      # Installed explicitly so CI never depends on the runner image happening
+      # to ship it.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       # --locked makes `uv sync` fail loudly if pyproject.toml and uv.lock
       # disagree, matching `npm ci`'s existing enforcement of package-lock.json.
       - name: Install dependencies

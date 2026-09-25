@@ -7,7 +7,7 @@ future desktop build reason about the pipeline without importing torch.
 """
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 from typing import Protocol, runtime_checkable
@@ -65,18 +65,57 @@ class TabNote:
 
 @dataclass(frozen=True)
 class StructureResult:
-    """Stage 3 output. Any field may be empty; the UI omits what is missing."""
+    """Stage 3 output. Any field may be empty; the UI omits what is missing.
+
+    `warnings` carries degradation the client must show, mirroring
+    `SeparationResult`: beat tracking and chord detection fail independently,
+    and each failure gets its own message rather than one that conflates them.
+    """
 
     timing: Timing
     chords: list[Chord]
     sections: list[Section]
+    warnings: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class IngestedAudio:
+    """What every way of getting audio into the system produces.
+
+    URL fetching is another implementation of AudioSource and changes nothing
+    downstream — the isolation the design spec asks for, expressed as a type.
+    """
+
+    path: Path
+    title: str
+    duration_sec: float
+
+
+@dataclass(frozen=True)
+class SeparationResult:
+    """Stage 1 output. `warnings` carries degradation the client must show.
+
+    A bare Path cannot say "this came from the 4-stem fallback and may contain
+    other instruments", and putting that on the separator instance would make a
+    stateless stage stateful.
+    """
+
+    stem_path: Path
+    warnings: list[str] = field(default_factory=list)
+
+
+@runtime_checkable
+class AudioSource(Protocol):
+    """Ingestion: produce a local audio file and its metadata."""
+
+    def fetch(self) -> IngestedAudio: ...
 
 
 @runtime_checkable
 class Separator(Protocol):
     """Stage 1: isolate the guitar from a mix."""
 
-    def isolate(self, audio_path: Path) -> Path: ...
+    def isolate(self, audio_path: Path) -> SeparationResult: ...
 
 
 @runtime_checkable

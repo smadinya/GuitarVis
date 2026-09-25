@@ -87,6 +87,10 @@ Adding a rule to this document without a mechanism is worth doing, but expect
 it to decay.
 
 `check_invariant` is tested directly (`packages/core/tests/test_fretboard.py`)
-but nothing calls it in the pipeline yet — stage 4 (`ViterbiFretboardMapper`)
-is still a stub. It activates as a real gate once phase 2 (004-fretboard-mapper)
-wires it into the mapper's output.
+and `apps/worker/src/guitarvis_worker/pipeline.py` now calls it on every note
+stage 4 emits, raising `PipelineError(FailureReason.INTERNAL, ...)` on a
+violation. It is currently exercised only by the invariant-violation test in
+`test_pipeline.py`, since stage 4 (`ViterbiFretboardMapper`) is still a stub
+that raises `NotImplementedError` before producing any notes — it becomes a
+real gate against model output once phase 2 (004-fretboard-mapper) implements
+the mapper.

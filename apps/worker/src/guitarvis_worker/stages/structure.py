@@ -6,20 +6,218 @@ on the stem via chroma template matching. Section labels are optional; when
 unreliable the field stays empty and the UI omits them.
 """
 
+import math
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from guitarvis_core.contracts import StructureResult
+from guitarvis_core.tabdoc import Beat, Chord, Timing
+
+MIN_CHORD_CONFIDENCE = 0.5
+
+_PITCH_NAMES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
+_TRIADS = (("", (0, 4, 7)), ("m", (0, 3, 7)))
+
+
+def chord_templates() -> list[tuple[str, tuple[float, ...]]]:
+    """Unit-normalised chroma templates for all 24 major and minor triads.
+
+    Plain tuples rather than numpy arrays: numpy must not be imported at module
+    level in a stage, and keeping this pure means CI can test it.
+    """
+    magnitude = 1.0 / math.sqrt(3.0)
+    templates = []
+    for root, root_name in enumerate(_PITCH_NAMES):
+        for suffix, intervals in _TRIADS:
+            vector = [0.0] * 12
+            for interval in intervals:
+                vector[(root + interval) % 12] = magnitude
+            templates.append((f"{root_name}{suffix}", tuple(vector)))
+    return templates
+
+
+def beats_to_events(beat_times: Sequence[float], beats_per_bar: int = 4) -> list[Beat]:
+    """Number a flat list of beat times into bars and beats.
+
+    Bar 1 starts at the first detected beat; downbeat detection is not
+    attempted. A wrong phase shifts bar lines and never affects note sync,
+    because notes carry their own wall-clock onsets.
+    """
+    return [
+        Beat(t=float(t), bar=index // beats_per_bar + 1, beat=index % beats_per_bar + 1)
+        for index, t in enumerate(beat_times)
+    ]
+
+
+def merge_chords(
+    symbols: Sequence[str | None],
+    times: Sequence[float],
+    confidences: Sequence[float],
+    end_time: float,
+) -> list[Chord]:
+    """Collapse per-segment labels into held chords, dropping unlabelled runs."""
+    chords: list[Chord] = []
+    index = 0
+    while index < len(symbols):
+        symbol = symbols[index]
+        run_end = index + 1
+        while run_end < len(symbols) and symbols[run_end] == symbol:
+            run_end += 1
+
+        if symbol is not None:
+            stop = times[run_end] if run_end < len(times) else end_time
+            span = confidences[index:run_end]
+            # Clamped rather than trusted: if the last detected beat time
+            # exceeds the decoded duration (librosa can overshoot by a frame),
+            # `stop - times[index]` goes negative and Chord's `ge=0` rejects
+            # it, which without the clamp took the whole chord track down
+            # with it via analyze()'s blanket except.
+            chords.append(
+                Chord(
+                    t=float(times[index]),
+                    dur=max(0.0, float(stop - times[index])),
+                    symbol=symbol,
+                    confidence=sum(span) / len(span),
+                )
+            )
+        index = run_end
+    return chords
 
 
 class LibrosaStructureAnalyzer:
-    """Implements guitarvis_core.contracts.StructureAnalyzer."""
+    """Implements guitarvis_core.contracts.StructureAnalyzer.
+
+    Beat tracking and chord detection each run behind their own try/except in
+    `analyze`, matching parent spec 001's ladder table, which gives the two
+    separate rows: losing beats costs bar lines, losing chords costs the
+    chord track, and each fails independently rather than taking the other
+    down with it.
+    """
+
+    def __init__(
+        self,
+        beats_per_bar: int = 4,
+        min_chord_confidence: float = MIN_CHORD_CONFIDENCE,
+    ) -> None:
+        self.beats_per_bar = beats_per_bar
+        self.min_chord_confidence = min_chord_confidence
 
     def analyze(self, stem_path: Path, mix_path: Path) -> StructureResult:
-        raise NotImplementedError(
-            "Stage 3 lands in 003-pipeline-skeleton; see "
-            "docs/specs/001-guitarvis-design/spec.md"
+        warnings: list[str] = []
+
+        try:
+            timing, beat_times = self._track_beats(mix_path)
+        except Exception as exc:
+            timing, beat_times = Timing(), []
+            warnings.append(
+                f"Beat tracking failed ({exc.__class__.__name__}), so bar "
+                "lines are unavailable."
+            )
+
+        try:
+            chords = self._detect_chords(stem_path, beat_times)
+        except Exception as exc:
+            chords = []
+            warnings.append(
+                f"Chord detection failed ({exc.__class__.__name__}), so the "
+                "chord track is unavailable."
+            )
+
+        return StructureResult(
+            timing=timing,
+            chords=chords,
+            sections=[],  # Section labelling is optional and not attempted in v1.
+            warnings=warnings,
         )
+
+    def _track_beats(self, mix_path: Path) -> tuple[Timing, list[float]]:
+        """Beat and tempo tracking on the original mix.
+
+        Kept behind its own method (rather than inlined in `analyze`) so a
+        failure here — a corrupt mix, a librosa/numpy edge case — can be
+        caught without taking chord detection down with it, and so tests can
+        override this seam without needing the ml extra installed.
+        """
+        import librosa
+        import numpy as np
+
+        mix, mix_rate = librosa.load(str(mix_path), mono=True)
+        tempo, beat_frames = librosa.beat.beat_track(y=mix, sr=mix_rate)
+        beat_times = [
+            float(t) for t in librosa.frames_to_time(beat_frames, sr=mix_rate)
+        ]
+        tempo_value = float(np.atleast_1d(tempo)[0]) if np.size(tempo) else None
+
+        timing = Timing(
+            beats=beats_to_events(beat_times, self.beats_per_bar),
+            tempo_bpm_avg=tempo_value if tempo_value and tempo_value > 0 else None,
+            time_signature=f"{self.beats_per_bar}/4",
+        )
+        return timing, beat_times
+
+    def _detect_chords(
+        self, stem_path: Path, beat_times: Sequence[float]
+    ) -> list[Chord]:
+        """Chroma-template chord detection on the isolated stem.
+
+        Kept behind its own method so a failure here cannot take the beat
+        grid down with it, and so tests can override this seam without
+        needing the ml extra installed. `beat_times` may be empty — whether
+        because beat tracking found nothing or because it failed and
+        `analyze` substituted `[]` — either way this falls back to fixed
+        one-second segments, exactly as it always has.
+        """
+        import librosa
+        import numpy as np
+
+        stem, stem_rate = librosa.load(str(stem_path), mono=True)
+        chroma = librosa.feature.chroma_cqt(y=stem, sr=stem_rate)
+        duration = float(librosa.get_duration(y=stem, sr=stem_rate))
+        frame_times = librosa.frames_to_time(np.arange(chroma.shape[1]), sr=stem_rate)
+
+        # Without a beat grid, fall back to fixed one-second segments: the
+        # chord track should survive beat tracking failing.
+        #
+        # When beats ARE used as segment boundaries, audio before the first
+        # detected beat (a pickup, a count-in, a cold intro chord) falls
+        # outside every segment and is never scored — it is simply missing
+        # from the chord track rather than labelled. This is the "missing
+        # intro chord" someone will eventually debug; the fix belongs in
+        # segment construction, prepending a t=0 boundary, not here.
+        segments = (
+            list(beat_times)
+            if len(beat_times) >= 2
+            else [float(t) for t in np.arange(0.0, duration, 1.0)]
+        )
+
+        templates = [(name, np.array(vector)) for name, vector in chord_templates()]
+        symbols: list[str | None] = []
+        confidences: list[float] = []
+
+        for index, start in enumerate(segments):
+            stop = segments[index + 1] if index + 1 < len(segments) else duration
+            mask = (frame_times >= start) & (frame_times < stop)
+            profile = chroma[:, mask].mean(axis=1) if mask.any() else None
+            norm = float(np.linalg.norm(profile)) if profile is not None else 0.0
+
+            if profile is None or norm == 0.0:
+                symbols.append(None)
+                confidences.append(0.0)
+                continue
+
+            unit = profile / norm
+            score, name = max(
+                (float(unit @ vector), name) for name, vector in templates
+            )
+            if score < self.min_chord_confidence:
+                symbols.append(None)
+                confidences.append(0.0)
+            else:
+                symbols.append(name)
+                confidences.append(min(1.0, score))
+
+        return merge_chords(symbols, segments, confidences, duration)
 
 
 if TYPE_CHECKING:  # Static conformance: isinstance compares method names
