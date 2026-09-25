@@ -1,12 +1,15 @@
 """Stage 1 — separation. Demucs htdemucs_6s, which has a dedicated guitar stem.
 
-Output is whatever Demucs writes: 16-bit stereo at the source sample rate, with
-no resampling or downmix here — stage 2 (basic-pitch) resamples internally and
-stage 3 (librosa, `mono=True`) downmixes, so normalising here would just be
-redundant work on every job. When the guitar stem comes back empty or
-near-silent — common when a heavily distorted guitar is attributed elsewhere —
-the implementation falls back to the 4-stem `other` track and marks the
-document with a quality warning. This stage dominates job time.
+Output is whatever Demucs writes: 16-bit stereo at the model's own 44.1kHz,
+which it resamples the input to (verified — a 22.05kHz input comes back at
+44.1kHz). Nothing is resampled or downmixed *here*: stage 2 (basic-pitch)
+resamples internally and stage 3 (librosa, `mono=True`) downmixes, so
+normalising in this stage would just be redundant work on every job.
+
+When the guitar stem comes back empty or near-silent — common when a heavily
+distorted guitar is attributed elsewhere — the implementation falls back to the
+4-stem `other` track and marks the document with a quality warning. This stage
+dominates job time.
 """
 
 import array
