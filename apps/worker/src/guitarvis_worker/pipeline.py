@@ -92,26 +92,37 @@ def run_pipeline(
     _report(progress, "transcription")
 
     # Stage 3. Optional: notes carry their own onsets, so losing the beat grid
-    # costs bar lines and chord symbols, never synchronisation.
+    # costs bar lines and chord symbols, never synchronisation. Beats and
+    # chords each fail independently inside `analyze` now, and each failure
+    # produces its own warning on `structure.warnings`. This except is a
+    # backstop for an analyzer implementation that does not catch its own
+    # halves (or that dies before returning a StructureResult at all) — the
+    # shipped LibrosaStructureAnalyzer never takes this path, since both of
+    # its halves already degrade internally.
     structure = StructureResult(timing=Timing(), chords=[], sections=[])
     try:
         structure = analyzer.analyze(separation.stem_path, audio.path)
-    except Exception as exc:  # every analyzer failure degrades alike
+    except Exception as exc:  # the analyzer itself raised, not just a half
         warnings.append(
-            f"Beat and chord detection failed ({exc.__class__.__name__}), so "
-            "bar lines and chord symbols are unavailable."
+            f"Structure analysis failed entirely ({exc.__class__.__name__}), "
+            "so bar lines and chord symbols are unavailable."
         )
+    warnings.extend(structure.warnings)
     _report(progress, "structure")
 
     # Stage 4. Not implemented until 004-fretboard-mapper, and treated as a
-    # degraded track until then rather than a crash.
+    # degraded track until then rather than a crash. Once 004 lands this
+    # except must widen deliberately: a real mapper can itself raise
+    # NotImplementedError for a genuinely unsupported case (an exotic
+    # tuning, an unplayable interval), and this bare `except NotImplementedError`
+    # would swallow that as if stage 4 were still a stub.
     tab_notes: list[TabNote] = []
     try:
         tab_notes = mapper.assign(events, tuning)
     except NotImplementedError:
         warnings.append(
             "Fretboard assignment is not implemented yet, so this document "
-            "carries no notes. Timing and chords are unaffected."
+            "carries no notes."
         )
     _report(progress, "fretboard")
 

@@ -68,10 +68,15 @@ def merge_chords(
         if symbol is not None:
             stop = times[run_end] if run_end < len(times) else end_time
             span = confidences[index:run_end]
+            # Clamped rather than trusted: if the last detected beat time
+            # exceeds the decoded duration (librosa can overshoot by a frame),
+            # `stop - times[index]` goes negative and Chord's `ge=0` rejects
+            # it, which without the clamp took the whole chord track down
+            # with it via analyze()'s blanket except.
             chords.append(
                 Chord(
                     t=float(times[index]),
-                    dur=float(stop - times[index]),
+                    dur=max(0.0, float(stop - times[index])),
                     symbol=symbol,
                     confidence=sum(span) / len(span),
                 )
@@ -99,20 +104,31 @@ class LibrosaStructureAnalyzer:
         self.min_chord_confidence = min_chord_confidence
 
     def analyze(self, stem_path: Path, mix_path: Path) -> StructureResult:
+        warnings: list[str] = []
+
         try:
             timing, beat_times = self._track_beats(mix_path)
-        except Exception:
+        except Exception as exc:
             timing, beat_times = Timing(), []
+            warnings.append(
+                f"Beat tracking failed ({exc.__class__.__name__}), so bar "
+                "lines are unavailable."
+            )
 
         try:
             chords = self._detect_chords(stem_path, beat_times)
-        except Exception:
+        except Exception as exc:
             chords = []
+            warnings.append(
+                f"Chord detection failed ({exc.__class__.__name__}), so the "
+                "chord track is unavailable."
+            )
 
         return StructureResult(
             timing=timing,
             chords=chords,
             sections=[],  # Section labelling is optional and not attempted in v1.
+            warnings=warnings,
         )
 
     def _track_beats(self, mix_path: Path) -> tuple[Timing, list[float]]:
@@ -162,6 +178,13 @@ class LibrosaStructureAnalyzer:
 
         # Without a beat grid, fall back to fixed one-second segments: the
         # chord track should survive beat tracking failing.
+        #
+        # When beats ARE used as segment boundaries, audio before the first
+        # detected beat (a pickup, a count-in, a cold intro chord) falls
+        # outside every segment and is never scored — it is simply missing
+        # from the chord track rather than labelled. This is the "missing
+        # intro chord" someone will eventually debug; the fix belongs in
+        # segment construction, prepending a t=0 boundary, not here.
         segments = (
             list(beat_times)
             if len(beat_times) >= 2

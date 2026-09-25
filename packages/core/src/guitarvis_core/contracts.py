@@ -65,11 +65,17 @@ class TabNote:
 
 @dataclass(frozen=True)
 class StructureResult:
-    """Stage 3 output. Any field may be empty; the UI omits what is missing."""
+    """Stage 3 output. Any field may be empty; the UI omits what is missing.
+
+    `warnings` carries degradation the client must show, mirroring
+    `SeparationResult`: beat tracking and chord detection fail independently,
+    and each failure gets its own message rather than one that conflates them.
+    """
 
     timing: Timing
     chords: list[Chord]
     sections: list[Section]
+    warnings: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

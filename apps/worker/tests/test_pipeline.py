@@ -162,6 +162,34 @@ def test_unimplemented_fretboard_stage_degrades(tmp_path: Path) -> None:
 
     assert doc.notes == []
     assert any("fretboard" in w.lower() for w in doc.warnings)
+    # The fretboard warning must speak only about notes: stage 4 failing
+    # says nothing about whether stage 3 (timing, chords) succeeded, so the
+    # warning must not assert that they did.
+    assert not any("unaffected" in w.lower() for w in doc.warnings)
+
+
+def test_structure_warnings_reach_the_document(tmp_path: Path) -> None:
+    # Each half of stage 3 fails independently and produces its own
+    # document warning, distinct from the analyze()-raised-entirely backstop.
+    doc = run(
+        tmp_path,
+        analyzer=StubAnalyzer(
+            StructureResult(
+                timing=Timing(),
+                chords=[],
+                sections=[],
+                warnings=[
+                    "Beat tracking failed (RuntimeError), so bar lines are "
+                    "unavailable.",
+                    "Chord detection failed (RuntimeError), so the chord "
+                    "track is unavailable.",
+                ],
+            )
+        ),
+    )
+
+    assert any("beat tracking failed" in w.lower() for w in doc.warnings)
+    assert any("chord detection failed" in w.lower() for w in doc.warnings)
 
 
 def test_separation_warnings_reach_the_document(tmp_path: Path) -> None:
