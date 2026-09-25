@@ -175,6 +175,31 @@ def test_demucs_builds_command_with_device_flag(
     ]
 
 
+def test_demucs_uses_work_dir_when_given(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, list[str]] = {}
+    work_dir = tmp_path / "elsewhere"
+
+    def fake_run(command: list[str], **kwargs: object) -> None:
+        captured["command"] = command
+        stem = work_dir / "stems" / "htdemucs_6s" / "song" / "guitar.wav"
+        stem.parent.mkdir(parents=True, exist_ok=True)
+        stem.write_bytes(b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    audio_dir = tmp_path / "audio"
+    audio_dir.mkdir()
+    separator = DemucsSeparator(work_dir=work_dir)
+
+    stem = separator._demucs("htdemucs_6s", audio_dir / "song.wav", "guitar")
+
+    # Stems land under work_dir, not next to the audio.
+    assert stem == work_dir / "stems" / "htdemucs_6s" / "song" / "guitar.wav"
+    assert str(work_dir / "stems") in captured["command"]
+    assert not (audio_dir / "stems").exists()
+
+
 def test_demucs_omits_device_flag_when_unset(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

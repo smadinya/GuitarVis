@@ -53,10 +53,17 @@ class DemucsSeparator:
         model: str = "htdemucs_6s",
         fallback_model: str = "htdemucs",
         device: str | None = None,
+        work_dir: Path | None = None,
     ) -> None:
         self.model = model
         self.fallback_model = fallback_model
         self.device = device
+        # None keeps the old shape (a "stems" directory next to the audio)
+        # for a caller that constructs this class directly. The CLI is no
+        # longer such a caller: it always passes a work_dir, either a
+        # TemporaryDirectory it cleans up or --stems-dir, so stems no longer
+        # land next to the user's audio in normal use.
+        self.work_dir = work_dir
 
     def isolate(self, audio_path: Path) -> SeparationResult:
         guitar = self._demucs(self.model, audio_path, "guitar")
@@ -87,7 +94,8 @@ class DemucsSeparator:
         A subprocess rather than the Python API: the CLI is stable across
         releases, and a model that dies cannot take the worker down with it.
         """
-        out_dir = audio_path.parent / "stems"
+        base_dir = self.work_dir if self.work_dir is not None else audio_path.parent
+        out_dir = base_dir / "stems"
         command = [
             sys.executable,
             "-m",
