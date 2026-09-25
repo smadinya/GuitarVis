@@ -42,6 +42,11 @@ models/
 .minio/
 storage/
 
+# Local scratch — CLI output, stems, and whatever gets dropped in while trying
+# things out. Audio extensions are already ignored above; this catches the
+# documents and stem trees that land beside them.
+tmp/
+
 # Agent scratch workspace (ledger, task briefs, review packages)
 .superpowers/
 
