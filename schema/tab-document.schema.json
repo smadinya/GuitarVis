@@ -1,0 +1,304 @@
+{
+  "$defs": {
+    "Beat": {
+      "additionalProperties": false,
+      "properties": {
+        "bar": {
+          "minimum": 1,
+          "title": "Bar",
+          "type": "integer"
+        },
+        "beat": {
+          "minimum": 1,
+          "title": "Beat",
+          "type": "integer"
+        },
+        "t": {
+          "minimum": 0,
+          "title": "T",
+          "type": "number"
+        }
+      },
+      "required": [
+        "t",
+        "bar",
+        "beat"
+      ],
+      "title": "Beat",
+      "type": "object"
+    },
+    "Chord": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "dur": {
+          "minimum": 0,
+          "title": "Dur",
+          "type": "number"
+        },
+        "symbol": {
+          "title": "Symbol",
+          "type": "string"
+        },
+        "t": {
+          "minimum": 0,
+          "title": "T",
+          "type": "number"
+        }
+      },
+      "required": [
+        "t",
+        "dur",
+        "symbol",
+        "confidence"
+      ],
+      "title": "Chord",
+      "type": "object"
+    },
+    "Instrument": {
+      "additionalProperties": false,
+      "properties": {
+        "capo": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Capo",
+          "type": "integer"
+        },
+        "string_count": {
+          "default": 6,
+          "minimum": 1,
+          "title": "String Count",
+          "type": "integer"
+        },
+        "tuning": {
+          "description": "Scientific pitch names, low string first.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Tuning",
+          "type": "array"
+        }
+      },
+      "title": "Instrument",
+      "type": "object"
+    },
+    "Note": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "dur": {
+          "minimum": 0,
+          "title": "Dur",
+          "type": "number"
+        },
+        "fret": {
+          "minimum": 0,
+          "title": "Fret",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "midi": {
+          "maximum": 127,
+          "minimum": 0,
+          "title": "Midi",
+          "type": "integer"
+        },
+        "string": {
+          "description": "0 is the lowest string.",
+          "minimum": 0,
+          "title": "String",
+          "type": "integer"
+        },
+        "t": {
+          "description": "Onset in seconds. Authoritative.",
+          "minimum": 0,
+          "title": "T",
+          "type": "number"
+        },
+        "technique": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Technique"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "t",
+        "dur",
+        "midi",
+        "string",
+        "fret",
+        "confidence"
+      ],
+      "title": "Note",
+      "type": "object"
+    },
+    "Section": {
+      "additionalProperties": false,
+      "properties": {
+        "dur": {
+          "minimum": 0,
+          "title": "Dur",
+          "type": "number"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "t": {
+          "minimum": 0,
+          "title": "T",
+          "type": "number"
+        }
+      },
+      "required": [
+        "t",
+        "dur",
+        "label"
+      ],
+      "title": "Section",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "audio_url": {
+          "title": "Audio Url",
+          "type": "string"
+        },
+        "duration_sec": {
+          "minimum": 0,
+          "title": "Duration Sec",
+          "type": "number"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "duration_sec",
+        "audio_url"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "Technique": {
+      "enum": [
+        "bend",
+        "slide",
+        "hammer",
+        "pull",
+        "mute",
+        "harmonic"
+      ],
+      "title": "Technique",
+      "type": "string"
+    },
+    "Timing": {
+      "additionalProperties": false,
+      "properties": {
+        "beats": {
+          "items": {
+            "$ref": "#/$defs/Beat"
+          },
+          "title": "Beats",
+          "type": "array"
+        },
+        "tempo_bpm_avg": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tempo Bpm Avg"
+        },
+        "time_signature": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Signature"
+        }
+      },
+      "title": "Timing",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "chords": {
+      "items": {
+        "$ref": "#/$defs/Chord"
+      },
+      "title": "Chords",
+      "type": "array"
+    },
+    "instrument": {
+      "$ref": "#/$defs/Instrument"
+    },
+    "notes": {
+      "items": {
+        "$ref": "#/$defs/Note"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/Section"
+      },
+      "title": "Sections",
+      "type": "array"
+    },
+    "source": {
+      "$ref": "#/$defs/Source"
+    },
+    "timing": {
+      "$ref": "#/$defs/Timing"
+    }
+  },
+  "required": [
+    "source",
+    "instrument",
+    "timing"
+  ],
+  "title": "TabDocument",
+  "type": "object"
+}
