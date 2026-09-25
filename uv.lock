@@ -4,8 +4,8 @@ requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.15' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
     "(python_full_version >= '3.15' and platform_machine != 'x86_64') or (python_full_version >= '3.15' and sys_platform != 'darwin')",
-    "python_full_version < '3.15' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
     "(python_full_version >= '3.13' and python_full_version < '3.15' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'darwin')",
+    "python_full_version < '3.15' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
     "(python_full_version < '3.13' and platform_machine != 'x86_64') or (python_full_version < '3.13' and sys_platform != 'darwin')",
 ]
 
@@ -776,6 +776,11 @@ dependencies = [
     { name = "guitarvis-worker" },
 ]
 
+[package.optional-dependencies]
+ml = [
+    { name = "guitarvis-worker", extra = ["ml"] },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
@@ -789,7 +794,9 @@ requires-dist = [
     { name = "guitarvis-core", editable = "packages/core" },
     { name = "guitarvis-eval", editable = "apps/eval" },
     { name = "guitarvis-worker", editable = "apps/worker" },
+    { name = "guitarvis-worker", extras = ["ml"], marker = "extra == 'ml'", editable = "apps/worker" },
 ]
+provides-extras = ["ml"]
 
 [package.metadata.requires-dev]
 dev = [

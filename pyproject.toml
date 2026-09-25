@@ -10,6 +10,14 @@ dependencies = [
     "guitarvis-eval",
 ]
 
+# The root is a virtual project (package = false below): it has no code of its
+# own, only workspace members. This extra exists purely to forward the
+# documented `uv sync --extra ml` / `uv run --extra ml` to the one member with
+# heavy dependencies, so the command CLAUDE.md, CONTRIBUTING.md, and the
+# worker's own error strings advertise actually works from the workspace root.
+[project.optional-dependencies]
+ml = ["guitarvis-worker[ml]"]
+
 [tool.uv]
 package = false
 # ADR 0006. basic-pitch pins tensorflow<2.15.1 unconditionally on Linux at
