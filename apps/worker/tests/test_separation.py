@@ -4,6 +4,8 @@ The Demucs call is stubbed out: what is under test is the fallback decision,
 which must hold whether or not the ml extra is installed.
 """
 
+import subprocess
+import sys
 import wave
 from pathlib import Path
 
@@ -87,3 +89,106 @@ def test_two_silent_stems_fail_honestly(tmp_path: Path) -> None:
 
     assert excinfo.value.reason is FailureReason.NO_GUITAR_DETECTED
     assert "guitar" in str(excinfo.value).lower()
+
+
+# The tests above replace _demucs entirely, so nothing above exercises the
+# subprocess it wraps. These call _demucs directly on a real DemucsSeparator,
+# with subprocess.run monkeypatched, to cover its three failure paths and its
+# command construction without installing Demucs or the ml extra.
+
+
+def test_demucs_missing_binary_raises_internal_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fake_run(*args: object, **kwargs: object) -> None:
+        raise FileNotFoundError()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    separator = DemucsSeparator()
+
+    with pytest.raises(PipelineError) as excinfo:
+        separator._demucs("htdemucs_6s", tmp_path / "song.wav", "guitar")
+
+    assert excinfo.value.reason is FailureReason.INTERNAL
+    assert "--extra ml" in str(excinfo.value)
+
+
+def test_demucs_nonzero_exit_raises_internal_error_with_stderr_tail(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fake_run(*args: object, **kwargs: object) -> None:
+        raise subprocess.CalledProcessError(1, "demucs", stderr="boom: model crashed")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    separator = DemucsSeparator()
+
+    with pytest.raises(PipelineError) as excinfo:
+        separator._demucs("htdemucs_6s", tmp_path / "song.wav", "guitar")
+
+    assert excinfo.value.reason is FailureReason.INTERNAL
+    assert "boom: model crashed" in str(excinfo.value)
+
+
+def test_demucs_missing_output_stem_raises_internal_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # subprocess.run succeeds, but writes nothing to out_dir.
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: None)
+    separator = DemucsSeparator()
+
+    with pytest.raises(PipelineError) as excinfo:
+        separator._demucs("htdemucs_6s", tmp_path / "song.wav", "guitar")
+
+    assert excinfo.value.reason is FailureReason.INTERNAL
+    expected_stem = tmp_path / "stems" / "htdemucs_6s" / "song" / "guitar.wav"
+    assert str(expected_stem) in str(excinfo.value)
+
+
+def test_demucs_builds_command_with_device_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(command: list[str], **kwargs: object) -> None:
+        captured["command"] = command
+        stem = tmp_path / "stems" / "htdemucs_6s" / "song" / "guitar.wav"
+        stem.parent.mkdir(parents=True, exist_ok=True)
+        stem.write_bytes(b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    separator = DemucsSeparator(device="cuda")
+
+    stem = separator._demucs("htdemucs_6s", tmp_path / "song.wav", "guitar")
+
+    assert stem.exists()
+    assert captured["command"] == [
+        sys.executable,
+        "-m",
+        "demucs",
+        "-n",
+        "htdemucs_6s",
+        "-o",
+        str(tmp_path / "stems"),
+        str(tmp_path / "song.wav"),
+        "-d",
+        "cuda",
+    ]
+
+
+def test_demucs_omits_device_flag_when_unset(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(command: list[str], **kwargs: object) -> None:
+        captured["command"] = command
+        stem = tmp_path / "stems" / "htdemucs_6s" / "song" / "guitar.wav"
+        stem.parent.mkdir(parents=True, exist_ok=True)
+        stem.write_bytes(b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    separator = DemucsSeparator(device=None)
+
+    separator._demucs("htdemucs_6s", tmp_path / "song.wav", "guitar")
+
+    assert "-d" not in captured["command"]
