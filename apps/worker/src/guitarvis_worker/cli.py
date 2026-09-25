@@ -9,7 +9,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from guitarvis_core.contracts import PipelineError
+from guitarvis_core.contracts import FailureReason, PipelineError
 from guitarvis_core.tabdoc import STANDARD_TUNING
 
 from guitarvis_worker.ingest import MAX_DURATION_SEC, UploadSource
@@ -66,7 +66,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error [{error.reason.value}]: {error}", file=sys.stderr)
         return 2
 
-    Path(args.output).write_text(document.model_dump_json(indent=2))
+    try:
+        Path(args.output).write_text(document.model_dump_json(indent=2))
+    except OSError as error:
+        print(
+            f"error [{FailureReason.INTERNAL.value}]: could not write "
+            f"{args.output}: {error}",
+            file=sys.stderr,
+        )
+        return 2
 
     print(
         f"wrote {args.output}: {len(document.notes)} notes, "

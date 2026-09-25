@@ -6,7 +6,7 @@ import wave
 from pathlib import Path
 
 import pytest
-from guitarvis_core.contracts import SeparationResult, StructureResult
+from guitarvis_core.contracts import IngestedAudio, SeparationResult, StructureResult
 from guitarvis_core.tabdoc import Timing
 from guitarvis_worker import cli
 
@@ -40,6 +40,16 @@ class StubAnalyzer:
         return StructureResult(timing=Timing(), chords=[], sections=[])
 
 
+class StubAudioSource:
+    """Stands in for UploadSource so a test needs no ffprobe on PATH."""
+
+    def __init__(self, path: Path | str, **kwargs: object) -> None:
+        self._path = Path(path)
+
+    def fetch(self) -> IngestedAudio:
+        return IngestedAudio(path=self._path, title=self._path.stem, duration_sec=1.0)
+
+
 @pytest.fixture
 def stub_stages(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli, "DemucsSeparator", lambda **kwargs: StubSeparator())
@@ -66,12 +76,12 @@ def test_writes_a_valid_document_and_exits_zero(
 
 
 @requires_ffprobe
-def test_reports_the_pending_fretboard_stage(
+def test_reports_the_fretboard_stage_is_not_implemented(
     tmp_path: Path, stub_stages: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
     out = tmp_path / "song.json"
     cli.main(["process", str(write_wav(tmp_path / "song.wav")), "-o", str(out)])
-    assert "004" in capsys.readouterr().err
+    assert "Fretboard assignment is not implemented yet" in capsys.readouterr().err
 
 
 def test_missing_file_reports_its_reason(
@@ -100,3 +110,20 @@ def test_too_long_reports_its_own_reason(
     )
     assert code == 2
     assert "too_long" in capsys.readouterr().err
+
+
+def test_unwritable_output_reports_its_reason(
+    tmp_path: Path,
+    stub_stages: None,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "UploadSource", StubAudioSource)
+    bad_out = tmp_path / "does-not-exist" / "song.json"
+
+    code = cli.main(
+        ["process", str(write_wav(tmp_path / "song.wav")), "-o", str(bad_out)]
+    )
+
+    assert code == 2
+    assert "internal" in capsys.readouterr().err
