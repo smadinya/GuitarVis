@@ -14,6 +14,7 @@ New decisions take the next number and start from [`template.md`](template.md).
 | [0003](0003-deterministic-fretboard.md) | Fretboard assignment is deterministic code |
 | [0004](0004-evaluation-is-measured-not-gated.md) | Evaluation is measured, never gated |
 | [0005](0005-uv-workspace-monorepo.md) | A uv workspace monorepo with a shared core package |
+| [0006](0006-onnx-transcription-backend.md) | Stage 2 transcribes through ONNX Runtime, not TensorFlow |
 
 ## Still open
 
@@ -24,7 +25,6 @@ one means writing the next ADR.
 
 | Question | v1 default |
 |---|---|
-| Stage 2 transcription backend | Undecided — basic-pitch 0.4.0 cannot install on Python 3.12 (requires tensorflow<2.15.1, no cp312 wheel); see the comment in apps/worker/pyproject.toml |
 | Chord source: detected from the stem, or derived from notes | Detected from the stem |
 | Beat tracker: `librosa` or `madmom` | `librosa` — **`madmom`'s non-commercial clause needs an answer before any commercial launch** |
 | Tuning detection | Assume standard tuning |
