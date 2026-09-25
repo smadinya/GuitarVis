@@ -7,8 +7,9 @@ make install
 make check
 ```
 
-Requires Python 3.12+, Node 22+, and [uv](https://docs.astral.sh/uv/)
-(`curl -LsSf https://astral.sh/uv/install.sh | sh`).
+Requires Python 3.12+, Node 22+, [uv](https://docs.astral.sh/uv/)
+(`curl -LsSf https://astral.sh/uv/install.sh | sh`), and ffmpeg (provides
+`ffprobe`, used to probe uploaded audio).
 
 `make install` also runs `git config core.hooksPath .githooks`, which activates
 the hook that refuses commits on `main`.

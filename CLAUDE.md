@@ -54,6 +54,8 @@ Phases 1–2 hold the technical risk. The rest is conventional work.
 ## Things that will bite you
 
 - The worker's ML dependencies are an optional extra. `uv sync --extra ml`.
+- Ingestion shells out to `ffprobe`. Without ffmpeg installed, ingest tests
+  skip rather than fail — install it to actually run them.
 - `web/src/types/tabDocument.ts` is generated. Editing it by hand fails CI.
 - Transcription accuracy is 70–85% at best. Degrade, never fail: a broken stage
   omits its track and the job continues. Only "no usable guitar audio" fails a
