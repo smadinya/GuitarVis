@@ -76,17 +76,6 @@ def test_writes_a_valid_document_and_exits_zero(
 
 
 @requires_ffprobe
-def test_summary_line_reports_the_transcribed_note_count(
-    tmp_path: Path, stub_stages: None, capsys: pytest.CaptureFixture[str]
-) -> None:
-    out = tmp_path / "song.json"
-    code = cli.main(["process", str(write_wav(tmp_path / "song.wav")), "-o", str(out)])
-
-    assert code == 0
-    assert "0 note events transcribed" in capsys.readouterr().err
-
-
-@requires_ffprobe
 def test_reports_the_fretboard_stage_is_not_implemented(
     tmp_path: Path, stub_stages: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -138,3 +127,150 @@ def test_unwritable_output_reports_its_reason(
 
     assert code == 2
     assert "internal" in capsys.readouterr().err
+
+
+@requires_ffprobe
+def test_summary_line_reports_the_transcribed_note_count(
+    tmp_path: Path, stub_stages: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    out = tmp_path / "song.json"
+    code = cli.main(["process", str(write_wav(tmp_path / "song.wav")), "-o", str(out)])
+
+    assert code == 0
+    assert "0 note events transcribed" in capsys.readouterr().err
+
+
+def test_invalid_tuning_pitch_reports_its_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(cli, "UploadSource", StubAudioSource)
+
+    code = cli.main(
+        [
+            "process",
+            str(tmp_path / "song.wav"),
+            "-o",
+            str(tmp_path / "o.json"),
+            "--tuning",
+            "E2,A2,D3,G3,B3,Zz9",
+        ]
+    )
+
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "unsupported_format" in err
+    assert "Zz9" in err
+
+
+def test_wrong_tuning_string_count_reports_its_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(cli, "UploadSource", StubAudioSource)
+
+    code = cli.main(
+        [
+            "process",
+            str(tmp_path / "song.wav"),
+            "-o",
+            str(tmp_path / "o.json"),
+            "--tuning",
+            "E2,A2,D3",
+        ]
+    )
+
+    assert code == 2
+    assert "unsupported_format" in capsys.readouterr().err
+
+
+class ExplodingSeparator:
+    """Simulates an untyped failure escaping a stage, e.g. measure_rms's bare
+    ValueError on a non-16-bit stem."""
+
+    def isolate(self, audio_path: Path) -> SeparationResult:
+        raise ValueError("expected 16-bit PCM, got 3 bytes")
+
+
+def test_unexpected_exception_is_still_reported_as_typed_and_actionable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(cli, "UploadSource", StubAudioSource)
+    monkeypatch.setattr(cli, "DemucsSeparator", lambda **kwargs: ExplodingSeparator())
+
+    code = cli.main(
+        ["process", str(tmp_path / "song.wav"), "-o", str(tmp_path / "o.json")]
+    )
+
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "internal" in err
+    assert "expected 16-bit PCM" in err
+
+
+def test_stems_use_a_temporary_directory_cleaned_up_after_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, Path] = {}
+
+    def fake_demucs_separator(**kwargs: object) -> StubSeparator:
+        work_dir = kwargs["work_dir"]
+        assert isinstance(work_dir, Path)
+        captured["work_dir"] = work_dir
+        return StubSeparator()
+
+    monkeypatch.setattr(cli, "DemucsSeparator", fake_demucs_separator)
+    monkeypatch.setattr(
+        cli, "BasicPitchTranscriber", lambda **kwargs: StubTranscriber()
+    )
+    monkeypatch.setattr(
+        cli, "LibrosaStructureAnalyzer", lambda **kwargs: StubAnalyzer()
+    )
+    monkeypatch.setattr(cli, "UploadSource", StubAudioSource)
+
+    code = cli.main(
+        ["process", str(tmp_path / "song.wav"), "-o", str(tmp_path / "o.json")]
+    )
+
+    assert code == 0
+    work_dir = captured["work_dir"]
+    assert isinstance(work_dir, Path)
+    # Default: no --stems-dir, so the temporary directory is gone once the
+    # run finishes, and it was never a subdirectory of the audio's own folder.
+    assert not work_dir.exists()
+    assert work_dir != tmp_path / "stems"
+
+
+def test_stems_dir_option_keeps_the_directory_in_place(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, Path] = {}
+
+    def fake_demucs_separator(**kwargs: object) -> StubSeparator:
+        work_dir = kwargs["work_dir"]
+        assert isinstance(work_dir, Path)
+        captured["work_dir"] = work_dir
+        return StubSeparator()
+
+    monkeypatch.setattr(cli, "DemucsSeparator", fake_demucs_separator)
+    monkeypatch.setattr(
+        cli, "BasicPitchTranscriber", lambda **kwargs: StubTranscriber()
+    )
+    monkeypatch.setattr(
+        cli, "LibrosaStructureAnalyzer", lambda **kwargs: StubAnalyzer()
+    )
+    monkeypatch.setattr(cli, "UploadSource", StubAudioSource)
+    stems_dir = tmp_path / "kept-stems"
+
+    code = cli.main(
+        [
+            "process",
+            str(tmp_path / "song.wav"),
+            "-o",
+            str(tmp_path / "o.json"),
+            "--stems-dir",
+            str(stems_dir),
+        ]
+    )
+
+    assert code == 0
+    assert captured["work_dir"] == stems_dir
+    assert stems_dir.exists()  # opted in, so it is left in place

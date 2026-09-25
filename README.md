@@ -80,7 +80,19 @@ This needs `ffmpeg` (for duration probing) and, the first time, a download of
 the Demucs and basic-pitch model weights. `notes` in the output stays empty
 until 004-fretboard-mapper lands — stage 4 is not implemented yet, so the
 pipeline degrades gracefully rather than failing the job, and the document
-carries a warning saying so.
+carries a warning saying so. The number of note events transcription actually
+found is printed in the summary line, even though they carry no fret
+placement yet.
+
+Demucs stems — hundreds of MB, uncompressed — are written to a temporary
+directory that is deleted once the run finishes, rather than next to your
+audio file. Since separation dominates runtime, pass `--stems-dir DIR` to
+keep them instead — useful for inspecting what Demucs produced, or for
+feeding a stem into something else without re-running separation by hand:
+
+```bash
+uv run guitarvis-worker process song.mp3 -o song.json --stems-dir ./stems
+```
 
 ## Documentation
 
