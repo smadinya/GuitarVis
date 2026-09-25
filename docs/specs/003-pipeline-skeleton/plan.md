@@ -40,7 +40,7 @@ Proves [ADR 0006](../../decisions/0006-onnx-transcription-backend.md) resolves a
 - Consumes: nothing.
 - Produces: an `ml` extra that installs `basic-pitch` and `onnxruntime` with no TensorFlow in the resolved graph.
 
-- [ ] **Step 1: Add the dependency overrides to the workspace root**
+- [x] **Step 1: Add the dependency overrides to the workspace root**
 
 uv resolves overrides only from the workspace root. Add to `pyproject.toml`, inside the existing `[tool.uv]` table:
 
@@ -60,7 +60,7 @@ override-dependencies = [
 ]
 ```
 
-- [ ] **Step 2: Add the real dependencies to the worker's ml extra**
+- [x] **Step 2: Add the real dependencies to the worker's ml extra**
 
 In `apps/worker/pyproject.toml`, replace the long "basic-pitch is deliberately absent" comment with the resolved decision, and extend the extra:
 
@@ -81,7 +81,7 @@ ml = [
 ]
 ```
 
-- [ ] **Step 3: Resolve and install**
+- [x] **Step 3: Resolve and install**
 
 ```bash
 uv sync --extra ml
@@ -97,7 +97,7 @@ Expected: `basic-pitch`, `onnxruntime`, and `resampy 0.4.3` or newer present; **
 
 If resolution fails because uv will not drop a requirement via override, stop and switch to the fallback in the spec: vendor `nmp.onnx` from the wheel into `apps/worker/src/guitarvis_worker/models/` and drop the `basic-pitch` dependency. Record the change in ADR 0006 before continuing.
 
-- [ ] **Step 4: Verify the model actually loads and transcribes**
+- [x] **Step 4: Verify the model actually loads and transcribes**
 
 This is the step that validates the whole approach. It reproduces the spike.
 
@@ -116,7 +116,7 @@ print('events:', len(events), 'pitches:', sorted({int(e[2]) for e in events}))
 
 Expected: the model path ends in `nmp.onnx`, and the detected pitches are `[69, 73]`. Warnings about coremltools, tflite-runtime, and Tensorflow not being installed are normal and expected — that is basic-pitch reporting which backends are absent.
 
-- [ ] **Step 5: Confirm the light install still works**
+- [x] **Step 5: Confirm the light install still works**
 
 The ml extra must stay optional, or CI breaks.
 
@@ -127,7 +127,7 @@ make check
 
 Expected: `make check` passes with no ML dependencies installed.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pyproject.toml apps/worker/pyproject.toml uv.lock
@@ -153,7 +153,7 @@ Three additions the rest of the phase needs, landed together because they share 
 - Consumes: existing `guitarvis_core.contracts` and `tabdoc` models.
 - Produces: `IngestedAudio(path: Path, title: str, duration_sec: float)`; `AudioSource` protocol with `fetch() -> IngestedAudio`; `SeparationResult(stem_path: Path, warnings: list[str])`; `Separator.isolate(audio_path: Path) -> SeparationResult`; `TabDocument.warnings: list[str]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `packages/core/tests/test_contracts.py`:
 
@@ -211,12 +211,12 @@ def test_warnings_round_trip() -> None:
     ]
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `uv run pytest packages/core -q`
 Expected: FAIL — `ImportError: cannot import name 'IngestedAudio'`.
 
-- [ ] **Step 3: Add the ingestion and separation contracts**
+- [x] **Step 3: Add the ingestion and separation contracts**
 
 In `packages/core/src/guitarvis_core/contracts.py`, add above the stage protocols:
 
@@ -264,7 +264,7 @@ class Separator(Protocol):
     def isolate(self, audio_path: Path) -> SeparationResult: ...
 ```
 
-- [ ] **Step 4: Add the document's warnings field**
+- [x] **Step 4: Add the document's warnings field**
 
 In `packages/core/src/guitarvis_core/tabdoc.py`, add to `TabDocument` after `sections`:
 
@@ -278,11 +278,11 @@ In `packages/core/src/guitarvis_core/tabdoc.py`, add to `TabDocument` after `sec
     )
 ```
 
-- [ ] **Step 5: Update the separation stub's signature**
+- [x] **Step 5: Update the separation stub's signature**
 
 In `apps/worker/src/guitarvis_worker/stages/separation.py`, change the return type to `SeparationResult`, importing it from `guitarvis_core.contracts`. The body still raises `NotImplementedError` — Task 4 fills it. Update the matching assertion in `apps/worker/tests/test_stages.py` if it names the return type.
 
-- [ ] **Step 6: Regenerate the schema and web types**
+- [x] **Step 6: Regenerate the schema and web types**
 
 ```bash
 make schema
@@ -291,12 +291,12 @@ git diff --stat schema/ web/src/types/
 
 Expected: both files change, adding only the `warnings` property.
 
-- [ ] **Step 7: Run the full gate**
+- [x] **Step 7: Run the full gate**
 
 Run: `make check`
 Expected: all pass, including `make schema-check`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/core apps/worker schema web/src/types
@@ -317,7 +317,7 @@ The front door: validate and probe before any expensive work starts. Uses `ffpro
 - Consumes: `IngestedAudio`, `AudioSource`, `FailureReason`, `PipelineError`.
 - Produces: `MAX_DURATION_SEC = 600.0`; `probe_duration(path: Path) -> float`; `UploadSource(path, *, max_duration_sec=MAX_DURATION_SEC)` implementing `AudioSource`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `apps/worker/tests/test_ingest.py`:
 
@@ -387,12 +387,12 @@ def test_too_long_message_tells_the_user_what_to_do(tmp_path: Path) -> None:
         ).fetch()
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest apps/worker/tests/test_ingest.py -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'guitarvis_worker.ingest'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 `apps/worker/src/guitarvis_worker/ingest.py`:
 
@@ -488,17 +488,17 @@ class UploadSource:
         )
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `uv run pytest apps/worker/tests/test_ingest.py -q`
 Expected: all pass. These need ffmpeg but no ML extra.
 
-- [ ] **Step 5: Run the full gate**
+- [x] **Step 5: Run the full gate**
 
 Run: `make check`
 Expected: pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/worker/src/guitarvis_worker/ingest.py apps/worker/tests/test_ingest.py
@@ -522,7 +522,7 @@ Implements the first rung of the degradation ladder: a silent guitar stem falls 
 - Consumes: `SeparationResult`, `PipelineError`, `FailureReason`.
 - Produces: `SILENCE_RMS = 1e-3`; `measure_rms(path: Path) -> float`; `DemucsSeparator(model="htdemucs_6s", fallback_model="htdemucs", device=None)` implementing `Separator`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `apps/worker/tests/test_separation.py`:
 
@@ -618,12 +618,12 @@ def test_two_silent_stems_fail_honestly(tmp_path: Path) -> None:
     assert "guitar" in str(excinfo.value).lower()
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest apps/worker/tests/test_separation.py -q`
 Expected: FAIL — `ImportError: cannot import name 'measure_rms'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Replace the body of `apps/worker/src/guitarvis_worker/stages/separation.py`, keeping its existing module docstring and adding to it:
 
@@ -747,16 +747,16 @@ if TYPE_CHECKING:  # Static conformance: isinstance compares method names
     # actually checks the signature.
 ```
 
-- [ ] **Step 4: Update the stub test**
+- [x] **Step 4: Update the stub test**
 
 In `apps/worker/tests/test_stages.py`, remove the assertion that `DemucsSeparator().isolate(...)` raises `NotImplementedError`. Leave the module-level import scan and the other three stages alone.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `uv run pytest apps/worker -q`
 Expected: pass.
 
-- [ ] **Step 6: Verify against the real model once**
+- [x] **Step 6: Verify against the real model once**
 
 The first run downloads roughly 300MB of weights and is slow on CPU.
 
@@ -771,7 +771,7 @@ print(result.stem_path, result.warnings)
 
 Expected: a path to `guitar.wav` that exists. If the directory layout differs, correct the path built in `_demucs`. On the 6GB GTX 1660 Ti, add `--segment 7` to the command if CUDA runs out of memory on a full song.
 
-- [ ] **Step 7: Run the full gate and commit**
+- [x] **Step 7: Run the full gate and commit**
 
 ```bash
 make check
@@ -794,7 +794,7 @@ Implements the protocol's single upgrade point. The class keeps its name; only i
 - Consumes: `NoteEvent`.
 - Produces: `MIN_CONFIDENCE = 0.1`; `BasicPitchTranscriber(min_confidence=MIN_CONFIDENCE)` implementing `Transcriber`, with an overridable `_predict(stem_path) -> Sequence[tuple]`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `apps/worker/tests/test_transcription.py`:
 
@@ -874,12 +874,12 @@ def test_min_confidence_stays_conservative() -> None:
     assert MIN_CONFIDENCE <= 0.2
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest apps/worker/tests/test_transcription.py -q`
 Expected: FAIL — `ImportError: cannot import name 'MIN_CONFIDENCE'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Replace the module docstring of `apps/worker/src/guitarvis_worker/stages/transcription.py` — the "provisional name" caveat is now resolved:
 
@@ -956,16 +956,16 @@ if TYPE_CHECKING:  # Static conformance: isinstance compares method names
     # actually checks the signature.
 ```
 
-- [ ] **Step 4: Update the stub test**
+- [x] **Step 4: Update the stub test**
 
 Remove the stage-2 `NotImplementedError` assertion from `apps/worker/tests/test_stages.py`.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `uv run pytest apps/worker -q`
 Expected: pass.
 
-- [ ] **Step 6: Verify against the real model**
+- [x] **Step 6: Verify against the real model**
 
 ```bash
 uv run --extra ml python -c "
@@ -985,7 +985,7 @@ print(len(events), 'events; pitches:', sorted({e.midi for e in events}))
 
 Expected: at least one event, including MIDI 69 (A4).
 
-- [ ] **Step 7: Run the full gate and commit**
+- [x] **Step 7: Run the full gate and commit**
 
 ```bash
 make check
@@ -1008,7 +1008,7 @@ Beats and chords. The numbering, template, and merging logic are pure Python —
 - Consumes: `StructureResult`, and `Beat`, `Chord`, `Timing` from `guitarvis_core.tabdoc`.
 - Produces: `MIN_CHORD_CONFIDENCE = 0.5`; `chord_templates() -> list[tuple[str, tuple[float, ...]]]`; `beats_to_events(beat_times, beats_per_bar=4) -> list[Beat]`; `merge_chords(symbols, times, confidences, end_time) -> list[Chord]`; `LibrosaStructureAnalyzer(beats_per_bar=4, min_chord_confidence=MIN_CHORD_CONFIDENCE)` implementing `StructureAnalyzer`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `apps/worker/tests/test_structure.py`:
 
@@ -1083,12 +1083,12 @@ def test_confidence_threshold_is_a_real_threshold() -> None:
     assert 0.0 < MIN_CHORD_CONFIDENCE < 1.0
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest apps/worker/tests/test_structure.py -q`
 Expected: FAIL — `ImportError: cannot import name 'chord_templates'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Keep the existing module docstring in `apps/worker/src/guitarvis_worker/stages/structure.py` and write:
 
@@ -1248,16 +1248,16 @@ if TYPE_CHECKING:  # Static conformance: isinstance compares method names
     # what actually checks the signature.
 ```
 
-- [ ] **Step 4: Update the stub test**
+- [x] **Step 4: Update the stub test**
 
 Remove the stage-3 `NotImplementedError` assertion from `apps/worker/tests/test_stages.py`.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `uv run pytest apps/worker -q`
 Expected: pass. Confirm the import scan still passes — `numpy` and `librosa` are imported inside `analyze`, never at module level.
 
-- [ ] **Step 6: Run the full gate and commit**
+- [x] **Step 6: Run the full gate and commit**
 
 ```bash
 make check
@@ -1281,7 +1281,7 @@ This is where the phase's known gap is handled: stage 4 still raises `NotImpleme
 - Consumes: `IngestedAudio`, `SeparationResult`, `StructureResult`, `NoteEvent`, `TabNote`, `PipelineError`, the four stage protocols, `check_invariant`, and the tabdoc models.
 - Produces: `StageProgress(stage: str, percent: int)`; `ProgressCallback`; `STAGE_PERCENT`; `run_pipeline(audio, *, separator, transcriber, analyzer, mapper, tuning=STANDARD_TUNING, progress=None) -> TabDocument`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `apps/worker/tests/test_pipeline.py`:
 
@@ -1468,12 +1468,12 @@ def test_a_note_violating_the_invariant_is_rejected(tmp_path: Path) -> None:
     assert excinfo.value.reason is FailureReason.INTERNAL
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest apps/worker/tests/test_pipeline.py -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'guitarvis_worker.pipeline'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 `apps/worker/src/guitarvis_worker/pipeline.py`:
 
@@ -1620,12 +1620,12 @@ def run_pipeline(
     )
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `uv run pytest apps/worker/tests/test_pipeline.py -q`
 Expected: pass. No ML library is imported during this run, which is the point of injecting the stages.
 
-- [ ] **Step 5: Run the full gate and commit**
+- [x] **Step 5: Run the full gate and commit**
 
 ```bash
 make check
@@ -1649,7 +1649,7 @@ The phase deliverable. Wires ingestion to the orchestrator, prints stage progres
 - Consumes: `UploadSource`, `run_pipeline`, the four stage classes, `PipelineError`.
 - Produces: `main(argv: list[str] | None = None) -> int`; console script `guitarvis-worker`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `apps/worker/tests/test_cli.py`:
 
@@ -1749,12 +1749,12 @@ def test_too_long_reports_its_own_reason(
     assert "too_long" in capsys.readouterr().err
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest apps/worker/tests/test_cli.py -q`
 Expected: FAIL — `ImportError: cannot import name 'cli'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 `apps/worker/src/guitarvis_worker/cli.py`:
 
@@ -1849,7 +1849,7 @@ Add the console script to `apps/worker/pyproject.toml`:
 guitarvis-worker = "guitarvis_worker.cli:main"
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `uv run pytest apps/worker/tests/test_cli.py -q`
 Expected: pass.
@@ -1871,7 +1871,7 @@ print('warnings:', d['warnings'])
 
 Expected: stage progress on stderr; a document with a populated beat grid and chord track, an empty `notes` array, and the warning naming 004. Sanity-check the chords against the song — if they are nonsense, that is a finding for the spec's open decision on chord source, not a blocker for this phase.
 
-- [ ] **Step 6: Validate the output against the committed schema**
+- [x] **Step 6: Validate the output against the committed schema**
 
 ```bash
 uv run python -c "
@@ -1884,7 +1884,7 @@ print('document validates')
 
 Expected: `document validates`.
 
-- [ ] **Step 7: Update the docs**
+- [x] **Step 7: Update the docs**
 
 In `CLAUDE.md`, move the `← next` marker from phase 1 to phase 2. In `README.md`, document the CLI:
 
@@ -1895,7 +1895,7 @@ In `CLAUDE.md`, move the `← next` marker from phase 1 to phase 2. In `README.m
 
 Note that `notes` stays empty until 004-fretboard-mapper lands.
 
-- [ ] **Step 8: Run the full gate and commit**
+- [x] **Step 8: Run the full gate and commit**
 
 ```bash
 make check
@@ -1907,11 +1907,21 @@ git commit -m "feat(worker): add the process CLI and complete the pipeline skele
 
 ## Completion checklist
 
-- [ ] `make check` passes with no ML dependencies installed.
-- [ ] `uv sync --extra ml` resolves with no TensorFlow in the tree.
+> **Two boxes stay unticked deliberately.** No real song has been processed end
+> to end: `ffprobe` is absent on the development machine and installing ffmpeg
+> needs sudo. A substitute verification ran the real pipeline (Demucs,
+> basic-pitch, librosa) against synthetic audio below the ingestion layer and
+> produced a schema-valid document; see
+> [review-notes.md](review-notes.md). Everything else was performed as written,
+> except Task 8 step 6, which validated that substitute document rather than a
+> real song's.
+
+
+- [x] `make check` passes with no ML dependencies installed.
+- [x] `uv sync --extra ml` resolves with no TensorFlow in the tree.
 - [ ] A real song processes end to end and the output validates against the committed schema.
-- [ ] The document carries a beat grid, a chord track, and the warning naming 004.
-- [ ] `CLAUDE.md`'s phase marker points at phase 2.
+- [x] The document carries a beat grid, a chord track, and the warning naming 004.
+- [x] `CLAUDE.md`'s phase marker points at phase 2.
 
 ## Opening the PR
 
