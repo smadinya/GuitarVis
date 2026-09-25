@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# Node
+node_modules/
+web/dist/
+.vite/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model weights — the worker downloads these on first run, they never enter git
+models/
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# Audio — uploads, stems, and intermediates. Test fixtures are re-included below.
+*.wav
+*.mp3
+*.flac
+*.m4a
+*.ogg
+!**/tests/fixtures/**
+
+# Local object storage
+.minio/
+storage/
+
+# Agent scratch workspace (ledger, task briefs, review packages)
+.superpowers/
+
+# ──────────────────────────────────────────────────────────────────────
+# Tracked on purpose. Do NOT add these, however generated they look:
+#   schema/          generated from tabdoc.py, committed, diff-checked in CI
+#   web/src/types/   likewise
+#   eval/results/    tracked metric history; the point is comparing runs
+# ──────────────────────────────────────────────────────────────────────

@@ -1,0 +1,13 @@
+[project]
+name = "guitarvis-core"
+version = "0.1.0"
+description = "Tab document contract, stage interfaces, and shared invariants."
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.9"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/guitarvis_core"]

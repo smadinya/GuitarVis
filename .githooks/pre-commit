@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Refuse commits on main.
+#
+# GuitarVis changes land through a pull request from a spec branch, and the
+# branch name is its docs/specs/NNN-short-name/ folder name.
+set -euo pipefail
+
+# git symbolic-ref, not `git rev-parse --abbrev-ref HEAD`: rev-parse fails
+# with exit 128 on an unborn branch (a fresh repo before its first commit),
+# and swallowing that with `|| true` used to leave `branch` empty — which
+# never equals "main", so the very first commit on main slipped through
+# unchecked. symbolic-ref resolves the ref name without needing a commit to
+# exist, so it works in that case too. If it fails for a different reason
+# (e.g. detached HEAD), `set -e` above aborts the commit with git's own
+# error rather than silently permitting it.
+branch="$(git symbolic-ref --short HEAD)"
+
+if [ "$branch" = "main" ]; then
+  cat >&2 <<'MSG'
+✗ Commit refused: you are on main.
+
+  Work belongs on a spec branch named after its spec folder:
+
+      git checkout -b 003-pipeline-skeleton
+
+  See CONTRIBUTING.md. Bypass with --no-verify only for a genuine exception.
+MSG
+  exit 1
+fi
