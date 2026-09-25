@@ -4,6 +4,15 @@
  * The CI diff check catches a forgotten regeneration. This catches the failure
  * the diff check cannot see: a generator that is silently emitting the wrong
  * types, where both sides are consistently wrong.
+ *
+ * THIS FILE IS NOT SELF-SUFFICIENT. `import type { TabDocument }` below is
+ * erased by esbuild before vitest ever runs, so `vitest run` alone only
+ * checks the fixture's runtime VALUES (the asserted numbers/strings/lengths)
+ * — it cannot see the fixture's SHAPE against the generated type at all. The
+ * SHAPE half — "does this fixture actually satisfy the TabDocument
+ * interface" — is verified only by `tsc --noEmit`. Do not run this suite by
+ * itself as proof the contract holds; run it alongside typechecking (`npm
+ * test` does both — see package.json — and so does `make check`).
  */
 import { readFileSync } from "node:fs";
 
