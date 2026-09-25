@@ -7,11 +7,19 @@ dependencies = ["guitarvis-core"]
 
 # Heavy ML dependencies are opt-in so that `uv sync` and CI stay light.
 # Phase 1 (003-pipeline-skeleton) installs these with `uv sync --extra ml`.
+#
+# basic-pitch is deliberately absent. Version 0.4.0 — the latest release —
+# requires tensorflow<2.15.1 unconditionally on Linux for Python >= 3.11, and no
+# cp312 wheel of that tensorflow exists, so it cannot be installed on this
+# project's target Python. Forcing a newer tensorflow past that pin resolves the
+# lock and then fails at model load, because TF 2.16 moved to Keras 3. Stage 2's
+# transcription backend is therefore an open choice for 003-pipeline-skeleton:
+# pin the worker to 3.11, use a different polyphonic transcriber, or drive
+# basic-pitch's ONNX export directly. See docs/specs/001-guitarvis-design/spec.md.
 [project.optional-dependencies]
 ml = [
     "torch>=2.4",
     "demucs>=4.0",
-    "basic-pitch>=0.4",
     "librosa>=0.10",
 ]
 

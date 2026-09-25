@@ -12,10 +12,6 @@ dependencies = [
 
 [tool.uv]
 package = false
-environments = [
-    "python_full_version >= '3.12' and python_full_version < '3.13' and sys_platform == 'linux'",
-]
-override-dependencies = ["tensorflow>=2.15.1"]
 
 [tool.uv.workspace]
 members = ["packages/core", "apps/api", "apps/worker", "apps/eval"]
