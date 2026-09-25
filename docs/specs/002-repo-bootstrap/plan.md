@@ -1910,20 +1910,32 @@ prompts interactively and pulls a template that would then need trimming.
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.15.0",
-    "@types/node": "^22.9.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.3",
-    "eslint": "^9.15.0",
-    "json-schema-to-typescript": "^15.0.3",
-    "typescript": "^5.6.3",
-    "typescript-eslint": "^8.15.0",
-    "vite": "^5.4.11",
-    "vitest": "^2.1.5"
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.11.0",
+    "json-schema-to-typescript": "^16.0.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.1"
   }
 }
 ```
+
+React stays at 18 deliberately; React 19 is a separate migration and out of scope
+for a bootstrap.
+
+TypeScript is held at 6.x rather than 7.x: TS 7 is the native/Go port, and the
+current `typescript-eslint` peer range caps below 6.1. Revisit once
+typescript-eslint supports it.
+
+These versions clear `npm audit` completely. An earlier draft of this plan pinned
+vite 5 / vitest 2, which carried a critical and a high advisory in dev tooling and
+sat three majors behind — worth correcting while the web workspace still contains
+one component and no tests.
 
 - [ ] **Step 2: Write the TypeScript configuration**
 
@@ -1960,12 +1972,15 @@ prompts interactively and pulls a template that would then need trimming.
     "composite": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "skipLibCheck": true,
-    "noEmit": true
+    "skipLibCheck": true
   },
   "include": ["vite.config.ts"]
 }
 ```
+
+Note the absence of `noEmit`. A composite project may not disable emit —
+TypeScript rejects the combination with TS6310, "Referenced project may not
+disable emit." This matches how Vite's own React+TS template writes the file.
 
 - [ ] **Step 3: Write `web/vite.config.ts`**
 
