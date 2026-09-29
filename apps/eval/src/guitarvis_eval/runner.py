@@ -6,12 +6,24 @@ path through here is testable with stubs and no audio.
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
-from guitarvis_core.contracts import FretboardMapper, NoteEvent
+from guitarvis_core.contracts import (
+    FretboardMapper,
+    NoteEvent,
+    StructureAnalyzer,
+    Transcriber,
+)
 from guitarvis_core.tabdoc import STANDARD_TUNING
 
 from guitarvis_eval.dataset import Excerpt
-from guitarvis_eval.metrics import NoteCounts, Tally, oracle_string_tally
+from guitarvis_eval.metrics import (
+    NoteCounts,
+    Tally,
+    chord_tally,
+    match_notes,
+    oracle_string_tally,
+)
 
 
 @dataclass(frozen=True)
@@ -41,6 +53,33 @@ def score_oracle(
         baseline_strings=oracle_string_tally(
             excerpt.notes, baseline.assign(events, STANDARD_TUNING).notes
         ),
+    )
+
+
+def score_full(
+    excerpt: Excerpt,
+    audio: Path,
+    *,
+    transcriber: Transcriber,
+    analyzer: StructureAnalyzer,
+    mapper: FretboardMapper,
+) -> ExcerptScore:
+    """Audio in. Separation is skipped — GuitarSet is already solo guitar —
+    so the recording is passed as both stem and mix."""
+    placed = mapper.assign(transcriber.transcribe(audio), STANDARD_TUNING).notes
+    pairs = match_notes(excerpt.notes, placed)
+    structure = analyzer.analyze(audio, audio)
+    return ExcerptScore(
+        name=excerpt.name,
+        style=excerpt.style,
+        strings=Tally(
+            correct=sum(excerpt.notes[t].string == placed[e].string for t, e in pairs),
+            total=len(pairs),
+        ),
+        notes=NoteCounts(
+            matched=len(pairs), truth=len(excerpt.notes), estimated=len(placed)
+        ),
+        chords=chord_tally(excerpt.chords, structure.chords, excerpt.duration),
     )
 
 

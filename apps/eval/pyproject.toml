@@ -7,6 +7,12 @@ requires-python = ">=3.12"
 # under test. The worker must never import this package in return.
 dependencies = ["guitarvis-core", "guitarvis-worker"]
 
+# Full mode runs the real transcriber and structure analyzer on GuitarSet's
+# audio, and scores notes with mir_eval so the number is comparable with
+# published results. Oracle mode — the default — needs none of it.
+[project.optional-dependencies]
+full = ["guitarvis-worker[ml]", "mir_eval>=0.8"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

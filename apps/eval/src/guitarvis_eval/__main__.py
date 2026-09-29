@@ -11,15 +11,33 @@ from pathlib import Path
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
 
 from guitarvis_eval.baseline import LowestFretMapper
-from guitarvis_eval.dataset import DatasetMissing, data_dir, excerpt_paths, read_jams
+from guitarvis_eval.dataset import (
+    DatasetMissing,
+    data_dir,
+    excerpt_paths,
+    mic_audio_path,
+    read_jams,
+)
 from guitarvis_eval.results import RESULTS_DIR, write_results
-from guitarvis_eval.runner import ExcerptScore, score_oracle, score_to_dict, summarize
+from guitarvis_eval.runner import (
+    ExcerptScore,
+    score_full,
+    score_oracle,
+    score_to_dict,
+    summarize,
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m guitarvis_eval",
         description="GuitarSet evaluation. Measured, never gated.",
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="run transcription and structure on the audio too "
+        "(needs `uv sync --extra eval-full` and `make eval-data ARGS=--audio`)",
     )
     parser.add_argument(
         "--split",
@@ -54,14 +72,49 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     mapper = ViterbiFretboardMapper()
-    baseline = LowestFretMapper()
-    scores: list[ExcerptScore] = [
-        score_oracle(read_jams(path), mapper, baseline) for path in paths
-    ]
+    mode = "full" if args.full else "oracle"
+    scores: list[ExcerptScore] = []
+
+    if args.full:
+        try:
+            import mir_eval  # noqa: F401  (fail now, not after minutes of audio)
+            from guitarvis_worker.stages.structure import LibrosaStructureAnalyzer
+            from guitarvis_worker.stages.transcription import BasicPitchTranscriber
+        except ImportError as error:
+            print(
+                f"error: full mode needs the ML stack ({error}). "
+                "Run `uv sync --extra eval-full`.",
+                file=sys.stderr,
+            )
+            return 1
+        transcriber = BasicPitchTranscriber()
+        analyzer = LibrosaStructureAnalyzer()
+        for index, path in enumerate(paths, 1):
+            excerpt = read_jams(path)
+            audio = mic_audio_path(root, excerpt)
+            if not audio.is_file():
+                print(
+                    f"error: missing {audio}. Run `make eval-data ARGS=--audio`.",
+                    file=sys.stderr,
+                )
+                return 1
+            print(f"[{index}/{len(paths)}] {excerpt.name}", file=sys.stderr)
+            scores.append(
+                score_full(
+                    excerpt,
+                    audio,
+                    transcriber=transcriber,
+                    analyzer=analyzer,
+                    mapper=mapper,
+                )
+            )
+    else:
+        baseline = LowestFretMapper()
+        scores = [score_oracle(read_jams(path), mapper, baseline) for path in paths]
 
     summary = summarize(scores)
     written = write_results(
-        mode="oracle",
+        mode=mode,
         split=args.split,
         costs=mapper.costs,
         summary=summary,
