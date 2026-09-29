@@ -209,7 +209,7 @@ runs on the guitar stem via chroma template matching. Section labels are
 optional; if unreliable, the field stays empty and the UI omits them.
 
 ### Stage 4 · Fretboard assignment
-`FretboardMapper.assign(notes, tuning) -> list[TabNote]`
+`FretboardMapper.assign(notes, tuning) -> FretboardResult`
 
 The deterministic core. Notes within a ~50ms window group into a simultaneous
 *voicing*. Each pitch has 2–4 candidate string/fret positions; each voicing has

@@ -64,6 +64,19 @@ class TabNote:
 
 
 @dataclass(frozen=True)
+class FretboardResult:
+    """Stage 4 output. `warnings` carries degradation the client must show.
+
+    The mapper drops a note it cannot place correctly rather than place it
+    wrongly — the fretboard invariant forbids a wrong fret — and a silent drop
+    is exactly the kind of loss the client is supposed to show.
+    """
+
+    notes: list[TabNote]
+    warnings: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class StructureResult:
     """Stage 3 output. Any field may be empty; the UI omits what is missing.
 
@@ -142,4 +155,4 @@ class FretboardMapper(Protocol):
 
     def assign(
         self, notes: Sequence[NoteEvent], tuning: Sequence[str]
-    ) -> list[TabNote]: ...
+    ) -> FretboardResult: ...

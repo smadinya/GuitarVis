@@ -12,7 +12,7 @@ emits must satisfy guitarvis_core.fretboard.check_invariant.
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from guitarvis_core.contracts import NoteEvent, TabNote
+from guitarvis_core.contracts import FretboardResult, NoteEvent
 
 
 class ViterbiFretboardMapper:
@@ -20,7 +20,7 @@ class ViterbiFretboardMapper:
 
     def assign(
         self, notes: Sequence[NoteEvent], tuning: Sequence[str]
-    ) -> list[TabNote]:
+    ) -> FretboardResult:
         raise NotImplementedError(
             "Stage 4 lands in 004-fretboard-mapper; see "
             "docs/specs/001-guitarvis-design/spec.md"

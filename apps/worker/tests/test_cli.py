@@ -81,7 +81,9 @@ def test_reports_the_fretboard_stage_is_not_implemented(
 ) -> None:
     out = tmp_path / "song.json"
     cli.main(["process", str(write_wav(tmp_path / "song.wav")), "-o", str(out)])
-    assert "Fretboard assignment is not implemented yet" in capsys.readouterr().err
+    assert (
+        "Fretboard assignment failed (NotImplementedError)" in capsys.readouterr().err
+    )
 
 
 def test_missing_file_reports_its_reason(

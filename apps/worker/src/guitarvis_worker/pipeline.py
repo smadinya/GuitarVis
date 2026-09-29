@@ -126,20 +126,22 @@ def run_pipeline(
     warnings.extend(structure.warnings)
     _report(progress, "structure")
 
-    # Stage 4. Not implemented until 004-fretboard-mapper, and treated as a
-    # degraded track until then rather than a crash. Once 004 lands this
-    # except must widen deliberately: a real mapper can itself raise
-    # NotImplementedError for a genuinely unsupported case (an exotic
-    # tuning, an unplayable interval), and this bare `except NotImplementedError`
-    # would swallow that as if stage 4 were still a stub.
+    # Stage 4. Optional like stages 2 and 3: a mapper that raises costs the
+    # notes track, not the job — including NotImplementedError, which a real
+    # mapper may raise for a genuinely unsupported case. Notes the mapper
+    # could not place arrive as warnings on its result. A wrong fret is a
+    # different matter: the invariant check below fails the job instead.
     tab_notes: list[TabNote] = []
     try:
-        tab_notes = mapper.assign(events, tuning)
-    except NotImplementedError:
+        fretboard = mapper.assign(events, tuning)
+    except Exception as exc:  # every mapper failure degrades alike
         warnings.append(
-            "Fretboard assignment is not implemented yet, so this document "
-            "carries no notes."
+            f"Fretboard assignment failed ({exc.__class__.__name__}), so this "
+            "document carries no notes."
         )
+    else:
+        tab_notes = fretboard.notes
+        warnings.extend(fretboard.warnings)
     _report(progress, "fretboard")
 
     notes = [

@@ -12,7 +12,7 @@ Four stages, each behind a narrow interface, each separately testable.
 | 1 Separation | `Separator.isolate(audio_path) -> Path` | 0–40% |
 | 2 Transcription | `Transcriber.transcribe(stem_path) -> list[NoteEvent]` | 40–65% |
 | 3 Structure | `StructureAnalyzer.analyze(stem, mix) -> StructureResult` | 65–80% |
-| 4 Fretboard | `FretboardMapper.assign(notes, tuning) -> list[TabNote]` | 80–100% |
+| 4 Fretboard | `FretboardMapper.assign(notes, tuning) -> FretboardResult` | 80–100% |
 
 Protocols live in `packages/core/src/guitarvis_core/contracts.py`.
 Implementations live in `apps/worker/src/guitarvis_worker/stages/`.
