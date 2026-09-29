@@ -49,6 +49,8 @@ outright only when there is no usable guitar audio.
 | Chord detection | Note tab only; chord track hidden |
 | Confidence collapses in a passage | That passage shows chord symbols, not fret numbers |
 | Guitar stem empty or near-silent | Retry with the 4-stem `other` track; if still empty, fail honestly |
+| Fretboard mapper raises | No notes; timing and chords unaffected by it; a warning says why |
+| Notes no hand could play, or outside the neck's range | Those notes dropped, never approximated; a warning gives the count |
 
 When a stage fails, omit its track from the tab document and continue. Raise
 `PipelineError` with a typed `FailureReason` only when the job genuinely cannot

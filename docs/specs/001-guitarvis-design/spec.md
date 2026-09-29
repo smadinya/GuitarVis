@@ -312,6 +312,8 @@ promise. A job fails outright only when there is no usable guitar audio.
 | Chord detection | Note tab only; chord track hidden |
 | Transcription confidence collapses in a passage | That passage shows chord symbols instead of fret numbers |
 | Guitar stem empty/near-silent | Retry with 4-stem `other`; if still empty, fail honestly: "No clear guitar part found" |
+| Fretboard mapper raises | No notes; timing and chords unaffected by it; a warning says why |
+| Notes no hand could play, or outside the neck's range | Those notes dropped, never approximated; a warning gives the count |
 
 The tab document's independent, individually-omittable tracks were shaped
 around this table.

@@ -54,12 +54,11 @@ ProgressCallback = Callable[[StageProgress], None]
 class PipelineResult:
     """What `run_pipeline` hands back: the document plus what stage 2 saw.
 
-    `transcribed_note_count` exists because `document.notes` is deliberately
-    empty until 004-fretboard-mapper lands — it is the only evidence this
-    phase produces that transcription worked. Returned alongside the document
-    rather than folded into a warning string so a caller (the CLI, or any
-    future job runner) gets it as data, not something it has to parse back
-    out of prose.
+    `transcribed_note_count` is how many note events transcription produced,
+    before stage 4 dropped any it could not place. Comparing it with
+    `len(document.notes)` shows how much the fretboard stage lost. Returned
+    as data rather than folded into a warning string so a caller gets it
+    without parsing prose.
     """
 
     document: TabDocument
