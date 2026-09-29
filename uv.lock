@@ -837,10 +837,14 @@ version = "0.1.0"
 source = { editable = "apps/eval" }
 dependencies = [
     { name = "guitarvis-core" },
+    { name = "guitarvis-worker" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "guitarvis-core", editable = "packages/core" }]
+requires-dist = [
+    { name = "guitarvis-core", editable = "packages/core" },
+    { name = "guitarvis-worker", editable = "apps/worker" },
+]
 
 [[package]]
 name = "guitarvis-worker"

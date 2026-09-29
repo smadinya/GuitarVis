@@ -3,7 +3,9 @@ name = "guitarvis-eval"
 version = "0.1.0"
 description = "GuitarSet evaluation harness. Measured, never gated."
 requires-python = ">=3.12"
-dependencies = ["guitarvis-core"]
+# The worker's base install is light (no ml extra): it supplies the mapper
+# under test. The worker must never import this package in return.
+dependencies = ["guitarvis-core", "guitarvis-worker"]
 
 [build-system]
 requires = ["hatchling"]
