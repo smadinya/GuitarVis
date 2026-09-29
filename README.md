@@ -4,9 +4,10 @@ Takes a recording of a song, isolates the guitar, transcribes what it plays,
 and renders the result as tablature you can play along with — in three synced
 views: scrolling tab, a 2D fretboard, and a 3D guitar.
 
-**Status: phase 1 of 6 done.** The pipeline skeleton — ingestion, the four
-stages, the degradation ladder, and a CLI that runs them end to end — is in
-place. Phase 2 (the fretboard mapper and evaluation harness) is next.
+**Status: phase 2 of 6 done.** The pipeline runs end to end and emits real
+tablature: stage 4 places every transcribed note on the neck, and a GuitarSet
+evaluation harness measures how well (`make eval`). Phase 3 (the API and job
+queue) is next.
 
 ## How it works
 
@@ -77,12 +78,9 @@ uv run guitarvis-worker process song.mp3 -o song.json
 ```
 
 This needs `ffmpeg` (for duration probing) and, the first time, a download of
-the Demucs and basic-pitch model weights. `notes` in the output stays empty
-until 004-fretboard-mapper lands — stage 4 is not implemented yet, so the
-pipeline degrades gracefully rather than failing the job, and the document
-carries a warning saying so. The number of note events transcription actually
-found is printed in the summary line, even though they carry no fret
-placement yet.
+the Demucs and basic-pitch model weights. Notes stage 4 cannot place — outside
+the neck's range, or in a chord no hand could play — are dropped rather than
+given a wrong fret, and the document's warnings say how many.
 
 Demucs stems — hundreds of MB, uncompressed — are written to a temporary
 directory that is deleted once the run finishes, rather than next to your

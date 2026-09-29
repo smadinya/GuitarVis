@@ -9,8 +9,18 @@ Infrastructure, not a nice-to-have. Without it, "swap in a better model later"
 is a wish; with it, it is a measurement.
 
 ```bash
-make eval
+make eval-data                    # once: GuitarSet annotations into ~/.cache
+make eval                         # oracle mode, test split (player 05)
+make eval ARGS="--split dev"      # players 00–04: tune MapperCosts here
+uv sync --extra eval-full && make eval-data ARGS=--audio
+make eval ARGS=--full             # transcription + structure + mapper
 ```
+
+**Oracle mode** feeds ground-truth pitches to the mapper, so its string
+accuracy measures stage 4 alone, next to a lowest-fret baseline. **Full mode**
+runs the real transcriber and analyzer on the mic audio and reports note F1,
+string accuracy over matched notes, and chord accuracy. Tune on `dev`; commit
+`test`.
 
 Writes to `eval/results/`, which is **tracked in git** — the whole value is in
 comparing runs over time. It looks generated. It is not disposable, and it must

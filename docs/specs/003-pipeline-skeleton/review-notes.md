@@ -25,6 +25,9 @@ survive it. Spec 004 (fretboard mapper) should read this before starting.
   `NotImplementedError` for an unsupported case (an exotic tuning, an
   unplayable interval), and the current bare except would swallow that as if
   stage 4 were still a stub.
+  **Resolved in 004:** the pipeline now catches `Exception` for stage 4;
+  `test_a_mapper_raising_not_implemented_degrades_like_any_other_failure`
+  pins it.
 
 - **`--tuning` validation covers syntax, not the fretboard invariant.** The
   CLI now rejects a malformed pitch name or a wrong string count, but nothing
@@ -33,6 +36,8 @@ survive it. Spec 004 (fretboard mapper) should read this before starting.
   `guitarvis_core.fretboard.check_invariant` on its own output regardless of
   what tuning it was handed — this fix narrows the input, it does not replace
   that gate.
+  **Resolved in 004:** unchanged by design — `check_invariant` still runs on
+  every note stage 4 returns, whatever tuning it was handed.
 
 - **The ML dependency resolve is platform-asymmetric and undocumented.** On
   Linux, `uv.lock` pins `numpy==1.26.4`; on `darwin`/`x86_64` it resolves
