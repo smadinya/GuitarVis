@@ -22,6 +22,10 @@ NPM := npm --prefix web
 # enforces the lockfile on the Node side.
 UV_SYNC_FLAGS ?=
 
+# Extra arguments for `make eval` / `make eval-data`, e.g.
+# `make eval ARGS="--split dev"`.
+ARGS ?=
+
 # mypy is pointed at these directories rather than the repo root: with a src
 # layout it resolves package names from them. Tests ARE included — a typed
 # Protocol conformance assignment (e.g. apps/worker/tests/test_stages.py) is
@@ -111,7 +115,7 @@ schema-check: schema ## Fail if the committed contract artifacts are stale
 check: lint typecheck test schema-check ## Everything CI runs
 
 eval: ## GuitarSet evaluation. Measured, never gated — not part of `check`.
-	$(UV) run python -m guitarvis_eval
+	$(UV) run python -m guitarvis_eval $(ARGS)
 
 clean: ## Remove caches and build output
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .venv web/node_modules web/dist
