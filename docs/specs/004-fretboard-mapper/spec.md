@@ -141,9 +141,10 @@ install, which is light) for the mapper, and an optional extra
 `full = ["guitarvis-worker[ml]", "mir_eval"]`. numpy and scipy arriving through
 `mir_eval` are fine here; only `apps/api` carries the import ban.
 
-**Data.** `make eval-data` downloads GuitarSet's `annotation.zip` and — for full
-mode — `audio_mono-mic.zip` from Zenodo record 3371780, verifies their MD5s,
-and unpacks them into `~/.cache/guitarvis/guitarset/`, outside the repo. The
+**Data.** `make eval-data` downloads GuitarSet's `annotation.zip` (about 40 MB)
+from Zenodo record 3371780 — and, with `ARGS=--audio`, the 650 MB
+`audio_mono-mic.zip` that only full mode needs — verifies their MD5s, and
+unpacks them into `~/.cache/guitarvis/guitarset/`, outside the repo. The
 harness reads `GUITARSET_DIR`, falling back to that cache; if the data is
 absent it prints the command to run and exits non-zero.
 
@@ -184,7 +185,9 @@ goes straight to `BasicPitchTranscriber`, then the mapper, and to
   string.
 - **Chord accuracy:** ground truth and prediction sampled on a 100ms grid;
   ground truth reduced to the analyzer's vocabulary (major, minor, or no
-  chord); the share of samples that agree.
+  chord); the share of samples that agree. Samples whose ground truth has no
+  major or minor reading — sus, diminished, power chords — are left out
+  rather than counted against an analyzer that cannot express them.
 
 **Results.** One run writes
 `eval/results/<date>-<short sha>-<mode>-<split>.json`, holding the commit and
