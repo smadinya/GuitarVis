@@ -361,7 +361,13 @@ def test_empty_input_gives_an_empty_result() -> None:
 def test_open_c_chord_gets_the_open_shape() -> None:
     # x32010
     result = assign(chord(0.0, 48, 52, 55, 60, 64))
-    assert places(result) == [(48, 1, 3), (52, 2, 2), (55, 3, 0), (60, 4, 1), (64, 5, 0)]
+    assert places(result) == [
+        (48, 1, 3),
+        (52, 2, 2),
+        (55, 3, 0),
+        (60, 4, 1),
+        (64, 5, 0),
+    ]
 
 
 def test_f_barre_chord_is_found() -> None:
@@ -693,9 +699,7 @@ class ViterbiFretboardMapper:
             return 0.0
         return self.costs.move_weight * abs(before.position - after.position)
 
-    def _viterbi(
-        self, fingerings: Sequence[Sequence[_Fingering]]
-    ) -> list[_Fingering]:
+    def _viterbi(self, fingerings: Sequence[Sequence[_Fingering]]) -> list[_Fingering]:
         """The cheapest fingering per voicing, over the whole sequence."""
         if not fingerings:
             return []
@@ -876,8 +880,7 @@ PERFORMED_SOURCE = "Semi-automatic chord transcription with manual verification"
 
 def _observations(rows: Sequence[tuple[float, float, object]]) -> list[dict]:
     return [
-        {"time": t, "duration": d, "value": v, "confidence": None}
-        for t, d, v in rows
+        {"time": t, "duration": d, "value": v, "confidence": None} for t, d, v in rows
     ]
 
 
@@ -1304,7 +1307,10 @@ def test_note_counts_f1() -> None:
 
 def test_score_oracle_on_an_open_e_minor_chord(tmp_path: Path) -> None:
     # Em, 022000: both mapper and baseline should get every string right.
-    notes = [(0.0, 1.0, float(m), s) for m, s in ((40, 0), (47, 1), (52, 2), (55, 3), (59, 4), (64, 5))]
+    notes = [
+        (0.0, 1.0, float(m), s)
+        for m, s in ((40, 0), (47, 1), (52, 2), (55, 3), (59, 4), (64, 5))
+    ]
     excerpt = read_jams(write_jams(tmp_path, "05_x_comp", notes=notes))
 
     score = score_oracle(excerpt, ViterbiFretboardMapper(), LowestFretMapper())
@@ -1344,7 +1350,9 @@ def test_summary_groups_by_style_and_weights_by_notes(tmp_path: Path) -> None:
 
 def test_score_to_dict_names_the_excerpt(tmp_path: Path) -> None:
     excerpt = read_jams(write_jams(tmp_path, "05_a_comp", notes=[(0.0, 1.0, 40.0, 0)]))
-    row = score_to_dict(score_oracle(excerpt, ViterbiFretboardMapper(), LowestFretMapper()))
+    row = score_to_dict(
+        score_oracle(excerpt, ViterbiFretboardMapper(), LowestFretMapper())
+    )
     assert row["name"] == "05_a_comp"
     assert row["style"] == "comp"
     assert row["string"] == {"correct": 1, "total": 1, "rate": 1.0}
@@ -1477,9 +1485,7 @@ class NoteCounts:
         return 2 * self.matched / (self.truth + self.estimated)
 
 
-def oracle_string_tally(
-    truth: Sequence[TruthNote], placed: Sequence[TabNote]
-) -> Tally:
+def oracle_string_tally(truth: Sequence[TruthNote], placed: Sequence[TabNote]) -> Tally:
     """Oracle mode: the mapper saw exactly the truth's onsets and pitches.
 
     Pair by (onset, pitch). A truth note the mapper dropped has no partner
@@ -2004,7 +2010,10 @@ def test_an_unpacked_archive_is_not_fetched_again(tmp_path: Path) -> None:
     archive = Archive("annotation.zip", "0" * 32, "annotation")
 
     # The URL does not exist; reaching for it would raise.
-    assert fetch(archive, root, url=(tmp_path / "nope.zip").as_uri()) == root / "annotation"
+    assert (
+        fetch(archive, root, url=(tmp_path / "nope.zip").as_uri())
+        == root / "annotation"
+    )
 
 
 def test_archives_point_at_the_zenodo_record() -> None:
@@ -2269,7 +2278,9 @@ from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
         ("X", None),
     ],
 )
-def test_reduce_chord_to_the_analyzer_vocabulary(label: str, reduced: str | None) -> None:
+def test_reduce_chord_to_the_analyzer_vocabulary(
+    label: str, reduced: str | None
+) -> None:
     assert reduce_chord(label) == reduced
 
 
@@ -2466,9 +2477,7 @@ def chord_tally(
         expected = reduce_chord(_label_at(truth, t))
         if expected is None:
             continue
-        actual = next(
-            (c.symbol for c in predicted if c.t <= t < c.t + c.dur), NO_CHORD
-        )
+        actual = next((c.symbol for c in predicted if c.t <= t < c.t + c.dur), NO_CHORD)
         total += 1
         correct += actual == expected
     return Tally(correct, total)
