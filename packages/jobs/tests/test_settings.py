@@ -72,3 +72,16 @@ def test_settings_env_round_trips_through_from_env() -> None:
     )
 
     assert Settings.from_env(settings_env(settings)) == settings
+
+
+def test_the_repr_shows_no_credentials() -> None:
+    settings = Settings(
+        database_url="postgresql+psycopg://guitarvis:db-hunter2@db:5432/guitarvis",
+        s3_secret_key="s3-hunter2",
+    )
+
+    shown = repr(settings)
+
+    assert "db-hunter2" not in shown
+    assert "s3-hunter2" not in shown
+    assert "redis_url=" in shown  # the rest is still there to debug with
