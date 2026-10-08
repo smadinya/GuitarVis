@@ -22,6 +22,10 @@ NPM := npm --prefix web
 # enforces the lockfile on the Node side.
 UV_SYNC_FLAGS ?=
 
+# Extra arguments for `make eval` / `make eval-data`, e.g.
+# `make eval ARGS="--split dev"`.
+ARGS ?=
+
 # mypy is pointed at these directories rather than the repo root: with a src
 # layout it resolves package names from them. Tests ARE included — a typed
 # Protocol conformance assignment (e.g. apps/worker/tests/test_stages.py) is
@@ -41,7 +45,7 @@ PY_SOURCES := packages/core/src apps/api/src apps/worker/src apps/eval/src \
               packages/core/tests apps/api/tests apps/worker/tests apps/eval/tests
 
 .PHONY: help install lint format typecheck test test-py test-web \
-        schema schema-check check eval clean
+        schema schema-check check eval eval-data clean
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -111,7 +115,10 @@ schema-check: schema ## Fail if the committed contract artifacts are stale
 check: lint typecheck test schema-check ## Everything CI runs
 
 eval: ## GuitarSet evaluation. Measured, never gated — not part of `check`.
-	$(UV) run python -m guitarvis_eval
+	$(UV) run python -m guitarvis_eval $(ARGS)
+
+eval-data: ## Download GuitarSet into ~/.cache (ARGS=--audio for full mode's audio)
+	$(UV) run python -m guitarvis_eval.download $(ARGS)
 
 clean: ## Remove caches and build output
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .venv web/node_modules web/dist

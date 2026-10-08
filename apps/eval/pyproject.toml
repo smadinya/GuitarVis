@@ -3,7 +3,15 @@ name = "guitarvis-eval"
 version = "0.1.0"
 description = "GuitarSet evaluation harness. Measured, never gated."
 requires-python = ">=3.12"
-dependencies = ["guitarvis-core"]
+# The worker's base install is light (no ml extra): it supplies the mapper
+# under test. The worker must never import this package in return.
+dependencies = ["guitarvis-core", "guitarvis-worker"]
+
+# Full mode runs the real transcriber and structure analyzer on GuitarSet's
+# audio, and scores notes with mir_eval so the number is comparable with
+# published results. Oracle mode — the default — needs none of it.
+[project.optional-dependencies]
+full = ["guitarvis-worker[ml]", "mir_eval>=0.8"]
 
 [build-system]
 requires = ["hatchling"]

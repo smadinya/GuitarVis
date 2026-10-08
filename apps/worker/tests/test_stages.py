@@ -1,22 +1,15 @@
-"""Every stage stub satisfies its protocol and refuses to pretend it works.
-
-The classes exist before their bodies so that the shape of the pipeline is
-reviewable, and type-checked, before any model is installed. The
-NotImplementedError assertions are what stop a stub from being mistaken for a
-working stage during phase 1.
-"""
+"""Every stage satisfies its protocol, and no stage module drags in the ML
+stack at import time."""
 
 import ast
 from pathlib import Path
 
-import pytest
 from guitarvis_core.contracts import (
     FretboardMapper,
     Separator,
     StructureAnalyzer,
     Transcriber,
 )
-from guitarvis_core.tabdoc import STANDARD_TUNING
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
 from guitarvis_worker.stages.separation import DemucsSeparator
 from guitarvis_worker.stages.structure import LibrosaStructureAnalyzer
@@ -65,13 +58,6 @@ def test_stages_satisfy_their_protocols() -> None:
     assert isinstance(BasicPitchTranscriber(), Transcriber)
     assert isinstance(LibrosaStructureAnalyzer(), StructureAnalyzer)
     assert isinstance(ViterbiFretboardMapper(), FretboardMapper)
-
-
-def test_fretboard_is_not_implemented_yet() -> None:
-    """Stage 4 names a different spec: the parent spec's build phase 2 pairs the
-    mapper with the evaluation harness that measures it."""
-    with pytest.raises(NotImplementedError, match="004-fretboard-mapper"):
-        ViterbiFretboardMapper().assign([], STANDARD_TUNING)
 
 
 def test_stage_modules_do_not_import_the_ml_stack_at_module_level() -> None:

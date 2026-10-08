@@ -26,7 +26,8 @@ the hook that refuses commits on `main`.
 | `make schema` | Regenerate the JSON Schema and the web types |
 | `make schema-check` | Fail if the committed schema/web types are stale |
 | `make check` | Everything CI runs |
-| `make eval` | GuitarSet evaluation — measured, never gated |
+| `make eval-data` | Download GuitarSet into `~/.cache` (`ARGS=--audio` for full mode) |
+| `make eval` | GuitarSet evaluation — measured, never gated (`ARGS="--full"`, `ARGS="--split dev"`) |
 | `make clean` | Remove caches and build output |
 | `make help` | List these targets with their one-line descriptions |
 

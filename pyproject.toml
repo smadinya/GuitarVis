@@ -17,6 +17,9 @@ dependencies = [
 # worker's own error strings advertise actually works from the workspace root.
 [project.optional-dependencies]
 ml = ["guitarvis-worker[ml]"]
+# Forwards to the eval member, as `ml` forwards to the worker:
+# `uv sync --extra eval-full`, then `make eval ARGS=--full`.
+eval-full = ["guitarvis-eval[full]"]
 
 [tool.uv]
 package = false

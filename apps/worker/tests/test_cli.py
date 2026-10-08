@@ -6,7 +6,12 @@ import wave
 from pathlib import Path
 
 import pytest
-from guitarvis_core.contracts import IngestedAudio, SeparationResult, StructureResult
+from guitarvis_core.contracts import (
+    IngestedAudio,
+    NoteEvent,
+    SeparationResult,
+    StructureResult,
+)
 from guitarvis_core.tabdoc import Timing
 from guitarvis_worker import cli
 
@@ -76,12 +81,24 @@ def test_writes_a_valid_document_and_exits_zero(
 
 
 @requires_ffprobe
-def test_reports_the_fretboard_stage_is_not_implemented(
-    tmp_path: Path, stub_stages: None, capsys: pytest.CaptureFixture[str]
+def test_places_transcribed_notes_on_the_neck(
+    tmp_path: Path,
+    stub_stages: None,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
+    class OneNote:
+        def transcribe(self, stem_path: Path) -> list[NoteEvent]:
+            return [NoteEvent(onset=0.1, duration=0.5, midi=40, confidence=0.9)]
+
+    monkeypatch.setattr(cli, "BasicPitchTranscriber", lambda **kwargs: OneNote())
     out = tmp_path / "song.json"
-    cli.main(["process", str(write_wav(tmp_path / "song.wav")), "-o", str(out)])
-    assert "Fretboard assignment is not implemented yet" in capsys.readouterr().err
+    code = cli.main(["process", str(write_wav(tmp_path / "song.wav")), "-o", str(out)])
+
+    assert code == 0
+    notes = json.loads(out.read_text())["notes"]
+    assert [(n["string"], n["fret"], n["midi"]) for n in notes] == [(0, 0, 40)]
+    assert "1 note placed" in capsys.readouterr().err
 
 
 def test_missing_file_reports_its_reason(

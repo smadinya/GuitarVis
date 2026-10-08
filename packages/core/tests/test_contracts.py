@@ -15,6 +15,7 @@ from guitarvis_core.contracts import (
     AudioSource,
     FailureReason,
     FretboardMapper,
+    FretboardResult,
     IngestedAudio,
     NoteEvent,
     PipelineError,
@@ -89,10 +90,19 @@ def test_a_fake_mapper_satisfies_the_protocol() -> None:
     class FakeMapper:
         def assign(
             self, notes: Sequence[NoteEvent], tuning: Sequence[str]
-        ) -> list[TabNote]:
-            return []
+        ) -> FretboardResult:
+            return FretboardResult(notes=[])
 
     assert isinstance(FakeMapper(), FretboardMapper)
+
+
+def test_fretboard_result_warnings_default_to_empty() -> None:
+    """Stage 4 reports dropped notes the way stages 1 and 3 report theirs."""
+    result = FretboardResult(notes=[TabNote(1.0, 0.5, 40, 0, 0, 0.9)])
+
+    assert result.warnings == []
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        result.notes = []  # type: ignore[misc]
 
 
 def test_an_unrelated_object_does_not_satisfy_the_protocol() -> None:

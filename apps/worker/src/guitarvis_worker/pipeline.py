@@ -54,12 +54,11 @@ ProgressCallback = Callable[[StageProgress], None]
 class PipelineResult:
     """What `run_pipeline` hands back: the document plus what stage 2 saw.
 
-    `transcribed_note_count` exists because `document.notes` is deliberately
-    empty until 004-fretboard-mapper lands — it is the only evidence this
-    phase produces that transcription worked. Returned alongside the document
-    rather than folded into a warning string so a caller (the CLI, or any
-    future job runner) gets it as data, not something it has to parse back
-    out of prose.
+    `transcribed_note_count` is how many note events transcription produced,
+    before stage 4 dropped any it could not place. Comparing it with
+    `len(document.notes)` shows how much the fretboard stage lost. Returned
+    as data rather than folded into a warning string so a caller gets it
+    without parsing prose.
     """
 
     document: TabDocument
@@ -126,44 +125,46 @@ def run_pipeline(
     warnings.extend(structure.warnings)
     _report(progress, "structure")
 
-    # Stage 4. Not implemented until 004-fretboard-mapper, and treated as a
-    # degraded track until then rather than a crash. Once 004 lands this
-    # except must widen deliberately: a real mapper can itself raise
-    # NotImplementedError for a genuinely unsupported case (an exotic
-    # tuning, an unplayable interval), and this bare `except NotImplementedError`
-    # would swallow that as if stage 4 were still a stub.
+    # Stage 4. Optional like stages 2 and 3: a mapper that raises costs the
+    # notes track, not the job — including NotImplementedError, which a real
+    # mapper may raise for a genuinely unsupported case. Notes the mapper
+    # could not place arrive as warnings on its result. A wrong fret is a
+    # different matter: the invariant check below fails the job instead.
     tab_notes: list[TabNote] = []
     try:
-        tab_notes = mapper.assign(events, tuning)
-    except NotImplementedError:
+        fretboard = mapper.assign(events, tuning)
+    except Exception as exc:  # every mapper failure degrades alike
         warnings.append(
-            "Fretboard assignment is not implemented yet, so this document "
-            "carries no notes."
+            f"Fretboard assignment failed ({exc.__class__.__name__}), so this "
+            "document carries no notes."
         )
+    else:
+        tab_notes = fretboard.notes
+        warnings.extend(fretboard.warnings)
     _report(progress, "fretboard")
 
-    notes = [
-        Note(
-            id=f"n_{index:04d}",
-            t=tab.onset,
-            dur=tab.duration,
-            midi=tab.midi,
-            string=tab.string,
-            fret=tab.fret,
-            confidence=tab.confidence,
-        )
-        for index, tab in enumerate(tab_notes)
-    ]
-
     # A tab that renders the wrong fret is worse than no tab: a beginner cannot
-    # tell it from a hard passage. Refuse to emit one.
-    for note in notes:
+    # tell it from a hard passage. Refuse to emit one. A string or fret that
+    # does not exist on the neck is the same failure, not a crash: pitch_of
+    # raises IndexError and Note's validation raises ValueError.
+    notes: list[Note] = []
+    for index, tab in enumerate(tab_notes):
         try:
+            note = Note(
+                id=f"n_{index:04d}",
+                t=tab.onset,
+                dur=tab.duration,
+                midi=tab.midi,
+                string=tab.string,
+                fret=tab.fret,
+                confidence=tab.confidence,
+            )
             check_invariant(note, tuning)
-        except InvariantViolation as exc:
+        except (InvariantViolation, IndexError, ValueError) as exc:
             raise PipelineError(
                 FailureReason.INTERNAL, f"Fretboard assignment is inconsistent: {exc}"
             ) from exc
+        notes.append(note)
 
     document = TabDocument(
         source=Source(

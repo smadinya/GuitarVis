@@ -11,6 +11,7 @@ from typing import Any
 import pytest
 from guitarvis_core.contracts import (
     FailureReason,
+    FretboardResult,
     IngestedAudio,
     NoteEvent,
     PipelineError,
@@ -62,22 +63,23 @@ class FailingAnalyzer:
 
 
 class StubMapper:
-    def __init__(self, notes: Sequence[TabNote] = ()) -> None:
+    def __init__(
+        self, notes: Sequence[TabNote] = (), warnings: Sequence[str] = ()
+    ) -> None:
         self.notes = list(notes)
+        self.warnings = list(warnings)
 
     def assign(
         self, notes: Sequence[NoteEvent], tuning: Sequence[str]
-    ) -> list[TabNote]:
-        return list(self.notes)
+    ) -> FretboardResult:
+        return FretboardResult(notes=list(self.notes), warnings=list(self.warnings))
 
 
-class UnimplementedMapper:
-    """Stage 4 as it stands until 004-fretboard-mapper lands."""
-
+class FailingMapper:
     def assign(
         self, notes: Sequence[NoteEvent], tuning: Sequence[str]
-    ) -> list[TabNote]:
-        raise NotImplementedError("Stage 4 lands in 004-fretboard-mapper")
+    ) -> FretboardResult:
+        raise RuntimeError("no fingering search today")
 
 
 def audio(tmp_path: Path) -> IngestedAudio:
@@ -157,32 +159,63 @@ def test_structure_failure_degrades_instead_of_failing(tmp_path: Path) -> None:
     assert any("bar lines" in w for w in doc.warnings)
 
 
-def test_unimplemented_fretboard_stage_degrades(tmp_path: Path) -> None:
+def test_fretboard_failure_degrades_instead_of_failing(tmp_path: Path) -> None:
     doc = run(
         tmp_path,
         transcriber=StubTranscriber([NoteEvent(1.0, 0.5, 52, 0.8)]),
-        mapper=UnimplementedMapper(),
+        mapper=FailingMapper(),
     )
 
     assert doc.notes == []
-    assert any("fretboard" in w.lower() for w in doc.warnings)
+    assert any("fretboard assignment failed" in w.lower() for w in doc.warnings)
     # The fretboard warning must speak only about notes: stage 4 failing
-    # says nothing about whether stage 3 (timing, chords) succeeded, so the
-    # warning must not assert that they did.
+    # says nothing about whether stage 3 (timing, chords) succeeded.
     assert not any("unaffected" in w.lower() for w in doc.warnings)
 
 
-def test_transcribed_note_count_is_reported_even_though_notes_stays_empty(
+def test_a_mapper_raising_not_implemented_degrades_like_any_other_failure(
     tmp_path: Path,
 ) -> None:
-    # notes is deliberately empty until 004-fretboard-mapper lands; the
-    # transcribed event count is the only evidence transcription worked.
+    # 003's review notes: a real mapper may raise NotImplementedError for a
+    # genuinely unsupported case. It must degrade, not be mistaken for a stub.
+    class Unsupported:
+        def assign(
+            self, notes: Sequence[NoteEvent], tuning: Sequence[str]
+        ) -> FretboardResult:
+            raise NotImplementedError("exotic tuning")
+
+    doc = run(
+        tmp_path,
+        transcriber=StubTranscriber([NoteEvent(1.0, 0.5, 52, 0.8)]),
+        mapper=Unsupported(),
+    )
+    assert doc.notes == []
+    assert any("NotImplementedError" in w for w in doc.warnings)
+
+
+def test_fretboard_warnings_reach_the_document(tmp_path: Path) -> None:
+    doc = run(
+        tmp_path,
+        transcriber=StubTranscriber([NoteEvent(1.0, 0.5, 52, 0.8)]),
+        mapper=StubMapper(
+            [TabNote(1.0, 0.5, 52, 2, 2, 0.8)],
+            warnings=["1 note outside the guitar's range was dropped."],
+        ),
+    )
+
+    assert len(doc.notes) == 1
+    assert "1 note outside the guitar's range was dropped." in doc.warnings
+
+
+def test_transcribed_note_count_survives_a_fretboard_failure(
+    tmp_path: Path,
+) -> None:
     result = run_result(
         tmp_path,
         transcriber=StubTranscriber(
             [NoteEvent(1.0, 0.5, 52, 0.8), NoteEvent(2.0, 0.5, 55, 0.7)]
         ),
-        mapper=UnimplementedMapper(),
+        mapper=FailingMapper(),
     )
 
     assert result.transcribed_note_count == 2
@@ -245,7 +278,7 @@ def test_progress_still_reports_when_stages_degrade(tmp_path: Path) -> None:
     run(
         tmp_path,
         analyzer=FailingAnalyzer(),
-        mapper=UnimplementedMapper(),
+        mapper=FailingMapper(),
         progress=seen.append,
     )
 
@@ -265,5 +298,22 @@ def test_a_note_violating_the_invariant_is_rejected(tmp_path: Path) -> None:
             tmp_path,
             transcriber=StubTranscriber([NoteEvent(1.0, 0.5, 53, 0.8)]),
             mapper=StubMapper([TabNote(1.0, 0.5, 53, 2, 2, 0.8)]),
+        )
+    assert excinfo.value.reason is FailureReason.INTERNAL
+
+
+@pytest.mark.parametrize(
+    "tab",
+    [
+        TabNote(1.0, 0.5, 52, 9, 2, 0.8),  # no string 9 on a six-string
+        TabNote(1.0, 0.5, 52, 2, -1, 0.8),  # no fret below the nut
+    ],
+)
+def test_a_note_off_the_neck_is_rejected(tmp_path: Path, tab: TabNote) -> None:
+    with pytest.raises(PipelineError) as excinfo:
+        run(
+            tmp_path,
+            transcriber=StubTranscriber([NoteEvent(1.0, 0.5, 52, 0.8)]),
+            mapper=StubMapper([tab]),
         )
     assert excinfo.value.reason is FailureReason.INTERNAL

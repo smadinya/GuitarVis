@@ -12,7 +12,7 @@ Four stages, each behind a narrow interface, each separately testable.
 | 1 Separation | `Separator.isolate(audio_path) -> Path` | 0–40% |
 | 2 Transcription | `Transcriber.transcribe(stem_path) -> list[NoteEvent]` | 40–65% |
 | 3 Structure | `StructureAnalyzer.analyze(stem, mix) -> StructureResult` | 65–80% |
-| 4 Fretboard | `FretboardMapper.assign(notes, tuning) -> list[TabNote]` | 80–100% |
+| 4 Fretboard | `FretboardMapper.assign(notes, tuning) -> FretboardResult` | 80–100% |
 
 Protocols live in `packages/core/src/guitarvis_core/contracts.py`.
 Implementations live in `apps/worker/src/guitarvis_worker/stages/`.
@@ -49,6 +49,8 @@ outright only when there is no usable guitar audio.
 | Chord detection | Note tab only; chord track hidden |
 | Confidence collapses in a passage | That passage shows chord symbols, not fret numbers |
 | Guitar stem empty or near-silent | Retry with the 4-stem `other` track; if still empty, fail honestly |
+| Fretboard mapper raises | No notes; timing and chords unaffected by it; a warning says why |
+| Notes no hand could play, or outside the neck's range | Those notes dropped, never approximated; a warning gives the count |
 
 When a stage fails, omit its track from the tab document and continue. Raise
 `PipelineError` with a typed `FailureReason` only when the job genuinely cannot
