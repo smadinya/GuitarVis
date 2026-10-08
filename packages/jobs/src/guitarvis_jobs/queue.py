@@ -8,6 +8,12 @@ queue. The RQ job id is the GuitarVis job id.
 import threading
 from typing import TYPE_CHECKING, Protocol
 
+from redis import Redis
+from rq import Queue, Retry
+from rq.job import Job as RQJob
+
+from guitarvis_jobs.settings import Settings
+
 RUN_JOB = "guitarvis_worker.runner.run_job"
 QUEUE_NAME = "jobs"
 MAX_RETRIES = 2  # three attempts in all, as spec 001 asks
@@ -62,5 +68,38 @@ class InMemoryJobQueue:
             raise ConnectionError("queue unavailable")
 
 
+class RQJobQueue:
+    """Implements JobQueue on RQ."""
+
+    def __init__(self, connection: Redis, *, job_timeout_sec: int) -> None:
+        self.connection = connection
+        self.job_timeout_sec = job_timeout_sec
+        self._queue = Queue(QUEUE_NAME, connection=connection)
+
+    @classmethod
+    def from_settings(cls, settings: Settings) -> "RQJobQueue":
+        # No socket timeout: a worker blocks on this connection for minutes
+        # while it waits for work, and RQ manages that wait itself.
+        connection = Redis.from_url(settings.redis_url, socket_connect_timeout=5)
+        return cls(connection, job_timeout_sec=settings.job_timeout_sec)
+
+    def enqueue(self, job_id: str) -> None:
+        self._queue.enqueue(
+            RUN_JOB,
+            job_id,
+            job_id=job_id,
+            retry=Retry(max=MAX_RETRIES, interval=list(RETRY_INTERVALS_SEC)),
+            job_timeout=self.job_timeout_sec,
+            description=f"guitarvis job {job_id}",
+        )
+
+    def exists(self, job_id: str) -> bool:
+        return RQJob.exists(job_id, connection=self.connection)
+
+    def ping(self) -> None:
+        self.connection.ping()
+
+
 if TYPE_CHECKING:  # Static conformance: the typed assignment is what mypy checks.
     _conforms: JobQueue = InMemoryJobQueue()
+    _rq: JobQueue = RQJobQueue(Redis(), job_timeout_sec=1)

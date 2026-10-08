@@ -1,22 +1,30 @@
-"""The JobQueue contract. Task 7 adds an "rq" param against Redis."""
+"""The JobQueue contract, run against the in-memory twin and against RQ."""
 
 from collections.abc import Iterator
 
 import pytest
 from guitarvis_jobs.queue import (
     MAX_RETRIES,
+    QUEUE_NAME,
     RETRY_INTERVALS_SEC,
     RUN_JOB,
     InMemoryJobQueue,
     JobQueue,
+    RQJobQueue,
 )
+from guitarvis_jobs.testing import redis_connection
+from rq.job import Job as RQJob
 
 JOB_ID = "5f0c6c2e-0000-4000-8000-000000000001"
 
 
-@pytest.fixture(params=["memory"])
+@pytest.fixture(params=["memory", "rq"])
 def queue(request: pytest.FixtureRequest) -> Iterator[JobQueue]:
-    yield InMemoryJobQueue()
+    if request.param == "memory":
+        yield InMemoryJobQueue()
+        return
+    with redis_connection() as connection:
+        yield RQJobQueue(connection, job_timeout_sec=1800)
 
 
 def test_an_enqueued_job_exists(queue: JobQueue) -> None:
@@ -61,3 +69,16 @@ def test_the_twin_can_fail_lose_and_go_down() -> None:
         queue.exists(JOB_ID)
     with pytest.raises(ConnectionError):
         queue.ping()
+
+
+def test_an_rq_job_carries_the_retry_policy_and_the_timeout() -> None:
+    with redis_connection() as connection:
+        RQJobQueue(connection, job_timeout_sec=1800).enqueue(JOB_ID)
+        job = RQJob.fetch(JOB_ID, connection=connection)
+
+        assert job.func_name == RUN_JOB
+        assert job.args == (JOB_ID,)
+        assert job.origin == QUEUE_NAME
+        assert job.retries_left == MAX_RETRIES
+        assert job.retry_intervals == list(RETRY_INTERVALS_SEC)
+        assert job.timeout == 1800

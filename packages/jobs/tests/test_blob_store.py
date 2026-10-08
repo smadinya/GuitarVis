@@ -1,20 +1,32 @@
-"""The BlobStore contract. Task 7 adds an "s3" param against RustFS."""
+"""The BlobStore contract, run against the in-memory twin and against S3."""
 
+import urllib.request
 from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import pytest
+from botocore.exceptions import ClientError
 from guitarvis_jobs.blobs import (
     PRESIGN_EXPIRES_SEC,
     BlobNotFound,
     BlobStore,
     InMemoryBlobStore,
+    S3BlobStore,
+    s3_client,
 )
+from guitarvis_jobs.settings import Settings
+from guitarvis_jobs.testing import integration_settings, require, s3_blob_store
 
 
-@pytest.fixture(params=["memory"])
+@pytest.fixture(params=["memory", "s3"])
 def blobs(request: pytest.FixtureRequest) -> Iterator[BlobStore]:
-    yield InMemoryBlobStore()
+    if request.param == "memory":
+        yield InMemoryBlobStore()
+        return
+    with s3_blob_store() as store:
+        yield store
 
 
 def test_bytes_round_trip(blobs: BlobStore) -> None:
@@ -73,3 +85,55 @@ def test_presign_lifetime_is_fifteen_minutes() -> None:
 
 def test_ping_answers(blobs: BlobStore) -> None:
     blobs.ping()
+
+
+def test_a_presigned_url_is_signed_for_the_public_endpoint() -> None:
+    # No network: presigning is local. The browser, not the api, fetches it.
+    store = S3BlobStore.from_settings(
+        Settings(s3_public_endpoint="http://public.example:9000")
+    )
+
+    url = store.presign_get("uploads/k.mp3", expires_sec=60)
+
+    assert url.startswith("http://public.example:9000/guitarvis/uploads/k.mp3?")
+
+
+def test_a_presigned_s3_url_serves_byte_ranges() -> None:
+    """Seeking needs Range, which is why the api redirects rather than proxies."""
+    with s3_blob_store() as store:
+        store.put_bytes("uploads/range.wav", b"0123456789")
+        url = store.presign_get("uploads/range.wav", expires_sec=PRESIGN_EXPIRES_SEC)
+
+        request = urllib.request.Request(url, headers={"Range": "bytes=2-5"})
+        with urllib.request.urlopen(request, timeout=10) as response:
+            assert response.status == 206
+            assert response.read() == b"2345"
+
+
+def _delete_bucket_if_present(client: Any, bucket: str) -> None:
+    try:
+        client.delete_bucket(Bucket=bucket)
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") not in {"404", "NoSuchBucket"}:
+            raise
+
+
+def test_ensure_bucket_creates_a_missing_bucket_and_is_repeatable() -> None:
+    require("storage")
+    # A bucket of its own, deleted whatever happens: the shared test bucket
+    # already exists by the time any test runs, so it cannot show creation.
+    settings = replace(integration_settings(), s3_bucket="guitarvis-test-ensure")
+    client = s3_client(settings, settings.s3_endpoint)
+    store = S3BlobStore.from_settings(settings)
+    _delete_bucket_if_present(client, settings.s3_bucket)  # a crashed earlier run
+    try:
+        with pytest.raises(ClientError):
+            client.head_bucket(Bucket=settings.s3_bucket)
+
+        store.ensure_bucket()
+        client.head_bucket(Bucket=settings.s3_bucket)  # raises unless it exists
+
+        store.ensure_bucket()  # repeatable: no error, still there
+        client.head_bucket(Bucket=settings.s3_bucket)
+    finally:
+        _delete_bucket_if_present(client, settings.s3_bucket)

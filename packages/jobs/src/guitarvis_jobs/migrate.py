@@ -1,4 +1,4 @@
-"""`make migrate`: bring the database up to date.
+"""`make migrate`: bring the database up to date and create the bucket.
 
 There is no alembic.ini. The database URL comes from Settings like every
 other address, and the migrations ship inside the package.
@@ -10,6 +10,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy.engine import make_url
 
+from guitarvis_jobs.blobs import S3BlobStore
 from guitarvis_jobs.settings import Settings
 
 MIGRATIONS = Path(__file__).resolve().parent / "migrations"
@@ -32,6 +33,8 @@ def main() -> int:
     upgrade(settings.database_url)
     shown = make_url(settings.database_url).render_as_string(hide_password=True)
     print(f"database up to date: {shown}")
+    S3BlobStore.from_settings(settings).ensure_bucket()
+    print(f"bucket ready: {settings.s3_bucket} at {settings.s3_endpoint}")
     return 0
 
 

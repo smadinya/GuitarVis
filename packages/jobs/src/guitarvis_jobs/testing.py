@@ -17,8 +17,10 @@ from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 import sqlalchemy as sa
+from redis import Redis
 from sqlalchemy.engine import make_url
 
+from guitarvis_jobs.blobs import S3BlobStore, s3_client
 from guitarvis_jobs.migrate import upgrade
 from guitarvis_jobs.models import NewJob
 from guitarvis_jobs.postgres import PostgresJobStore
@@ -108,7 +110,26 @@ def _ping_postgres(settings: Settings) -> None:
         engine.dispose()
 
 
-_PINGS: dict[str, Callable[[Settings], None]] = {"postgres": _ping_postgres}
+def _ping_redis(settings: Settings) -> None:
+    connection = Redis.from_url(settings.redis_url, socket_connect_timeout=1)
+    try:
+        connection.ping()
+    finally:
+        connection.close()
+
+
+def _ping_storage(settings: Settings) -> None:
+    client = s3_client(
+        settings, settings.s3_endpoint, connect_timeout=1, max_attempts=1
+    )
+    client.list_buckets()
+
+
+_PINGS: dict[str, Callable[[Settings], None]] = {
+    "postgres": _ping_postgres,
+    "redis": _ping_redis,
+    "storage": _ping_storage,
+}
 
 
 @functools.cache
@@ -145,3 +166,39 @@ def _migrate_once(database_url: str) -> None:
 def _truncate(store: PostgresJobStore) -> None:
     with store.engine.begin() as connection:
         connection.execute(sa.text("TRUNCATE jobs"))
+
+
+@contextmanager
+def redis_connection() -> Iterator[Redis]:
+    """Redis database 15, flushed before and after."""
+    require("redis")
+    connection = Redis.from_url(integration_settings().redis_url)
+    connection.flushdb()
+    try:
+        yield connection
+    finally:
+        connection.flushdb()
+        connection.close()
+
+
+@contextmanager
+def s3_blob_store() -> Iterator[S3BlobStore]:
+    """The test bucket, created if missing, emptied before and after."""
+    require("storage")
+    settings = integration_settings()
+    store = S3BlobStore.from_settings(settings)
+    store.ensure_bucket()
+    _empty_bucket(settings)
+    try:
+        yield store
+    finally:
+        _empty_bucket(settings)
+
+
+def _empty_bucket(settings: Settings) -> None:
+    client = s3_client(settings, settings.s3_endpoint)
+    for page in client.get_paginator("list_objects_v2").paginate(
+        Bucket=settings.s3_bucket
+    ):
+        for item in page.get("Contents", []):
+            client.delete_object(Bucket=settings.s3_bucket, Key=item["Key"])
