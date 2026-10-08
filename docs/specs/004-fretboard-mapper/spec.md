@@ -90,8 +90,12 @@ fingerings, so in practice the beam only bites on pathological input.
 
 **Transition cost.** `move_weight · |position_a − position_b|`. The parent
 spec calls this the dominant term: real players stay put. A voicing of only
-open strings has no position; moving into or out of it costs nothing, since
-open strings free the fretting hand.
+open strings needs no fretting, so the hand stays where it was: moving into it
+costs nothing, and the next fretted voicing pays for its distance from the
+last fretted position. Treating an open voicing as a free reset would let one
+open note excuse any jump. The search state is therefore a fingering plus the
+hand position, and an open fingering carries one state per position it can be
+reached from.
 
 **Search.** Viterbi over the voicing sequence, minimising the sum of fingering
 and transition costs. Ties break toward the lower fret, then the lower string,

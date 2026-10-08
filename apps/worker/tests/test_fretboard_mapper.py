@@ -99,6 +99,26 @@ def test_a_note_after_a_barre_stays_in_position() -> None:
     assert places(result)[-1] == (61, 3, 6)
 
 
+def test_an_open_string_does_not_reset_the_hand_position() -> None:
+    # A phrase at frets 12-15 stays there. Swapping one note for an open low E
+    # must not make the jump down to 7th position free: the hand is still at
+    # the 12th fret when the open string rings.
+    phrase = [77, 71, 72, 71, 72, 74]
+    with_open = [77, 71, 40, 71, 72, 74]
+
+    def run(midis: list[int]) -> list[tuple[int, int, int]]:
+        return places(assign([note(i * 0.5, m) for i, m in enumerate(midis)]))
+
+    baseline = run(phrase)
+    assert [fret for _, _, fret in baseline] == [13, 12, 13, 12, 13, 15]
+
+    result = run(with_open)
+    assert result[2] == (40, 0, 0)
+    assert [p for i, p in enumerate(result) if i != 2] == [
+        p for i, p in enumerate(baseline) if i != 2
+    ]
+
+
 def test_notes_inside_the_window_share_a_voicing() -> None:
     # E2 and F#2 both need the low string. 49ms apart they are one voicing
     # and cannot both sound; 51ms apart they are two and both fit.

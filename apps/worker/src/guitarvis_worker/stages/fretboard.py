@@ -12,7 +12,6 @@ cannot be placed correctly is dropped with a warning, never approximated.
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from itertools import pairwise
 from typing import TYPE_CHECKING
 
 from guitarvis_core.contracts import FretboardResult, NoteEvent, TabNote
@@ -176,41 +175,55 @@ class ViterbiFretboardMapper:
         )
         return _Fingering(places, cost, low)
 
-    def _move(self, before: _Fingering, after: _Fingering) -> float:
-        """Hand movement. Open strings free the fretting hand, so moving into
-        or out of an all-open voicing is free."""
-        if before.position is None or after.position is None:
+    def _move(self, hand: int | None, after: _Fingering) -> float:
+        """Hand movement from where the hand is to `after`. An all-open
+        voicing needs no fretting, so the hand stays put and nothing moves.
+        Before the first fretted voicing the hand is nowhere, and getting
+        anywhere is free."""
+        if hand is None or after.position is None:
             return 0.0
-        return self.costs.move_weight * abs(before.position - after.position)
+        return self.costs.move_weight * abs(hand - after.position)
 
     def _viterbi(self, fingerings: Sequence[Sequence[_Fingering]]) -> list[_Fingering]:
-        """The cheapest fingering per voicing, over the whole sequence."""
+        """The cheapest fingering per voicing, over the whole sequence.
+
+        A state is a fingering plus where the hand is. A fretted fingering
+        puts the hand at its position; an all-open one leaves it where it
+        was, so an open fingering holds one state per hand position it can be
+        reached from. Without that, an open note would forget the hand and
+        make the next jump free.
+        """
         if not fingerings:
             return []
 
+        # States are (fingering index, hand position), sorted so that index
+        # order follows order_key and strict `<` keeps the lowest-fret
+        # predecessor among equal costs.
+        states: list[tuple[int, int | None]] = [
+            (index, fingering.position) for index, fingering in enumerate(fingerings[0])
+        ]
         totals = [fingering.cost for fingering in fingerings[0]]
+        history: list[list[tuple[int, int | None]]] = [states]
         back: list[list[int]] = []
-        for previous, current in pairwise(fingerings):
-            step_totals: list[float] = []
-            step_back: list[int] = []
-            for option in current:
-                # `previous` is sorted by order_key, so strict `<` keeps the
-                # first — lowest-fret — predecessor among equal costs.
-                best, best_index = totals[0] + self._move(previous[0], option), 0
-                for index in range(1, len(previous)):
-                    total = totals[index] + self._move(previous[index], option)
-                    if total < best:
-                        best, best_index = total, index
-                step_totals.append(best + option.cost)
-                step_back.append(best_index)
-            totals = step_totals
-            back.append(step_back)
+        for current in fingerings[1:]:
+            best: dict[tuple[int, int | None], tuple[float, int]] = {}
+            for before, (_, hand) in enumerate(states):
+                for index, option in enumerate(current):
+                    landing = hand if option.position is None else option.position
+                    total = totals[before] + self._move(hand, option) + option.cost
+                    key = (index, landing)
+                    if key not in best or total < best[key][0]:
+                        best[key] = (total, before)
+            states = sorted(best, key=lambda s: (s[0], -1 if s[1] is None else s[1]))
+            totals = [best[state][0] for state in states]
+            history.append(states)
+            back.append([best[state][1] for state in states])
 
-        index = min(range(len(totals)), key=lambda i: totals[i])
-        path = [fingerings[-1][index]]
+        state = min(range(len(totals)), key=lambda i: totals[i])
+        path = [fingerings[-1][history[-1][state][0]]]
         for step in range(len(fingerings) - 2, -1, -1):
-            index = back[step][index]
-            path.append(fingerings[step][index])
+            state = back[step][state]
+            path.append(fingerings[step][history[step][state][0]])
         path.reverse()
         return path
 
