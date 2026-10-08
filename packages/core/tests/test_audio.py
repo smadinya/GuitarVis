@@ -58,6 +58,26 @@ def test_missing_ffprobe_is_internal_not_the_users_fault(
     assert "ffmpeg" in str(excinfo.value)
 
 
+def test_a_probe_that_hangs_is_cut_off_and_the_file_called_unreadable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A pathological file must not hold an api thread forever.
+    seen: dict[str, object] = {}
+
+    def hangs(*args: object, **kwargs: object) -> None:
+        seen["timeout"] = kwargs.get("timeout")
+        raise subprocess.TimeoutExpired(cmd="ffprobe", timeout=30)
+
+    monkeypatch.setattr(subprocess, "run", hangs)
+
+    with pytest.raises(PipelineError) as excinfo:
+        probe_duration(tmp_path / "a.wav")
+
+    assert excinfo.value.reason is FailureReason.UNSUPPORTED_FORMAT
+    assert "could not be read as audio" in str(excinfo.value)
+    assert seen["timeout"] == 30  # seconds: generous for reading a header
+
+
 def test_the_limit_is_ten_minutes() -> None:
     assert MAX_DURATION_SEC == 600.0
 

@@ -16,6 +16,9 @@ from pathlib import Path
 from guitarvis_core.contracts import FailureReason, PipelineError
 
 MAX_DURATION_SEC = 600.0  # ten minutes
+# ffprobe reads a header; a file that keeps it busy longer is not one we can
+# use, and the api runs the probe on a threadpool thread it must get back.
+PROBE_TIMEOUT_SEC = 30
 
 _UNREADABLE = "That file could not be read as audio. Try an mp3, wav, or m4a file."
 
@@ -37,13 +40,14 @@ def probe_duration(path: Path) -> float:
             capture_output=True,
             text=True,
             check=True,
+            timeout=PROBE_TIMEOUT_SEC,  # run() kills ffprobe before raising
         )
     except FileNotFoundError as exc:
         raise PipelineError(
             FailureReason.INTERNAL,
             "ffprobe is not installed. Install ffmpeg to process audio.",
         ) from exc
-    except subprocess.CalledProcessError as exc:
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         raise PipelineError(FailureReason.UNSUPPORTED_FORMAT, _UNREADABLE) from exc
 
     try:
