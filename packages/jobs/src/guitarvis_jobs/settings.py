@@ -24,8 +24,8 @@ class Settings:
     s3_endpoint: str = "http://localhost:9000"
     # Presigned URLs are signed for this host, because a browser has to reach
     # it. It differs from s3_endpoint once the api runs somewhere a browser
-    # cannot address by the same name.
-    s3_public_endpoint: str = "http://localhost:9000"
+    # cannot address by the same name. Unset, it is s3_endpoint.
+    s3_public_endpoint: str | None = None
     s3_access_key: str = "guitarvis"
     s3_secret_key: str = field(default="guitarvis-secret", repr=False)
     s3_bucket: str = "guitarvis"

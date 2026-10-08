@@ -6,7 +6,9 @@ upload's content hash, under `cache/v{CACHE_VERSION}/{hash}/`.
 
 A stage that raises stores nothing: the pipeline degrades exactly as it would
 without a cache, and the next attempt runs the stage again rather than
-replaying its failure. Stage 4 is fast and deterministic and is not cached.
+replaying its failure. Nor does a structure result with warnings, which mean
+a half of the stage failed and degraded inside it rather than raising. Stage
+4 is fast and deterministic and is not cached.
 
 For transcription and structure the cache is only an optimisation, so a
 storage error reading or writing it is logged and treated as a miss. It must
@@ -181,7 +183,8 @@ class CachedAnalyzer:
         if cached is not None:
             return cached
         result = self._inner.analyze(stem_path, mix_path)
-        _store(self._blobs, self._keys.structure, _structure_to_json(result))
+        if not result.warnings:  # a half failed, perhaps by chance
+            _store(self._blobs, self._keys.structure, _structure_to_json(result))
         return result
 
 

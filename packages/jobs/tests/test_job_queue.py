@@ -62,6 +62,64 @@ def test_a_job_the_queue_will_never_run_again_does_not_exist(queue: JobQueue) ->
     assert not queue.exists(JOB_ID)
 
 
+def start(queue: JobQueue, job_id: str) -> None:
+    """A worker takes the job."""
+    if isinstance(queue, InMemoryJobQueue):
+        queue.start(job_id)
+        return
+    assert isinstance(queue, RQJobQueue)
+    RQJob.fetch(job_id, connection=queue.connection).set_status(RQJobStatus.STARTED)
+
+
+def test_an_enqueued_job_is_waiting(queue: JobQueue) -> None:
+    queue.enqueue(JOB_ID)
+
+    assert queue.waiting(JOB_ID)
+
+
+def test_a_started_job_exists_but_is_not_waiting(queue: JobQueue) -> None:
+    # Reconciliation tells a horse killed with its worker, whose job stays
+    # started, from one RQ is retrying, whose job waits again.
+    queue.enqueue(JOB_ID)
+
+    start(queue, JOB_ID)
+
+    assert queue.exists(JOB_ID)
+    assert not queue.waiting(JOB_ID)
+
+
+def test_unknown_and_finished_jobs_are_not_waiting(queue: JobQueue) -> None:
+    assert not queue.waiting("5f0c6c2e-0000-4000-8000-0000000000ff")
+    queue.enqueue(JOB_ID)
+    fail_terminally(queue, JOB_ID)
+
+    assert not queue.waiting(JOB_ID)
+
+
+@pytest.mark.parametrize(
+    ("status", "waiting"),
+    [
+        (RQJobStatus.CREATED, True),
+        (RQJobStatus.QUEUED, True),
+        (RQJobStatus.SCHEDULED, True),  # a retry waiting out its interval
+        (RQJobStatus.DEFERRED, True),
+        (RQJobStatus.STARTED, False),
+        (RQJobStatus.FINISHED, False),
+        (RQJobStatus.FAILED, False),
+    ],
+)
+def test_an_rq_job_is_waiting_until_a_worker_takes_it(
+    status: RQJobStatus, waiting: bool
+) -> None:
+    with redis_connection() as connection:
+        queue = RQJobQueue(connection, job_timeout_sec=1800)
+        queue.enqueue(JOB_ID)
+
+        RQJob.fetch(JOB_ID, connection=connection).set_status(status)
+
+        assert queue.waiting(JOB_ID) is waiting
+
+
 @pytest.mark.parametrize(
     "status",
     [
@@ -127,6 +185,8 @@ def test_the_twin_can_fail_lose_and_go_down() -> None:
     queue.down = True
     with pytest.raises(ConnectionError):
         queue.exists(JOB_ID)
+    with pytest.raises(ConnectionError):
+        queue.waiting(JOB_ID)
     with pytest.raises(ConnectionError):
         queue.ping()
 

@@ -36,7 +36,6 @@ STRUCTURE = StructureResult(
     timing=Timing(beats=[Beat(t=0.5, bar=1, beat=1)], tempo_bpm_avg=96.0),
     chords=[Chord(t=0.0, dur=2.0, symbol="Am", confidence=0.7)],
     sections=[Section(t=0.0, dur=8.0, label="verse")],
-    warnings=["Chord detection was unsure in places."],
 )
 
 
@@ -79,15 +78,18 @@ class CountingTranscriber:
 
 
 class CountingAnalyzer:
-    def __init__(self, error: Exception | None = None) -> None:
+    def __init__(
+        self, error: Exception | None = None, result: StructureResult = STRUCTURE
+    ) -> None:
         self.error = error
+        self.result = result
         self.calls = 0
 
     def analyze(self, stem_path: Path, mix_path: Path) -> StructureResult:
         self.calls += 1
         if self.error is not None:
             raise self.error
-        return STRUCTURE
+        return self.result
 
 
 class FlakyBlobStore(InMemoryBlobStore):
@@ -305,4 +307,22 @@ def test_a_failed_analysis_stores_nothing(tmp_path: Path) -> None:
             tmp_path, tmp_path
         )
 
+    assert not blobs.exists(KEYS.structure)
+
+
+def test_a_degraded_analysis_is_returned_but_not_stored(tmp_path: Path) -> None:
+    """A half that failed degrades rather than raising, and may have failed
+    by chance, so the next attempt runs the stage again."""
+    blobs = InMemoryBlobStore()
+    degraded = StructureResult(
+        timing=Timing(),
+        chords=STRUCTURE.chords,
+        sections=[],
+        warnings=["Beat tracking failed (MemoryError), so bar lines are unavailable."],
+    )
+    analyzer = CountingAnalyzer(result=degraded)
+
+    result = CachedAnalyzer(analyzer, blobs, KEYS).analyze(tmp_path, tmp_path)
+
+    assert result == degraded
     assert not blobs.exists(KEYS.structure)

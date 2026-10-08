@@ -12,6 +12,7 @@ from guitarvis_core.audio import check_duration
 from guitarvis_core.contracts import FailureReason, PipelineError
 from guitarvis_jobs.blobs import PRESIGN_EXPIRES_SEC
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE, Job, JobStatus, NewJob
+from guitarvis_jobs.store import TooManyActiveJobs
 
 from guitarvis_api.errors import ApiError, HttpReason, error_body
 from guitarvis_api.reconcile import reconcile
@@ -65,29 +66,29 @@ def create_job(file: UploadFile, request: Request, response: Response) -> JobVie
             response.status_code = 200
             return JobView.of(live)
 
+        # Counted before the blob is stored, so a refused upload costs no
+        # storage. Uploads that race past it are refused by `create`.
         active = services.store.count_active(client_ip)
         if active >= settings.max_active_jobs_per_ip:
-            songs = "song" if active == 1 else "songs"
-            raise ApiError(
-                429,
-                HttpReason.TOO_MANY_JOBS,
-                f"You already have {active} {songs} processing. Wait for one to "
-                "finish, then try again.",
-            )
+            raise _too_many_jobs(active)
 
         key = upload_key(upload.content_hash, file.filename)
         if not services.blobs.exists(key):
             services.blobs.put_file(key, upload.path)
 
-    job, created = services.store.create(
-        NewJob(
-            content_hash=upload.content_hash,
-            title=title_of(file.filename),
-            duration_sec=duration,
-            upload_key=key,
-            client_ip=client_ip,
+    try:
+        job, created = services.store.create(
+            NewJob(
+                content_hash=upload.content_hash,
+                title=title_of(file.filename),
+                duration_sec=duration,
+                upload_key=key,
+                client_ip=client_ip,
+            ),
+            max_active=settings.max_active_jobs_per_ip,
         )
-    )
+    except TooManyActiveJobs as error:
+        raise _too_many_jobs(error.active) from error
     if not created:  # the same file, uploaded at the same moment, got there first
         response.status_code = 200
         return JobView.of(job)
@@ -111,6 +112,16 @@ def create_job(file: UploadFile, request: Request, response: Response) -> JobVie
 
     response.headers["Location"] = f"/jobs/{job.id}"
     return JobView.of(job)
+
+
+def _too_many_jobs(active: int) -> ApiError:
+    songs = "song" if active == 1 else "songs"
+    return ApiError(
+        429,
+        HttpReason.TOO_MANY_JOBS,
+        f"You already have {active} {songs} processing. Wait for one to "
+        "finish, then try again.",
+    )
 
 
 def _probe(services: Services, path: Path) -> float:

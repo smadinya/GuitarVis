@@ -155,7 +155,7 @@ class S3BlobStore:
     def from_settings(cls, settings: Settings) -> "S3BlobStore":
         return cls(
             s3_client(settings, settings.s3_endpoint),
-            s3_client(settings, settings.s3_public_endpoint),
+            s3_client(settings, settings.s3_public_endpoint or settings.s3_endpoint),
             settings.s3_bucket,
             settings.s3_region,
         )

@@ -92,6 +92,14 @@ def test_check_duration_rejects_past_the_limit() -> None:
     assert excinfo.value.reason is FailureReason.TOO_LONG
 
 
+@pytest.mark.parametrize("duration", [0.0, -1.0, float("nan")])
+def test_check_duration_rejects_a_recording_with_no_length(duration: float) -> None:
+    # A wav header with no frames probes as 0.0, and NaN > limit is False.
+    with pytest.raises(PipelineError) as excinfo:
+        check_duration(duration)
+    assert excinfo.value.reason is FailureReason.UNSUPPORTED_FORMAT
+
+
 def test_check_duration_honours_a_custom_limit() -> None:
     with pytest.raises(PipelineError) as excinfo:
         check_duration(2.0, max_duration_sec=1.0)

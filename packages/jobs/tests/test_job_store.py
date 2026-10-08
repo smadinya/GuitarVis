@@ -3,13 +3,14 @@ against the Postgres the system actually uses, so the twin cannot quietly
 drift from it. The postgres param skips when `make services` has not been run,
 and fails under GUITARVIS_REQUIRE_SERVICES=1."""
 
+import threading
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from guitarvis_core.contracts import FailureReason
 from guitarvis_jobs.models import JobStatus
-from guitarvis_jobs.store import InMemoryJobStore, JobStore
+from guitarvis_jobs.store import InMemoryJobStore, JobStore, TooManyActiveJobs
 from guitarvis_jobs.testing import FakeClock, postgres_store, sample_new_job
 
 HASH_B = "b" * 64
@@ -121,6 +122,57 @@ def test_count_active_counts_queued_and_running_for_one_ip(store: JobStore) -> N
     assert store.count_active("203.0.113.7") == 2
     assert store.count_active("198.51.100.1") == 1
     assert store.count_active("192.0.2.1") == 0
+
+
+def test_create_refuses_a_new_job_at_the_limit(store: JobStore) -> None:
+    store.create(sample_new_job(content_hash="1" * 64))
+    store.create(sample_new_job(content_hash="2" * 64))
+
+    with pytest.raises(TooManyActiveJobs) as excinfo:
+        store.create(sample_new_job(content_hash="3" * 64), max_active=2)
+
+    assert excinfo.value.active == 2
+    assert store.count_active("203.0.113.7") == 2
+
+
+def test_create_at_the_limit_still_returns_the_live_job(store: JobStore) -> None:
+    # It starts no work, so the limit never refuses it.
+    first, _ = store.create(sample_new_job(), max_active=1)
+
+    again, created = store.create(sample_new_job(), max_active=1)
+
+    assert not created
+    assert again.id == first.id
+
+
+def test_the_limit_counts_only_this_address(store: JobStore) -> None:
+    store.create(sample_new_job(client_ip="198.51.100.1"))
+
+    _, created = store.create(sample_new_job(content_hash=HASH_B), max_active=1)
+
+    assert created
+
+
+def test_simultaneous_uploads_from_one_address_cannot_pass_the_limit(
+    store: JobStore,
+) -> None:
+    together = threading.Barrier(8)
+
+    def upload(n: int) -> bool:
+        together.wait()
+        try:
+            _, created = store.create(
+                sample_new_job(content_hash=f"{n:064x}"), max_active=2
+            )
+        except TooManyActiveJobs:
+            return False
+        return created
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        created = list(pool.map(upload, range(8)))
+
+    assert sum(created) == 2
+    assert store.count_active("203.0.113.7") == 2
 
 
 def test_mark_running_starts_an_attempt(store: JobStore, clock: FakeClock) -> None:

@@ -7425,7 +7425,7 @@ Known while writing this plan; append any found during implementation.
 
 - **RustFS, not MinIO** (user decision, 2026-10-08). MinIO's community edition is archived, and its images no longer pull from Docker Hub or Quay. `make migrate` creates the bucket through boto3, in place of a one-shot `mc` container. The spec is amended in Task 6.
 - **The dedupe lookup reconciles the job it finds.** The spec's step 3 only says "look up". But a lookup is a read, and without reconciling, re-uploading a file whose job the queue lost would hand back the dead job with a 200 (Review Focus 5).
-- **`fretboard 100` comes after the invariant check**, not the moment stage 4 returns, so a job never reads 100% and then fails.
+- **`fretboard 100` comes after the invariant check and the built document**, not the moment stage 4 returns, so a job never reads 100% and then fails. The worker does not write it: `succeed` writes 100 together with the status.
 - **`/health`'s 503 carries the standard `error` object plus a `services` map.** This keeps "every error body is `{"error": …}`" true while still naming what did not answer. The map says `storage`, not a server name.
 - **Two layers enforce the upload limit:** an ASGI middleware (declared length, or a counted chunked body) and an exact count in the route. Starlette spools a whole body before a route runs, so "abandoned past the limit" needs the first layer.
 - **An empty upload is refused** with 422 `unsupported_format` before it is probed.
@@ -7443,3 +7443,9 @@ Known while writing this plan; append any found during implementation.
 - **Reconciliation treats a terminal RQ job as lost.** A row `queued` past its grace whose RQ job is FINISHED, FAILED, STOPPED or CANCELED is repaired like one whose RQ job is gone. This covers the third disagreement the spec's Risks section named.
 - **Stored objects carry an explicit Content-Type** from an allow-list keyed on the extension, `application/octet-stream` otherwise. The key keeps the spec's extension rule.
 - **Compose binds every service port to 127.0.0.1.**
+- **An `internal` `PipelineError` is retried, and its detail never reaches the user.** The spec calls `internal` deterministic, naming only the fretboard invariant. But a Demucs crash, a missing stem and a missing ffprobe raise it too, and those can pass. The worker treats `internal` like any other exception: requeue, and on the last attempt `failed/internal` with the generic message. Retrying the invariant costs one run of stage 4, since the stages before it are cached.
+- **Reconciliation asks RQ before failing a stale running row.** RQ retries a horse it finds killed without the row hearing of it, and the retry can wait behind other jobs past the timeout plus grace. The row is failed only when RQ is not holding the job to run again (`JobQueue.waiting`). Until the retry starts the row says running. With Redis down the read answers from Postgres, as for queued rows.
+- **`create` enforces the per-IP limit again, atomically with the insert** (`max_active`; in Postgres, under a per-address advisory lock). The route's earlier count stays, so a refused upload stores no blob, but on its own it let simultaneous uploads all pass.
+- **A structure result with warnings is not cached.** Each warning means a half of stage 3 failed and degraded inside the stage, perhaps by chance, so the next attempt runs it again.
+- **A recording with no length is refused** as `unsupported_format`: `check_duration` rejects zero, negative and NaN durations, in the api and the worker.
+- **`GUITARVIS_S3_PUBLIC_ENDPOINT` defaults to `GUITARVIS_S3_ENDPOINT`**, not to localhost, so a deployment that sets only the endpoint signs URLs a browser can reach.

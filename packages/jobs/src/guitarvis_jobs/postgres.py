@@ -17,7 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from guitarvis_jobs.models import ACTIVE_STATUSES, Job, JobStatus, NewJob, canonical_id
-from guitarvis_jobs.store import Clock, utc_now
+from guitarvis_jobs.store import Clock, TooManyActiveJobs, utc_now
 
 metadata = sa.MetaData()
 
@@ -79,7 +79,7 @@ class PostgresJobStore:
         )
         return cls(engine, clock)
 
-    def create(self, new: NewJob) -> tuple[Job, bool]:
+    def create(self, new: NewJob, *, max_active: int | None = None) -> tuple[Job, bool]:
         # Retried because the live row this insert collided with can fail
         # between the insert and the read; the next insert then succeeds.
         for _ in range(3):
@@ -107,15 +107,15 @@ class PostgresJobStore:
                 .returning(*jobs.c)
             )
             with self.engine.begin() as connection:
+                if max_active is not None:
+                    already = _check_limit(connection, new, max_active)
+                    if already is not None:
+                        return already, False
                 row = connection.execute(insert).mappings().one_or_none()
                 if row is not None:
                     return _to_job(row), True
                 live = (
-                    connection.execute(
-                        sa.select(jobs).where(
-                            jobs.c.content_hash == new.content_hash, _LIVE
-                        )
-                    )
+                    connection.execute(_live_for(new.content_hash))
                     .mappings()
                     .one_or_none()
                 )
@@ -132,21 +132,11 @@ class PostgresJobStore:
         return self._one(sa.select(jobs).where(jobs.c.id == key))
 
     def find_live(self, content_hash: str) -> Job | None:
-        return self._one(
-            sa.select(jobs).where(jobs.c.content_hash == content_hash, _LIVE)
-        )
+        return self._one(_live_for(content_hash))
 
     def count_active(self, client_ip: str) -> int:
-        statement = (
-            sa.select(sa.func.count())
-            .select_from(jobs)
-            .where(
-                jobs.c.client_ip == client_ip,
-                jobs.c.status.in_([status.value for status in ACTIVE_STATUSES]),
-            )
-        )
         with self.engine.connect() as connection:
-            return int(connection.execute(statement).scalar_one())
+            return int(connection.execute(_active_from(client_ip)).scalar_one())
 
     def mark_running(self, job_id: str) -> Job | None:
         return self._update(
@@ -247,6 +237,43 @@ class PostgresJobStore:
         with self.engine.begin() as connection:
             row = connection.execute(statement).mappings().one_or_none()
         return None if row is None else _to_job(row)
+
+
+def _live_for(content_hash: str) -> sa.Select[Any]:
+    return sa.select(jobs).where(jobs.c.content_hash == content_hash, _LIVE)
+
+
+def _active_from(client_ip: str) -> sa.Select[Any]:
+    return (
+        sa.select(sa.func.count())
+        .select_from(jobs)
+        .where(
+            jobs.c.client_ip == client_ip,
+            jobs.c.status.in_([status.value for status in ACTIVE_STATUSES]),
+        )
+    )
+
+
+def _check_limit(connection: sa.Connection, new: NewJob, max_active: int) -> Job | None:
+    """Raise TooManyActiveJobs if the address is at its limit; return the
+    live row for the hash, which the limit never refuses.
+
+    The advisory lock serialises creates from one address until the
+    transaction ends, so the next one counts this one's row rather than
+    racing it. An address hashing alike to another only waits its turn.
+    """
+    connection.execute(
+        sa.select(
+            sa.func.pg_advisory_xact_lock(sa.func.hashtextextended(new.client_ip, 0))
+        )
+    )
+    live = connection.execute(_live_for(new.content_hash)).mappings().one_or_none()
+    if live is not None:
+        return _to_job(live)
+    active = int(connection.execute(_active_from(new.client_ip)).scalar_one())
+    if active >= max_active:
+        raise TooManyActiveJobs(active)
+    return None
 
 
 def _to_job(row: sa.RowMapping) -> Job:

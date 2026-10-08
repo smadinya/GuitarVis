@@ -252,6 +252,25 @@ def test_an_invariant_failure_never_reports_100(tmp_path: Path) -> None:
     assert seen[-1] == StageProgress(stage="fretboard", percent=80)
 
 
+def test_a_document_that_cannot_be_built_never_reports_100(tmp_path: Path) -> None:
+    seen: list[StageProgress] = []
+    unbuildable = IngestedAudio(
+        path=audio(tmp_path).path, title="song", duration_sec=-1.0
+    )  # Source refuses a negative duration
+
+    with pytest.raises(ValueError):
+        run_pipeline(
+            unbuildable,
+            separator=StubSeparator(),
+            transcriber=StubTranscriber(),
+            analyzer=StubAnalyzer(),
+            mapper=StubMapper(),
+            progress=seen.append,
+        )
+
+    assert seen[-1] == StageProgress(stage="fretboard", percent=80)
+
+
 def test_no_guitar_is_the_only_hard_failure(tmp_path: Path) -> None:
     with pytest.raises(PipelineError) as excinfo:
         run(tmp_path, separator=FailingSeparator())

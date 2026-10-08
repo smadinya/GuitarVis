@@ -99,6 +99,15 @@ def test_a_presigned_url_is_signed_for_the_public_endpoint() -> None:
     assert url.startswith("http://public.example:9000/guitarvis/uploads/k.mp3?")
 
 
+def test_without_a_public_endpoint_urls_are_signed_for_the_endpoint() -> None:
+    # Setting only GUITARVIS_S3_ENDPOINT must not sign URLs for localhost.
+    store = S3BlobStore.from_settings(Settings(s3_endpoint="http://s3.example:9000"))
+
+    url = store.presign_get("uploads/k.mp3", expires_sec=60)
+
+    assert url.startswith("http://s3.example:9000/guitarvis/uploads/k.mp3?")
+
+
 def test_a_presigned_s3_url_serves_byte_ranges() -> None:
     """Seeking needs Range, which is why the api redirects rather than proxies."""
     with s3_blob_store() as store:

@@ -12,7 +12,7 @@ def test_defaults_match_compose_and_the_spec() -> None:
     )
     assert settings.redis_url == "redis://localhost:6379/0"
     assert settings.s3_endpoint == "http://localhost:9000"
-    assert settings.s3_public_endpoint == "http://localhost:9000"
+    assert settings.s3_public_endpoint is None  # the same as s3_endpoint
     assert settings.s3_bucket == "guitarvis"
     assert settings.max_upload_mb == 150
     assert settings.max_active_jobs_per_ip == 2

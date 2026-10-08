@@ -210,10 +210,6 @@ def run_pipeline(
             ) from exc
         notes.append(note)
 
-    # 100 only once every note has passed the invariant: a job must never
-    # read 100% and then fail.
-    report.finish()
-
     document = TabDocument(
         source=Source(
             title=audio.title,
@@ -229,4 +225,7 @@ def run_pipeline(
         sections=structure.sections,
         warnings=warnings,
     )
+    # 100 only once every note has passed the invariant and the document
+    # exists: a job must never read 100% and then fail.
+    report.finish()
     return PipelineResult(document=document, transcribed_note_count=len(events))

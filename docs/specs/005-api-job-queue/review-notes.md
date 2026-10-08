@@ -22,10 +22,24 @@ read this file before it starts.
   still matches but the middleware does not, so Starlette spools the whole body
   before the route refuses it. Compare against the path minus `root_path`. This
   matters once there is hosting.
-- **Raw Demucs output reaches users.** A separation `PipelineError(INTERNAL)`
-  carries the last 500 characters of Demucs output, temp paths included. The
-  spec mandates that text, and `failure.message` shows it as is. Consider
-  logging the detail and showing `INTERNAL_FAILURE_MESSAGE` for `internal`.
+- **Dedupe ignores `CACHE_VERSION`.** `find_live` returns any succeeded job
+  for the hash, so a bump never reaches audio that already succeeded: a
+  re-upload gets the old document. A fix needs the version on the row, a
+  dedupe index that includes it, and the api knowing the current version
+  without importing the worker. That is a design decision for a later spec,
+  and it matters from the first bump after launch.
+- **A row can say running while RQ's retry waits.** When RQ kills a horse it
+  schedules the retry itself, so the row keeps its last stage and percent
+  until the retry starts. Phase 4 should not read a stalled percent as a hang.
+- **The worker runs on after its row is finished.** `_ProgressWriter` only
+  logs when `set_progress` returns False. Reconciliation cannot cause this
+  today: the job timeout (30 min) ends a run before its row is stale enough
+  to fail (35 min). Only clock skew between hosts, or a duplicate delivery,
+  could. Revisit if either turns up.
+- **A job timeout during a file-error `fail` leaves the row running.** The
+  `except PipelineError` branch's write is not covered by the `JobTimedOut`
+  handler. The window is one UPDATE at the thirtieth minute; RQ retries, or
+  on the last attempt reconciliation fails the row later.
 - **Postgres timestamps are not pinned to UTC.** `PostgresJobStore` returns
   `timestamptz` in the session time zone. `JobView` normalises to UTC, so
   clients are unaffected. Pinning `-c timezone=UTC` in `from_url` would restore
@@ -96,8 +110,6 @@ read this file before it starts.
     "must raise the percent" rule;
   - `timeouts.py`'s docstring is wrong about callbacks, which none are
     registered for;
-  - `reconcile.py` says "the two ways" where ADR 0007 now says "the known
-    ways";
   - CLAUDE.md's "Only `compose.yaml` names the server" is narrower than the
     global constraint (compose and docs).
 - Two cosmetic items:

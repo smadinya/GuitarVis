@@ -26,12 +26,26 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+class TooManyActiveJobs(Exception):
+    """`create` refused: this address already has `active` jobs going."""
+
+    def __init__(self, active: int) -> None:
+        super().__init__(f"{active} active jobs")
+        self.active = active
+
+
 class JobStore(Protocol):
-    def create(self, new: NewJob) -> tuple[Job, bool]:
+    def create(self, new: NewJob, *, max_active: int | None = None) -> tuple[Job, bool]:
         """Insert a queued row, or return the live row for this hash.
 
         Returns the job and whether this call created it. "Live" is any
         status but failed: a failed job never blocks a fresh attempt.
+
+        With `max_active`, raise TooManyActiveJobs instead of inserting when
+        the address already has that many queued or running. The count and
+        the insert are one step, so simultaneous uploads cannot all pass it.
+        The live row for the hash is returned whatever the count: it starts
+        no work.
         """
         ...
 
@@ -92,11 +106,15 @@ class InMemoryJobStore:
         self._rows: dict[str, Job] = {}
         self._lock = threading.Lock()
 
-    def create(self, new: NewJob) -> tuple[Job, bool]:
+    def create(self, new: NewJob, *, max_active: int | None = None) -> tuple[Job, bool]:
         with self._lock:
             live = self._find_live(new.content_hash)
             if live is not None:
                 return live, False
+            if max_active is not None:
+                active = self._count_active(new.client_ip)
+                if active >= max_active:
+                    raise TooManyActiveJobs(active)
             now = self._clock()
             job = Job(
                 id=str(uuid.uuid4()),
@@ -137,11 +155,7 @@ class InMemoryJobStore:
 
     def count_active(self, client_ip: str) -> int:
         with self._lock:
-            return sum(
-                1
-                for row in self._rows.values()
-                if row.client_ip == client_ip and row.status in ACTIVE_STATUSES
-            )
+            return self._count_active(client_ip)
 
     def mark_running(self, job_id: str) -> Job | None:
         return self._transition(
@@ -215,6 +229,14 @@ class InMemoryJobStore:
 
     def ping(self) -> None:
         return None
+
+    def _count_active(self, client_ip: str) -> int:
+        """Caller holds the lock."""
+        return sum(
+            1
+            for row in self._rows.values()
+            if row.client_ip == client_ip and row.status in ACTIVE_STATUSES
+        )
 
     def _find_live(self, content_hash: str) -> Job | None:
         """Caller holds the lock."""

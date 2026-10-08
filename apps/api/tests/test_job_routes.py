@@ -325,6 +325,37 @@ def test_a_running_job_long_past_its_timeout_is_failed_on_read() -> None:
     assert body["failure"]["stage"] == "separation"
 
 
+def test_a_running_job_rq_is_retrying_is_left_alone() -> None:
+    """A horse killed outright never ran its except, so the row still says
+    running while RQ's retry waits, perhaps behind a backlog."""
+    api = make_api(job_timeout_sec=60)
+    job_id = running(api)
+    api.queue.enqueue(job_id)  # started, then put back by RQ's retry
+    api.clock.advance(seconds=60 + 5 * 60 + 1)
+
+    assert api.client.get(f"/jobs/{job_id}").json()["status"] == "running"
+
+
+def test_a_running_job_whose_worker_died_with_it_is_failed_on_read() -> None:
+    # The whole worker was killed, so RQ still has the job as started.
+    api = make_api(job_timeout_sec=60)
+    job_id = running(api)
+    api.queue.enqueue(job_id)
+    api.queue.start(job_id)
+    api.clock.advance(seconds=60 + 5 * 60 + 1)
+
+    assert api.client.get(f"/jobs/{job_id}").json()["status"] == "failed"
+
+
+def test_redis_down_with_a_stale_running_job_answers_from_postgres() -> None:
+    api = make_api(job_timeout_sec=60)
+    job_id = running(api)
+    api.queue.down = True
+    api.clock.advance(seconds=60 + 5 * 60 + 1)
+
+    assert api.client.get(f"/jobs/{job_id}").json()["status"] == "running"
+
+
 def test_a_running_job_inside_timeout_plus_grace_is_left_alone() -> None:
     api = make_api(job_timeout_sec=60)
     job_id = running(api)

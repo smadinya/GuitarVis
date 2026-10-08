@@ -84,7 +84,11 @@ class WorkerDeps:
 
 
 class _ProgressWriter:
-    """Writes each progress update to the row and remembers the stage running."""
+    """Writes each progress update to the row and remembers the stage running.
+
+    All but 100, which `succeed` writes together with the status: a write
+    that fails between the two would show 100% and then a retry.
+    """
 
     def __init__(self, store: JobStore, job_id: str) -> None:
         self._store = store
@@ -94,6 +98,8 @@ class _ProgressWriter:
 
     def __call__(self, update: StageProgress) -> None:
         self.stage = update.stage
+        if update.percent >= 100:
+            return
         if self._store.set_progress(self._job_id, update.stage, update.percent):
             return
         if not self._warned:
@@ -124,7 +130,12 @@ def process_job(job_id: str, deps: WorkerDeps, *, retries_left: int) -> None:
         # not a row left running until reconciliation notices it.
         stored = deps.store.succeed(job_id, document=document, stem_key=stem_key)
     except PipelineError as error:
-        # Deterministic: another attempt gives the same answer. Returning
+        if error.reason is FailureReason.INTERNAL:
+            # Ours, not the file's — Demucs killed for memory, say — so it
+            # may pass, and its detail is for the log, not the user.
+            _failed_attempt(job_id, deps, progress, retries_left)
+            raise
+        # The file's: another attempt gives the same answer. Returning
         # normally tells RQ not to retry.
         deps.store.fail(
             job_id,
@@ -137,23 +148,32 @@ def process_job(job_id: str, deps: WorkerDeps, *, retries_left: int) -> None:
     except (Exception, JobTimedOut):
         # JobTimedOut is the job timeout. It is not an Exception, so no stage
         # degraded it into a warning, but here it is one more failed attempt.
-        if retries_left > 0:
-            deps.store.requeue(job_id)
-        else:
-            deps.store.fail(
-                job_id,
-                reason=FailureReason.INTERNAL,
-                message=INTERNAL_FAILURE_MESSAGE,
-                stage=progress.stage,
-                expect=JobStatus.RUNNING,
-            )
-        # Re-raised so RQ schedules the retry, or on the last attempt files
-        # the job in its FailedJobRegistry — the dead-letter queue — with
-        # the traceback. The row is what the user sees.
+        _failed_attempt(job_id, deps, progress, retries_left)
         raise
 
     if not stored:
         log.warning("job %s was failed while it ran; dropping its result", job_id)
+
+
+def _failed_attempt(
+    job_id: str, deps: WorkerDeps, progress: _ProgressWriter, retries_left: int
+) -> None:
+    """Requeue the row for RQ's retry, or on the last attempt fail it.
+
+    The caller re-raises, so RQ schedules the retry, or on the last attempt
+    files the job in its FailedJobRegistry — the dead-letter queue — with the
+    traceback. The row is what the user sees.
+    """
+    if retries_left > 0:
+        deps.store.requeue(job_id)
+        return
+    deps.store.fail(
+        job_id,
+        reason=FailureReason.INTERNAL,
+        message=INTERNAL_FAILURE_MESSAGE,
+        stage=progress.stage,
+        expect=JobStatus.RUNNING,
+    )
 
 
 def _run(

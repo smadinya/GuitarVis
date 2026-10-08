@@ -47,7 +47,9 @@ whenever a stage's output for the same input would change** (a new model, a
 changed threshold, a fixed bug). Nothing enforces it, and forgetting serves
 old results for audio processed before the change. A cache read or write error
 is a miss, never a stage failure; only the separation stem must be stored,
-because the api serves it.
+because the api serves it. Output a stage degraded inside itself is not stored
+either: `CachedAnalyzer` skips a structure result with warnings, so the next
+attempt runs the stage again rather than replaying a failure that may pass.
 
 ## Degrade, do not fail
 

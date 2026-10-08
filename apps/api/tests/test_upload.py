@@ -163,6 +163,23 @@ def test_too_many_active_jobs_from_one_address() -> None:
     assert len(api.queue.enqueued) == 3
 
 
+def test_uploads_that_race_past_the_count_are_refused_when_created(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    api = make_api(max_active_jobs_per_ip=2)
+    assert post(api.client, b"one").status_code == 202
+    assert post(api.client, b"two").status_code == 202
+    # As if both were still uncommitted when this upload counted.
+    monkeypatch.setattr(api.store, "count_active", lambda client_ip: 0)
+
+    third = post(api.client, b"three")
+
+    assert third.status_code == 429
+    assert third.json()["error"]["reason"] == "too_many_jobs"
+    assert "2 songs" in third.json()["error"]["message"]
+    assert len(api.queue.enqueued) == 2
+
+
 def test_a_finished_job_frees_its_slot() -> None:
     api = make_api(max_active_jobs_per_ip=1)
     job_id = post(api.client, b"one").json()["id"]
@@ -320,6 +337,16 @@ def test_a_file_that_is_not_audio_is_refused_before_it_is_stored() -> None:
     assert api.queue.enqueued == []
 
 
+def test_a_recording_with_no_length_is_refused() -> None:
+    api = make_api(probe=lambda path: 0.0)
+
+    response = post(api.client)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["reason"] == "unsupported_format"
+    assert api.queue.enqueued == []
+
+
 def test_a_recording_over_ten_minutes_is_refused() -> None:
     response = post(make_api(probe=lambda path: 600.5).client)
 
@@ -426,8 +453,8 @@ def test_a_failed_enqueue_leaves_the_generic_message_on_the_row(
     created: list[str] = []
     create = api.store.create
 
-    def recording(new: NewJob) -> tuple[Job, bool]:
-        job, was_created = create(new)
+    def recording(new: NewJob, *, max_active: int | None = None) -> tuple[Job, bool]:
+        job, was_created = create(new, max_active=max_active)
         created.append(job.id)
         return job, was_created
 

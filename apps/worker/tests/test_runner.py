@@ -156,8 +156,7 @@ def test_progress_reaches_the_row_while_the_job_runs(
         ("transcription", 40),
         ("structure", 65),
         ("fretboard", 80),
-        ("fretboard", 100),
-    ]
+    ]  # 100 arrives with succeeded, in one write: never 100%, then a failure
 
 
 def test_a_pipeline_error_fails_the_job_without_a_retry(harness: Harness) -> None:
@@ -174,6 +173,41 @@ def test_a_pipeline_error_fails_the_job_without_a_retry(harness: Harness) -> Non
     assert row.failure_message == "No clear guitar part was found in this recording."
     assert row.failed_stage == "separation"
     assert row.stage is None
+
+
+DEMUCS_KILLED = PipelineError(
+    FailureReason.INTERNAL,
+    "Separation failed: Killed /tmp/guitarvis-job-x/upload.mp3",
+)
+
+
+def test_an_internal_pipeline_error_with_retries_left_requeues_and_reraises(
+    harness: Harness,
+) -> None:
+    """Internal is ours, not the file's: Demucs killed for memory may pass."""
+    harness.separator.error = DEMUCS_KILLED
+
+    with pytest.raises(PipelineError):
+        harness.run(retries_left=1)
+
+    row = harness.row()
+    assert row.status is JobStatus.QUEUED
+    assert (row.stage, row.percent, row.attempts) == (None, 0, 1)
+
+
+def test_an_internal_pipeline_error_on_the_last_attempt_hides_its_detail(
+    harness: Harness,
+) -> None:
+    harness.separator.error = DEMUCS_KILLED
+
+    with pytest.raises(PipelineError):  # RQ files it, detail and all
+        harness.run(retries_left=0)
+
+    row = harness.row()
+    assert row.status is JobStatus.FAILED
+    assert row.failure_reason is FailureReason.INTERNAL
+    assert row.failure_message == INTERNAL_FAILURE_MESSAGE
+    assert row.failed_stage == "separation"
 
 
 def test_a_file_the_worker_rejects_fails_before_any_stage(

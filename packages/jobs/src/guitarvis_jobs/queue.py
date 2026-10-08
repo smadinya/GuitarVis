@@ -45,6 +45,15 @@ class JobQueue(Protocol):
         """
         ...
 
+    def waiting(self, job_id: str) -> bool:
+        """Whether the queue holds this job to run later: it can still run,
+        and no worker has it.
+
+        A retry RQ scheduled after killing a horse is waiting. A job whose
+        worker died with its horse stays started, so it is not.
+        """
+        ...
+
     def ping(self) -> None:
         """Raise if the queue cannot be reached."""
         ...
@@ -56,7 +65,7 @@ class InMemoryJobQueue:
     `fail_next` makes the next enqueue raise; `down` makes `exists` and
     `ping` raise; `lose` forgets a job, as a flushed Redis would;
     `fail_terminally` keeps a job but never runs it again, as RQ does once
-    its last attempt has failed.
+    its last attempt has failed; `start` hands a job to a worker.
     """
 
     def __init__(self) -> None:
@@ -65,6 +74,7 @@ class InMemoryJobQueue:
         self.down = False
         self._known: set[str] = set()
         self._terminal: set[str] = set()
+        self._started: set[str] = set()
         self._lock = threading.Lock()
 
     def enqueue(self, job_id: str) -> None:
@@ -80,6 +90,15 @@ class InMemoryJobQueue:
         with self._lock:
             return job_id in self._known and job_id not in self._terminal
 
+    def waiting(self, job_id: str) -> bool:
+        self.ping()
+        with self._lock:
+            return (
+                job_id in self._known
+                and job_id not in self._terminal
+                and job_id not in self._started
+            )
+
     def lose(self, job_id: str) -> None:
         with self._lock:
             self._known.discard(job_id)
@@ -87,6 +106,10 @@ class InMemoryJobQueue:
     def fail_terminally(self, job_id: str) -> None:
         with self._lock:
             self._terminal.add(job_id)
+
+    def start(self, job_id: str) -> None:
+        with self._lock:
+            self._started.add(job_id)
 
     def ping(self) -> None:
         if self.down:
@@ -122,11 +145,22 @@ class RQJobQueue:
         )
 
     def exists(self, job_id: str) -> bool:
+        status = self._status(job_id)
+        return status is not None and status not in _RQ_TERMINAL
+
+    def waiting(self, job_id: str) -> bool:
+        status = self._status(job_id)
+        return (
+            status is not None
+            and status not in _RQ_TERMINAL
+            and status != RQJobStatus.STARTED
+        )
+
+    def _status(self, job_id: str) -> RQJobStatus | None:
         try:
-            status = RQJob(job_id, connection=self.connection).get_status()
+            return RQJob(job_id, connection=self.connection).get_status()
         except InvalidJobOperation:  # no such job
-            return False
-        return status not in _RQ_TERMINAL
+            return None
 
     def ping(self) -> None:
         self.connection.ping()

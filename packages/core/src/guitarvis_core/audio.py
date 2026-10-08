@@ -59,7 +59,10 @@ def probe_duration(path: Path) -> float:
 def check_duration(
     duration_sec: float, max_duration_sec: float = MAX_DURATION_SEC
 ) -> None:
-    """Refuse a recording longer than the limit, before any expensive work."""
+    """Refuse a recording with no length, or longer than the limit, before
+    any expensive work."""
+    if not duration_sec > 0:  # also True for NaN, which compares False
+        raise PipelineError(FailureReason.UNSUPPORTED_FORMAT, _UNREADABLE)
     if duration_sec > max_duration_sec:
         raise PipelineError(
             FailureReason.TOO_LONG,
