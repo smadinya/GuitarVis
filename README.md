@@ -49,6 +49,7 @@ v1 has no editing, so transcription errors cannot be corrected by hand.
 | Path | What lives there |
 |---|---|
 | `packages/core` | The tab document, the stage interfaces, the fretboard invariant |
+| `packages/jobs` | The job record, object storage and the queue, shared by the api and the worker |
 | `apps/api` | FastAPI. Thin; no ML code, enforced by test |
 | `apps/worker` | The pipeline. The only component that needs torch |
 | `apps/eval` | GuitarSet evaluation harness |
@@ -65,7 +66,8 @@ make check     # lint, typecheck, test, and the contract drift check
 make help      # every command
 ```
 
-Requires Python 3.12+, Node 22+, and [uv](https://docs.astral.sh/uv/).
+Requires Python 3.12+, Node 22+, [uv](https://docs.astral.sh/uv/), and
+Docker for `make services`.
 
 ## Running the pipeline
 
@@ -111,8 +113,8 @@ curl localhost:8000/jobs/<id>/document             # the tab document
 curl -L localhost:8000/jobs/<id>/audio/mix -o mix  # a redirect to storage
 ```
 
-Uploading the same file again returns the same job. Uploads and stems stay in
-storage until you run `docker compose down -v`.
+Uploading the same file again returns the same job, unless that job failed.
+Uploads and stems stay in storage until you run `docker compose down -v`.
 
 ## Documentation
 

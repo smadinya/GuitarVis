@@ -140,7 +140,7 @@ def s3_client(
 
 
 class S3BlobStore:
-    """Implements BlobStore on any S3-compatible server: RustFS locally."""
+    """Implements BlobStore on any S3-compatible server, such as compose.yaml's."""
 
     def __init__(
         self, client: Any, public_client: Any, bucket: str, region: str = "us-east-1"

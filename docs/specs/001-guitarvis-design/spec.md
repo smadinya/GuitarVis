@@ -177,7 +177,9 @@ Each stage is a class behind a narrow interface, taking and returning plain
 data. The worker orchestrates; no stage knows what runs before or after it.
 
 ### Stage 1 · Separation
-`Separator.isolate(audio_path) -> SeparationResult`
+`Separator.isolate(audio_path, *, progress=None) -> SeparationResult`
+
+(`progress`, added by spec 005, is called with the fraction of the stage done.)
 
 Demucs `htdemucs_6s`, which provides a dedicated guitar stem. Output is
 whatever Demucs writes — 16-bit stereo at the model's own 44.1kHz, which it

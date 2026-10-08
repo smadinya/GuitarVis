@@ -1,4 +1,4 @@
-"""The whole service, on real Postgres, Redis and RustFS.
+"""The whole service, on real Postgres, Redis and object storage.
 
 Upload through the api, process under a real RQ worker, fetch the results.
 The stages are stubbed, so no model loads; ffprobe, the stores, the queue and

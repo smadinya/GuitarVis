@@ -123,7 +123,7 @@ eval-data: ## Download GuitarSet into ~/.cache (ARGS=--audio for full mode's aud
 services: ## Start Postgres, Redis and object storage (docker compose)
 	docker compose up -d --wait
 
-migrate: ## Bring the database schema up to date
+migrate: ## Bring the schema up to date and create the bucket
 	$(UV) run python -m guitarvis_jobs.migrate
 
 api: ## Serve the api on localhost:8000, reloading on change

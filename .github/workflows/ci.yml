@@ -16,8 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Postgres, Redis and RustFS from the same compose.yaml developers run.
-      # --wait returns once every healthcheck passes.
+      # Postgres, Redis and object storage from the same compose.yaml
+      # developers run. --wait returns once every healthcheck passes.
       - name: Start services
         run: docker compose up -d --wait
 
