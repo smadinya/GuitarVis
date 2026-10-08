@@ -5,6 +5,8 @@ end-to-end test (test_end_to_end.py) runs it under a real RQ worker.
 """
 
 import importlib
+import signal
+import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -24,13 +26,21 @@ from guitarvis_core.contracts import (
 from guitarvis_core.tabdoc import TabDocument, Timing
 from guitarvis_jobs.blobs import InMemoryBlobStore
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE, Job, JobStatus
-from guitarvis_jobs.queue import RUN_JOB
+from guitarvis_jobs.queue import QUEUE_NAME, RUN_JOB
 from guitarvis_jobs.store import InMemoryJobStore
-from guitarvis_jobs.testing import sample_new_job
+from guitarvis_jobs.testing import (
+    integration_settings,
+    redis_connection,
+    sample_new_job,
+)
 from guitarvis_worker import runner
 from guitarvis_worker.caching import CacheKeys
 from guitarvis_worker.runner import Stages, WorkerDeps, process_job
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
+from guitarvis_worker.timeouts import JobTimedOut, JobTimeoutDeathPenalty
+from rq import Queue, Retry, SimpleWorker, Worker
+from rq.job import JobStatus as RQJobStatus
+from rq.timeouts import HorseMonitorTimeoutException, JobTimeoutException
 
 
 class StubSeparator:
@@ -320,3 +330,127 @@ def test_run_job_hands_rq_retries_left_to_process_job(
 
     # Outside RQ (no current job) the attempt is treated as the last one.
     assert seen == {"job_id": "abc", "deps": "deps", "retries_left": expected}
+
+
+def time_out() -> None:
+    raise JobTimedOut("Task exceeded maximum timeout value (1800 seconds)")
+
+
+def test_a_job_timeout_with_retries_left_requeues_and_reraises(
+    harness: Harness,
+) -> None:
+    harness.transcriber.during = time_out
+
+    with pytest.raises(JobTimedOut):
+        harness.run(retries_left=1)
+
+    row = harness.row()
+    assert row.status is JobStatus.QUEUED
+    assert (row.stage, row.percent, row.attempts) == (None, 0, 1)
+
+
+def test_a_job_timeout_on_the_last_attempt_fails_internal(harness: Harness) -> None:
+    harness.transcriber.during = time_out
+
+    with pytest.raises(JobTimedOut):
+        harness.run(retries_left=0)
+
+    row = harness.row()
+    assert row.status is JobStatus.FAILED
+    assert row.failure_reason is FailureReason.INTERNAL
+    assert row.failure_message == INTERNAL_FAILURE_MESSAGE
+    assert row.failed_stage == "transcription"
+
+
+def test_the_death_penalty_raises_job_timed_out_for_the_job_timeout() -> None:
+    penalty = JobTimeoutDeathPenalty(1800, JobTimeoutException)
+
+    with pytest.raises(JobTimedOut, match="1800 seconds"):
+        penalty.handle_death_penalty(signal.SIGALRM, None)
+    assert not issubclass(JobTimedOut, Exception)
+
+
+def test_the_death_penalty_leaves_rqs_other_timeouts_alone() -> None:
+    # The forking worker's main process times its wait on the work horse with
+    # the same class, and catches exactly the exception it asked for.
+    penalty = JobTimeoutDeathPenalty(1, HorseMonitorTimeoutException)
+
+    with pytest.raises(HorseMonitorTimeoutException):
+        penalty.handle_death_penalty(signal.SIGALRM, None)
+
+
+def test_an_alarm_racing_the_cancel_is_ignored_as_rq_ignores_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The body finished; the alarm fired before RQ could cancel it.
+    penalty = JobTimeoutDeathPenalty(1, JobTimeoutException)
+    monkeypatch.setattr(penalty, "setup_death_penalty", lambda: None)
+    monkeypatch.setattr(penalty, "cancel_death_penalty", time_out)
+
+    with penalty:
+        pass
+
+
+def test_serve_runs_a_worker_whose_job_timeout_no_stage_can_catch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen: list[Worker] = []
+
+    def record(self: Worker, **kwargs: object) -> bool:
+        seen.append(self)
+        return False
+
+    monkeypatch.setattr(runner.JobWorker, "work", record)
+    with redis_connection():
+        runner.serve(integration_settings(), burst=True)
+
+    [worker] = seen
+    assert isinstance(worker, Worker)  # the forking worker, not SimpleWorker
+    assert worker.death_penalty_class is JobTimeoutDeathPenalty
+    assert [queue.death_penalty_class for queue in worker.queues] == [
+        JobTimeoutDeathPenalty
+    ]
+
+
+def test_a_job_timeout_under_a_real_rq_worker_is_retried_then_failed(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """RQ's own alarm, its retry and its failed registry, with the stores and
+    stages in memory. SimpleWorker runs the job in this process, so the
+    in-memory harness is the one run_job sees."""
+    harness.transcriber.during = lambda: time.sleep(10)  # the alarm cuts it short
+
+    @contextmanager
+    def harness_deps(settings: object) -> Iterator[WorkerDeps]:
+        yield harness.deps()
+
+    monkeypatch.setattr(runner, "open_deps", harness_deps)
+
+    class TimeoutWorker(SimpleWorker):
+        death_penalty_class = JobTimeoutDeathPenalty
+
+    with redis_connection() as redis:
+        queue = Queue(QUEUE_NAME, connection=redis)
+        queue.enqueue(
+            RUN_JOB,
+            harness.job_id,
+            job_id=harness.job_id,
+            retry=Retry(max=1),  # no interval: the retry is queued at once
+            job_timeout=1,
+        )
+
+        TimeoutWorker([queue], connection=redis).work(burst=True, max_jobs=1)
+
+        row = harness.row()
+        assert (row.status, row.attempts) == (JobStatus.QUEUED, 1)
+        rq_job = queue.fetch_job(harness.job_id)
+        assert rq_job is not None and rq_job.get_status() == RQJobStatus.QUEUED
+
+        TimeoutWorker([queue], connection=redis).work(burst=True, max_jobs=1)
+
+        row = harness.row()
+        assert row.status is JobStatus.FAILED
+        assert row.failure_reason is FailureReason.INTERNAL
+        assert (row.failed_stage, row.attempts) == ("transcription", 2)
+        assert rq_job.get_status() == RQJobStatus.FAILED
+        assert harness.job_id in queue.failed_job_registry

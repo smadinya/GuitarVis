@@ -4,6 +4,11 @@ The degradation ladder lives here. Every stage after separation is optional to
 the core promise, so a failure downstream costs the user a feature rather than
 the whole job. Only "no usable guitar audio" fails outright.
 
+A job timeout is not a stage failure. The queue worker raises it as
+guitarvis_worker.timeouts.JobTimedOut, a BaseException, so the
+`except Exception` handlers below let it through to the runner, which
+retries the job. Widening them to BaseException would undo that.
+
 Stages arrive by injection: the worker decides what to run, and the stages stay
 ignorant of each other.
 """

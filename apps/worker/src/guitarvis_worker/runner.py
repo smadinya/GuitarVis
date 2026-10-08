@@ -53,6 +53,7 @@ from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
 from guitarvis_worker.stages.separation import DemucsSeparator
 from guitarvis_worker.stages.structure import LibrosaStructureAnalyzer
 from guitarvis_worker.stages.transcription import BasicPitchTranscriber
+from guitarvis_worker.timeouts import JobTimedOut, JobTimeoutDeathPenalty
 
 log = logging.getLogger(__name__)
 
@@ -130,7 +131,9 @@ def process_job(job_id: str, deps: WorkerDeps, *, retries_left: int) -> None:
             expect=JobStatus.RUNNING,
         )
         return
-    except Exception:
+    except (Exception, JobTimedOut):
+        # JobTimedOut is the job timeout. It is not an Exception, so no stage
+        # degraded it into a warning, but here it is one more failed attempt.
         if retries_left > 0:
             deps.store.requeue(job_id)
         else:
@@ -203,6 +206,12 @@ def open_deps(settings: Settings) -> Iterator[WorkerDeps]:
         store.engine.dispose()
 
 
+class JobWorker(Worker):
+    """RQ's forking worker, whose job timeout no stage's handler can catch."""
+
+    death_penalty_class = JobTimeoutDeathPenalty
+
+
 def serve(settings: Settings, *, burst: bool = False) -> None:
     """Run jobs from the queue until stopped (or, with `burst`, until empty).
 
@@ -210,4 +219,6 @@ def serve(settings: Settings, *, burst: bool = False) -> None:
     intervals.
     """
     connection = Redis.from_url(settings.redis_url)
-    Worker([QUEUE_NAME], connection=connection).work(with_scheduler=True, burst=burst)
+    JobWorker([QUEUE_NAME], connection=connection).work(
+        with_scheduler=True, burst=burst
+    )

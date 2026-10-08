@@ -23,6 +23,7 @@ from guitarvis_core.contracts import (
 )
 from guitarvis_core.tabdoc import Beat, Chord, TabDocument, Timing
 from guitarvis_worker.pipeline import PipelineResult, StageProgress, run_pipeline
+from guitarvis_worker.timeouts import JobTimedOut
 
 
 class StubSeparator:
@@ -92,6 +93,26 @@ class FailingMapper:
         self, notes: Sequence[NoteEvent], tuning: Sequence[str]
     ) -> FretboardResult:
         raise RuntimeError("no fingering search today")
+
+
+class TimingOut:
+    """Every stage at once, each one running into the job timeout."""
+
+    def isolate(
+        self, audio_path: Path, *, progress: SeparationProgress | None = None
+    ) -> SeparationResult:
+        raise JobTimedOut("job timeout")
+
+    def transcribe(self, stem_path: Path) -> list[NoteEvent]:
+        raise JobTimedOut("job timeout")
+
+    def analyze(self, stem_path: Path, mix_path: Path) -> StructureResult:
+        raise JobTimedOut("job timeout")
+
+    def assign(
+        self, notes: Sequence[NoteEvent], tuning: Sequence[str]
+    ) -> FretboardResult:
+        raise JobTimedOut("job timeout")
 
 
 def audio(tmp_path: Path) -> IngestedAudio:
@@ -391,3 +412,13 @@ def test_a_note_off_the_neck_is_rejected(tmp_path: Path, tab: TabNote) -> None:
             mapper=StubMapper([tab]),
         )
     assert excinfo.value.reason is FailureReason.INTERNAL
+
+
+@pytest.mark.parametrize("stage", ["separator", "transcriber", "analyzer", "mapper"])
+def test_a_job_timeout_is_never_degraded_into_a_warning(
+    tmp_path: Path, stage: str
+) -> None:
+    # The worker raises the timeout into whichever stage is running. Degraded,
+    # a job that ran out of time would become a permanent partial success.
+    with pytest.raises(JobTimedOut):
+        run(tmp_path, **{stage: TimingOut()})
