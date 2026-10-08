@@ -18,6 +18,7 @@ from guitarvis_worker.stages.separation import (
     TqdmPercent,
     measure_rms,
 )
+from guitarvis_worker.timeouts import JobTimedOut
 
 
 def write_wav(path: Path, amplitude: int = 8000, rate: int = 8000) -> Path:
@@ -378,15 +379,12 @@ def test_stems_land_directly_in_work_dir(
 def test_an_exception_while_streaming_kills_the_demucs_child(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A job timeout raises inside the read loop; Demucs must not outlive it."""
-
-    class JobTimeout(Exception):
-        pass
-
-    fake = FakeDemucs(output="\r 10%|", read_error=JobTimeout())
+    """A job timeout raises inside the read loop; Demucs must not outlive it.
+    The worker's timeout is a BaseException, which `finally` still sees."""
+    fake = FakeDemucs(output="\r 10%|", read_error=JobTimedOut("job timeout"))
     monkeypatch.setattr(subprocess, "Popen", fake)
 
-    with pytest.raises(JobTimeout):
+    with pytest.raises(JobTimedOut):
         DemucsSeparator(work_dir=tmp_path)._demucs(
             "htdemucs_6s", tmp_path / "song.wav", "guitar"
         )
