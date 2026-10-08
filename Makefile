@@ -41,8 +41,8 @@ ARGS ?=
 # packages/core/tests, apps/api/tests, apps/worker/tests, apps/eval/tests all
 # have distinct basenames), but a future contributor adding a same-named test
 # file to two packages will hit this and should rename one of the files.
-PY_SOURCES := packages/core/src apps/api/src apps/worker/src apps/eval/src \
-              packages/core/tests apps/api/tests apps/worker/tests apps/eval/tests
+PY_SOURCES := packages/core/src packages/jobs/src apps/api/src apps/worker/src apps/eval/src \
+              packages/core/tests packages/jobs/tests apps/api/tests apps/worker/tests apps/eval/tests
 
 .PHONY: help install lint format typecheck test test-py test-web \
         schema schema-check check eval eval-data clean

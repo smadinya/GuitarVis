@@ -5,6 +5,7 @@ description = "Audio to guitar tablature, with synced play-along views."
 requires-python = ">=3.12"
 dependencies = [
     "guitarvis-core",
+    "guitarvis-jobs",
     "guitarvis-api",
     "guitarvis-worker",
     "guitarvis-eval",
@@ -36,10 +37,11 @@ override-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["packages/core", "apps/api", "apps/worker", "apps/eval"]
+members = ["packages/core", "packages/jobs", "apps/api", "apps/worker", "apps/eval"]
 
 [tool.uv.sources]
 guitarvis-core = { workspace = true }
+guitarvis-jobs = { workspace = true }
 guitarvis-api = { workspace = true }
 guitarvis-worker = { workspace = true }
 guitarvis-eval = { workspace = true }

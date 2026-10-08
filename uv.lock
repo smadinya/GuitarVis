@@ -15,6 +15,7 @@ members = [
     "guitarvis-api",
     "guitarvis-core",
     "guitarvis-eval",
+    "guitarvis-jobs",
     "guitarvis-worker",
 ]
 overrides = [
@@ -773,6 +774,7 @@ dependencies = [
     { name = "guitarvis-api" },
     { name = "guitarvis-core" },
     { name = "guitarvis-eval" },
+    { name = "guitarvis-jobs" },
     { name = "guitarvis-worker" },
 ]
 
@@ -797,6 +799,7 @@ requires-dist = [
     { name = "guitarvis-core", editable = "packages/core" },
     { name = "guitarvis-eval", editable = "apps/eval" },
     { name = "guitarvis-eval", extras = ["full"], marker = "extra == 'eval-full'", editable = "apps/eval" },
+    { name = "guitarvis-jobs", editable = "packages/jobs" },
     { name = "guitarvis-worker", editable = "apps/worker" },
     { name = "guitarvis-worker", extras = ["ml"], marker = "extra == 'ml'", editable = "apps/worker" },
 ]
@@ -858,6 +861,17 @@ requires-dist = [
     { name = "mir-eval", marker = "extra == 'full'", specifier = ">=0.8" },
 ]
 provides-extras = ["full"]
+
+[[package]]
+name = "guitarvis-jobs"
+version = "0.1.0"
+source = { editable = "packages/jobs" }
+dependencies = [
+    { name = "guitarvis-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "guitarvis-core", editable = "packages/core" }]
 
 [[package]]
 name = "guitarvis-worker"
