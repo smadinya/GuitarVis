@@ -256,6 +256,26 @@ def test_fail_with_a_stale_updated_at_changes_nothing(
     assert row is not None and row.status is JobStatus.RUNNING
 
 
+def test_fail_with_a_matching_updated_at_fails_the_row(store: JobStore) -> None:
+    job_id = running(store)
+    seen = store.get(job_id)
+    assert seen is not None
+
+    assert store.fail(
+        job_id,
+        reason=FailureReason.INTERNAL,
+        message="m",
+        stage="separation",
+        expect=JobStatus.RUNNING,
+        expect_updated_at=seen.updated_at,
+    )
+
+    row = store.get(job_id)
+    assert row is not None
+    assert row.status is JobStatus.FAILED
+    assert row.failed_stage == "separation"
+
+
 def test_requeue_resets_stage_and_percent_but_keeps_attempts(store: JobStore) -> None:
     job_id = running(store)
     store.set_progress(job_id, "transcription", 40)
