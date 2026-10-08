@@ -45,7 +45,7 @@ PY_SOURCES := packages/core/src packages/jobs/src apps/api/src apps/worker/src a
               packages/core/tests packages/jobs/tests apps/api/tests apps/worker/tests apps/eval/tests
 
 .PHONY: help install lint format typecheck test test-py test-web \
-        schema schema-check check eval eval-data services migrate worker clean
+        schema schema-check check eval eval-data services migrate api worker clean
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -125,6 +125,9 @@ services: ## Start Postgres, Redis and object storage (docker compose)
 
 migrate: ## Bring the database schema up to date
 	$(UV) run python -m guitarvis_jobs.migrate
+
+api: ## Serve the api on localhost:8000, reloading on change
+	$(UV) run uvicorn guitarvis_api.app:app --reload
 
 worker: ## Run jobs from the queue (ARGS="--device cuda"; needs `uv sync --extra ml`)
 	$(UV) run guitarvis-worker serve $(ARGS)
