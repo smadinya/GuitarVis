@@ -947,6 +947,7 @@ version = "0.1.0"
 source = { editable = "apps/worker" }
 dependencies = [
     { name = "guitarvis-core" },
+    { name = "guitarvis-jobs" },
 ]
 
 [package.optional-dependencies]
@@ -965,6 +966,7 @@ requires-dist = [
     { name = "basic-pitch", marker = "extra == 'ml'", specifier = ">=0.4.0" },
     { name = "demucs", marker = "extra == 'ml'", specifier = ">=4.0" },
     { name = "guitarvis-core", editable = "packages/core" },
+    { name = "guitarvis-jobs", editable = "packages/jobs" },
     { name = "librosa", marker = "extra == 'ml'", specifier = ">=0.10" },
     { name = "onnxruntime", marker = "extra == 'ml'", specifier = ">=1.17" },
     { name = "torch", marker = "extra == 'ml'", specifier = ">=2.4" },

@@ -3,7 +3,7 @@ name = "guitarvis-worker"
 version = "0.1.0"
 description = "The pipeline. The only component that needs torch or weights."
 requires-python = ">=3.12"
-dependencies = ["guitarvis-core"]
+dependencies = ["guitarvis-core", "guitarvis-jobs"]
 
 # Heavy ML dependencies are opt-in so that `uv sync` and CI stay light.
 # Install with `uv sync --extra ml`.

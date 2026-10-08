@@ -40,7 +40,14 @@ collection. Use `uv sync --extra ml` when you need the real dependencies.
 strongest beat cue and the stem has them removed.
 
 **Stages are idempotent and intermediates are cached by content hash.** A
-stage-3 failure must not force re-running separation on retry.
+stage-3 failure must not force re-running separation on retry. The cache lives
+in `apps/worker/src/guitarvis_worker/caching.py`: one decorator per cached
+stage, each implementing that stage's Protocol. **Bump `CACHE_VERSION`
+whenever a stage's output for the same input would change** (a new model, a
+changed threshold, a fixed bug). Nothing enforces it, and forgetting serves
+old results for audio processed before the change. A cache read or write error
+is a miss, never a stage failure; only the separation stem must be stored,
+because the api serves it.
 
 ## Degrade, do not fail
 
