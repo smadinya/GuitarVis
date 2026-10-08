@@ -15,6 +15,7 @@ from guitarvis_jobs.queue import (
 from guitarvis_jobs.settings import Settings
 from guitarvis_jobs.testing import redis_connection
 from rq.job import Job as RQJob
+from rq.job import JobStatus as RQJobStatus
 
 JOB_ID = "5f0c6c2e-0000-4000-8000-000000000001"
 
@@ -40,6 +41,64 @@ def test_an_unknown_job_does_not_exist(queue: JobQueue) -> None:
 
 def test_ping_answers(queue: JobQueue) -> None:
     queue.ping()
+
+
+def fail_terminally(queue: JobQueue, job_id: str) -> None:
+    """Fail a job for good: RQ's last retry failed, or the worker could not
+    even import run_job."""
+    if isinstance(queue, InMemoryJobQueue):
+        queue.fail_terminally(job_id)
+        return
+    assert isinstance(queue, RQJobQueue)
+    RQJob.fetch(job_id, connection=queue.connection).set_status(RQJobStatus.FAILED)
+
+
+def test_a_job_the_queue_will_never_run_again_does_not_exist(queue: JobQueue) -> None:
+    # Reconciliation treats it as lost, so its row cannot stay queued forever.
+    queue.enqueue(JOB_ID)
+
+    fail_terminally(queue, JOB_ID)
+
+    assert not queue.exists(JOB_ID)
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        RQJobStatus.FINISHED,
+        RQJobStatus.FAILED,
+        RQJobStatus.STOPPED,
+        RQJobStatus.CANCELED,
+    ],
+)
+def test_an_rq_job_in_a_terminal_status_does_not_exist(status: RQJobStatus) -> None:
+    with redis_connection() as connection:
+        queue = RQJobQueue(connection, job_timeout_sec=1800)
+        queue.enqueue(JOB_ID)
+
+        RQJob.fetch(JOB_ID, connection=connection).set_status(status)
+
+        assert not queue.exists(JOB_ID)
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        RQJobStatus.CREATED,
+        RQJobStatus.QUEUED,
+        RQJobStatus.SCHEDULED,  # a retry waiting out its interval
+        RQJobStatus.STARTED,
+        RQJobStatus.DEFERRED,
+    ],
+)
+def test_an_rq_job_that_can_still_run_exists(status: RQJobStatus) -> None:
+    with redis_connection() as connection:
+        queue = RQJobQueue(connection, job_timeout_sec=1800)
+        queue.enqueue(JOB_ID)
+
+        RQJob.fetch(JOB_ID, connection=connection).set_status(status)
+
+        assert queue.exists(JOB_ID)
 
 
 def test_the_job_function_is_named_not_imported() -> None:

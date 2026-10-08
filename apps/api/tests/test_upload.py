@@ -130,6 +130,19 @@ def test_reupload_of_a_lost_job_starts_a_fresh_one() -> None:
     assert api.job(first).status is JobStatus.FAILED
 
 
+def test_reupload_of_a_job_the_queue_failed_for_good_starts_a_fresh_one() -> None:
+    api = make_api()
+    first = post(api.client).json()["id"]
+    api.queue.fail_terminally(first)
+    api.clock.advance(seconds=61)
+
+    again = post(api.client)
+
+    assert again.status_code == 202
+    assert again.json()["id"] != first
+    assert api.job(first).status is JobStatus.FAILED
+
+
 def test_a_duplicate_does_not_count_against_the_limit() -> None:
     api = make_api(max_active_jobs_per_ip=1)
     post(api.client)

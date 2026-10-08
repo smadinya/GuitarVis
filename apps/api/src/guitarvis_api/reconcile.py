@@ -1,10 +1,12 @@
 """Repair, on read, the two ways Postgres and Redis can disagree (ADR 0007).
 
-A row queued for over a minute whose RQ job is gone: the api died between
-insert and enqueue, or Redis lost its data. The grace period covers the gap
-between those two steps in a live request. A row running long past the job
-timeout: the worker was killed outright and never ran its except. RQ's own
-timeout raises inside the job, so the worker handles every timeout it can see.
+A row queued for over a minute whose RQ job is gone, or will never run again:
+the api died between insert and enqueue, Redis lost its data, or RQ failed
+the job without the worker ever touching the row (a worker that cannot import
+run_job, say). The grace period covers the gap between insert and enqueue in
+a live request. A row running long past the job timeout: the worker was
+killed outright and never ran its except. RQ's own timeout raises inside the
+job, so the worker handles every timeout it can see.
 
 Either is failed as internal, conditionally on the row being exactly as read,
 so a worker that was merely slow and writes first wins. Nothing runs in the

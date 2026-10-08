@@ -281,6 +281,25 @@ def test_a_queued_job_the_queue_still_holds_is_left_alone() -> None:
     assert api.client.get(f"/jobs/{job_id}").json()["status"] == "queued"
 
 
+def test_a_queued_job_whose_queue_job_failed_for_good_is_failed_on_read() -> None:
+    """A worker that cannot start a job at all, say one that cannot import
+    run_job, fails it in RQ without ever touching the row."""
+    api = make_api()
+    job_id = queued(api)
+    api.queue.enqueue(job_id)
+    api.queue.fail_terminally(job_id)
+    api.clock.advance(seconds=61)
+
+    body = api.client.get(f"/jobs/{job_id}").json()
+
+    assert body["status"] == "failed"
+    assert body["failure"] == {
+        "reason": "internal",
+        "message": INTERNAL_FAILURE_MESSAGE,
+        "stage": None,
+    }
+
+
 def test_redis_down_while_polling_answers_from_postgres() -> None:
     """Review Focus 3: a queue that cannot be asked is not a lost job."""
     api = make_api()
