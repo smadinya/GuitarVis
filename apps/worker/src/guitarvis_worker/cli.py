@@ -2,20 +2,25 @@
 
 Stage construction happens here, not inside run_pipeline, so the CLI can be
 tested end to end without loading a model: the names below are what tests
-patch. It is also the seam the future job worker replaces.
+patch. `serve` hands the same stages to the queue worker in runner.py.
 """
 
 import argparse
 import contextlib
+import logging
+import os
 import sys
 import tempfile
 from pathlib import Path
 
+from guitarvis_core.audio import MAX_DURATION_SEC
 from guitarvis_core.contracts import FailureReason, PipelineError
 from guitarvis_core.fretboard import parse_pitch
 from guitarvis_core.tabdoc import STANDARD_TUNING
+from guitarvis_jobs.settings import Settings
 
-from guitarvis_worker.ingest import MAX_DURATION_SEC, UploadSource
+from guitarvis_worker import runner
+from guitarvis_worker.ingest import UploadSource
 from guitarvis_worker.pipeline import StageProgress, run_pipeline
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
 from guitarvis_worker.stages.separation import DemucsSeparator
@@ -23,6 +28,10 @@ from guitarvis_worker.stages.structure import LibrosaStructureAnalyzer
 from guitarvis_worker.stages.transcription import BasicPitchTranscriber
 
 TUNING_STRING_COUNT = 6  # matches Instrument.string_count and the fretboard invariant
+
+LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+# Ours and RQ's speak at INFO; every other library only when something is wrong.
+INFO_LOGGERS = ("guitarvis_worker", "guitarvis_jobs", "rq")
 
 
 def _print_progress(update: StageProgress) -> None:
@@ -85,12 +94,48 @@ def _build_parser() -> argparse.ArgumentParser:
             "this is useful when re-running later stages against the same song."
         ),
     )
+
+    serve = subparsers.add_parser("serve", help="run jobs from the queue until stopped")
+    serve.add_argument(
+        "--device", default=None, help="torch device for every job, e.g. cuda"
+    )
+    serve.add_argument(
+        "--burst", action="store_true", help="exit once the queue is empty"
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
+    if args.command == "serve":
+        return _serve(args)
+    return _process(args)
 
+
+def configure_logging() -> None:
+    """One handler, on the root logger, installed before RQ starts.
+
+    RQ gives its loggers handlers of its own only when no logger above them
+    has one, and basic-pitch's import-time logging.warning gives the root a
+    handler only when it has none. With this one in place first, neither adds
+    a handler, so every line prints once, with its time and logger name.
+    """
+    logging.basicConfig(level=logging.WARNING, format=LOG_FORMAT)
+    for name in INFO_LOGGERS:
+        logging.getLogger(name).setLevel(logging.INFO)
+
+
+def _serve(args: argparse.Namespace) -> int:
+    configure_logging()
+    if args.device:
+        # Each job runs in a forked work horse that reads its settings from
+        # the environment, so this is how the flag reaches every job.
+        os.environ["GUITARVIS_DEVICE"] = args.device
+    runner.serve(Settings.from_env(), burst=args.burst)
+    return 0
+
+
+def _process(args: argparse.Namespace) -> int:
     try:
         audio = UploadSource(args.audio, max_duration_sec=args.max_duration).fetch()
         tuning = _parse_tuning(args.tuning)
@@ -132,7 +177,7 @@ def main(argv: list[str] | None = None) -> int:
     document = result.document
     try:
         Path(args.output).write_text(document.model_dump_json(indent=2))
-    except OSError as error:
+    except Exception as error:  # OSError, or anything serialising raised
         print(
             f"error [{FailureReason.INTERNAL.value}]: could not write "
             f"{args.output}: {error}",

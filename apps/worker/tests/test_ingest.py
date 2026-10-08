@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 from guitarvis_core.contracts import AudioSource, FailureReason, PipelineError
-from guitarvis_worker.ingest import UploadSource, probe_duration
+from guitarvis_worker.ingest import UploadSource
 
 requires_ffprobe = pytest.mark.skipif(
     shutil.which("ffprobe") is None,
@@ -26,13 +26,6 @@ def write_wav(path: Path, seconds: float = 1.0, rate: int = 8000) -> Path:
 
 def test_upload_source_satisfies_the_protocol(tmp_path: Path) -> None:
     assert isinstance(UploadSource(write_wav(tmp_path / "a.wav")), AudioSource)
-
-
-@requires_ffprobe
-def test_probe_duration_reads_length(tmp_path: Path) -> None:
-    assert probe_duration(write_wav(tmp_path / "a.wav", seconds=2.0)) == pytest.approx(
-        2.0, abs=0.05
-    )
 
 
 @requires_ffprobe

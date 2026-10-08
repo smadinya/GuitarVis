@@ -10,6 +10,8 @@ make check
 Requires Python 3.12+, Node 22+, [uv](https://docs.astral.sh/uv/)
 (`curl -LsSf https://astral.sh/uv/install.sh | sh`), and ffmpeg (provides
 `ffprobe`, used to probe uploaded audio).
+The integration tests and `make api`/`make worker` also need Docker, for
+`make services`.
 
 `make install` also runs `git config core.hooksPath .githooks`, which activates
 the hook that refuses commits on `main`.
@@ -28,11 +30,25 @@ the hook that refuses commits on `main`.
 | `make check` | Everything CI runs |
 | `make eval-data` | Download GuitarSet into `~/.cache` (`ARGS=--audio` for full mode) |
 | `make eval` | GuitarSet evaluation — measured, never gated (`ARGS="--full"`, `ARGS="--split dev"`) |
+| `make services` | Start Postgres, Redis and RustFS in Docker |
+| `make migrate` | Create or upgrade the jobs table, and create the bucket |
+| `make api` | Serve the api on `localhost:8000`, reloading on change |
+| `make worker` | Run jobs from the queue (`ARGS="--device cuda"`; needs the `ml` extra) |
 | `make clean` | Remove caches and build output |
 | `make help` | List these targets with their one-line descriptions |
 
 The worker's ML dependencies are an optional extra and are not installed by
 default. When you need them: `uv sync --extra ml`.
+
+Tests that need Postgres, Redis or object storage skip when `make services`
+has not been run, the way ingest tests skip without ffprobe. CI runs them with
+`GUITARVIS_REQUIRE_SERVICES=1`, which makes a missing service a failure;
+set it locally to check you are not skipping anything. They use the
+`guitarvis_test` database, Redis database 15 and the `guitarvis-test` bucket,
+never the ones `make api` uses.
+
+Behind a reverse proxy, start uvicorn with `--forwarded-allow-ips` so the
+per-address job limit sees the user's address, not the proxy's.
 
 ## Every change starts with a spec
 
@@ -42,7 +58,9 @@ Work is organised as numbered spec folders under `docs/specs/`:
 docs/specs/
 ├── 001-guitarvis-design/      spec.md
 ├── 002-repo-bootstrap/        spec.md  plan.md
-└── 003-pipeline-skeleton/     spec.md  plan.md  ← next, not yet created
+├── 003-pipeline-skeleton/     spec.md  plan.md
+├── 004-fretboard-mapper/      spec.md  plan.md
+└── 005-api-job-queue/         spec.md  plan.md
 ```
 
 Folder names are `NNN-short-name`: three digits, zero-padded, monotonic, never

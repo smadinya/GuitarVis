@@ -21,6 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 # import name -> path from repo root to its src/ package directory
 WORKSPACE_PACKAGES = {
     "guitarvis_core": REPO_ROOT / "packages" / "core" / "src" / "guitarvis_core",
+    "guitarvis_jobs": REPO_ROOT / "packages" / "jobs" / "src" / "guitarvis_jobs",
     "guitarvis_api": REPO_ROOT / "apps" / "api" / "src" / "guitarvis_api",
     "guitarvis_worker": REPO_ROOT / "apps" / "worker" / "src" / "guitarvis_worker",
     "guitarvis_eval": REPO_ROOT / "apps" / "eval" / "src" / "guitarvis_eval",

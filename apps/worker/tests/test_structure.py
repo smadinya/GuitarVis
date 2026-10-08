@@ -12,6 +12,7 @@ import math
 from collections.abc import Sequence
 from pathlib import Path
 
+import pytest
 from guitarvis_core.tabdoc import Beat, Chord, Timing
 from guitarvis_worker.stages.structure import (
     MIN_CHORD_CONFIDENCE,
@@ -20,6 +21,7 @@ from guitarvis_worker.stages.structure import (
     chord_templates,
     merge_chords,
 )
+from guitarvis_worker.timeouts import JobTimedOut
 
 
 def test_beats_are_numbered_into_bars() -> None:
@@ -161,3 +163,35 @@ def test_both_halves_failing_produce_two_distinct_warnings(tmp_path: Path) -> No
     assert len(result.warnings) == 2
     assert any("beat tracking failed" in w.lower() for w in result.warnings)
     assert any("chord detection failed" in w.lower() for w in result.warnings)
+
+
+class BeatsTimeOutAnalyzer(LibrosaStructureAnalyzer):
+    def _track_beats(self, mix_path: Path) -> tuple[Timing, list[float]]:
+        raise JobTimedOut("job timeout")
+
+    def _detect_chords(
+        self, stem_path: Path, beat_times: Sequence[float]
+    ) -> list[Chord]:
+        return []
+
+
+class ChordsTimeOutAnalyzer(LibrosaStructureAnalyzer):
+    def _track_beats(self, mix_path: Path) -> tuple[Timing, list[float]]:
+        return Timing(), []
+
+    def _detect_chords(
+        self, stem_path: Path, beat_times: Sequence[float]
+    ) -> list[Chord]:
+        raise JobTimedOut("job timeout")
+
+
+@pytest.mark.parametrize(
+    "analyzer",
+    [BeatsTimeOutAnalyzer(), ChordsTimeOutAnalyzer()],
+    ids=["beats", "chords"],
+)
+def test_a_job_timeout_in_either_half_is_not_a_warning(
+    tmp_path: Path, analyzer: LibrosaStructureAnalyzer
+) -> None:
+    with pytest.raises(JobTimedOut):
+        analyzer.analyze(tmp_path / "stem.wav", tmp_path / "mix.wav")

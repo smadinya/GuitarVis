@@ -9,10 +9,14 @@ Four stages, each behind a narrow interface, each separately testable.
 
 | Stage | Interface | Progress |
 |---|---|---|
-| 1 Separation | `Separator.isolate(audio_path) -> Path` | 0–40% |
-| 2 Transcription | `Transcriber.transcribe(stem_path) -> list[NoteEvent]` | 40–65% |
-| 3 Structure | `StructureAnalyzer.analyze(stem, mix) -> StructureResult` | 65–80% |
-| 4 Fretboard | `FretboardMapper.assign(notes, tuning) -> FretboardResult` | 80–100% |
+| 1 Separation | `Separator.isolate(audio_path, *, progress=None) -> SeparationResult` | 0–40%, live: `progress(fraction)` while it runs |
+| 2 Transcription | `Transcriber.transcribe(stem_path) -> list[NoteEvent]` | starts at 40% |
+| 3 Structure | `StructureAnalyzer.analyze(stem, mix) -> StructureResult` | starts at 65% |
+| 4 Fretboard | `FretboardMapper.assign(notes, tuning) -> FretboardResult` | starts at 80%; 100% when the document is built |
+
+Progress names the stage **running**. The pipeline reports each stage's start
+and keeps the percent monotonic whatever a separator reports, so a separator
+may report nothing, or nonsense, without breaking a client.
 
 Protocols live in `packages/core/src/guitarvis_core/contracts.py`.
 Implementations live in `apps/worker/src/guitarvis_worker/stages/`.
@@ -36,7 +40,16 @@ collection. Use `uv sync --extra ml` when you need the real dependencies.
 strongest beat cue and the stem has them removed.
 
 **Stages are idempotent and intermediates are cached by content hash.** A
-stage-3 failure must not force re-running separation on retry.
+stage-3 failure must not force re-running separation on retry. The cache lives
+in `apps/worker/src/guitarvis_worker/caching.py`: one decorator per cached
+stage, each implementing that stage's Protocol. **Bump `CACHE_VERSION`
+whenever a stage's output for the same input would change** (a new model, a
+changed threshold, a fixed bug). Nothing enforces it, and forgetting serves
+old results for audio processed before the change. A cache read or write error
+is a miss, never a stage failure; only the separation stem must be stored,
+because the api serves it. Output a stage degraded inside itself is not stored
+either: `CachedAnalyzer` skips a structure result with warnings, so the next
+attempt runs the stage again rather than replaying a failure that may pass.
 
 ## Degrade, do not fail
 

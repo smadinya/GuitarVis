@@ -15,6 +15,7 @@ New decisions take the next number and start from [`template.md`](template.md).
 | [0004](0004-evaluation-is-measured-not-gated.md) | Evaluation is measured, never gated |
 | [0005](0005-uv-workspace-monorepo.md) | A uv workspace monorepo with a shared core package |
 | [0006](0006-onnx-transcription-backend.md) | Stage 2 transcribes through ONNX Runtime, not TensorFlow |
+| [0007](0007-postgres-is-the-record.md) | Postgres is the record of a job; Redis carries only its id |
 
 ## Still open
 

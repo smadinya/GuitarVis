@@ -6,7 +6,7 @@ than in the worker that implements them — is what lets tests, the api, and a
 future desktop build reason about the pipeline without importing torch.
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -117,6 +117,10 @@ class SeparationResult:
     warnings: list[str] = field(default_factory=list)
 
 
+SeparationProgress = Callable[[float], None]
+"""Stage 1's progress hook: the fraction of separation done, 0.0 to 1.0."""
+
+
 @runtime_checkable
 class AudioSource(Protocol):
     """Ingestion: produce a local audio file and its metadata."""
@@ -126,9 +130,17 @@ class AudioSource(Protocol):
 
 @runtime_checkable
 class Separator(Protocol):
-    """Stage 1: isolate the guitar from a mix."""
+    """Stage 1: isolate the guitar from a mix.
 
-    def isolate(self, audio_path: Path) -> SeparationResult: ...
+    `progress`, when given, receives the fraction of separation done while it
+    runs. Separation dominates job time, so this is what keeps a job's percent
+    moving. A separator may report nothing at all, and the pipeline tolerates
+    any sequence, including one that runs backwards.
+    """
+
+    def isolate(
+        self, audio_path: Path, *, progress: SeparationProgress | None = None
+    ) -> SeparationResult: ...
 
 
 @runtime_checkable

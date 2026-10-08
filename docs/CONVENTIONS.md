@@ -18,8 +18,11 @@ Rules that outlive any one change. The reasoning lives in
   interface is wrong.
 - **Heavy imports go inside the method that uses them**, never at module level.
   Importing a stage must not require the `ml` extra.
-- `apps/api` imports nothing from the ML stack. This is enforced by
+- `apps/api` imports nothing from the ML stack, and never `guitarvis_worker`:
+  it enqueues the worker's entry point by name. This is enforced by
   `apps/api/tests/test_boundaries.py`, not by good intentions.
+- **Postgres is the record of a job; Redis carries its id** (ADR 0007). Every
+  write after a job starts is conditional on the status it expects.
 
 ## TypeScript
 
@@ -65,7 +68,9 @@ suite people learn to ignore.
 - **Tested, and gating CI:** the fretboard mapper and its invariant, tab
   document schema validation and round-tripping, the degradation ladder,
   playback sync against a fake clock, pipeline integration with separation
-  stubbed. All deterministic, all CPU, no model weights.
+  stubbed, the job lifecycle, stage caching and the HTTP surface — with the
+  store contract suites and one end-to-end test running against real Postgres,
+  Redis and RustFS. All deterministic, all CPU, no model weights.
 - **Measured, never gating:** the GuitarSet harness, run via `make eval`,
   writing to `eval/results/`.
 
@@ -82,15 +87,16 @@ Where a rule matters, it is enforced by something that fails:
 | Generated artifacts stay current | `make schema-check` in CI |
 | Every note's fingering matches its pitch | `guitarvis_core.fretboard.check_invariant` |
 | Evaluation never gates | `make eval` is unreachable from `make check` |
+| api never imports the worker | `apps/api/tests/test_boundaries.py` |
+| In-memory store twins behave like the real stores | shared contract suites in `packages/jobs/tests` |
+| The migration matches the table the code queries | `packages/jobs/tests/test_migrations.py` |
+| CI cannot pass by skipping the integration suite | `packages/jobs/tests/test_services_gate_ci.py` |
 
 Adding a rule to this document without a mechanism is worth doing, but expect
 it to decay.
 
 `check_invariant` is tested directly (`packages/core/tests/test_fretboard.py`)
-and `apps/worker/src/guitarvis_worker/pipeline.py` now calls it on every note
-stage 4 emits, raising `PipelineError(FailureReason.INTERNAL, ...)` on a
-violation. It is currently exercised only by the invariant-violation test in
-`test_pipeline.py`, since stage 4 (`ViterbiFretboardMapper`) is still a stub
-that raises `NotImplementedError` before producing any notes — it becomes a
-real gate against model output once phase 2 (004-fretboard-mapper) implements
-the mapper.
+and `apps/worker/src/guitarvis_worker/pipeline.py` calls it on every note
+stage 4 (`ViterbiFretboardMapper`) emits, raising
+`PipelineError(FailureReason.INTERNAL, ...)` on a violation, so it gates the
+mapper's real output on every job.

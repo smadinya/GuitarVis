@@ -5,7 +5,10 @@ description = "HTTP surface. No ML code, no model weights."
 requires-python = ">=3.12"
 dependencies = [
     "guitarvis-core",
+    "guitarvis-jobs",
     "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "python-multipart>=0.0.18",
 ]
 
 [build-system]
