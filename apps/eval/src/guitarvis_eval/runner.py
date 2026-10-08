@@ -65,8 +65,15 @@ def score_full(
     mapper: FretboardMapper,
 ) -> ExcerptScore:
     """Audio in. Separation is skipped — GuitarSet is already solo guitar —
-    so the recording is passed as both stem and mix."""
-    placed = mapper.assign(transcriber.transcribe(audio), STANDARD_TUNING).notes
+    so the recording is passed as both stem and mix.
+
+    Note F1 scores the transcriber's own output, before the mapper drops
+    anything, so it moves only when transcription does. String accuracy
+    scores the notes the mapper placed, over those matching the truth.
+    """
+    events = transcriber.transcribe(audio)
+    heard = match_notes(excerpt.notes, events)
+    placed = mapper.assign(events, STANDARD_TUNING).notes
     pairs = match_notes(excerpt.notes, placed)
     structure = analyzer.analyze(audio, audio)
     return ExcerptScore(
@@ -77,7 +84,7 @@ def score_full(
             total=len(pairs),
         ),
         notes=NoteCounts(
-            matched=len(pairs), truth=len(excerpt.notes), estimated=len(placed)
+            matched=len(heard), truth=len(excerpt.notes), estimated=len(events)
         ),
         chords=chord_tally(excerpt.chords, structure.chords, excerpt.duration),
     )

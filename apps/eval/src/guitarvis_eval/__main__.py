@@ -87,18 +87,26 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 1
+        # Check every file before transcribing any: a missing one found at
+        # excerpt 40 would throw away minutes of work.
+        excerpts = [read_jams(path) for path in paths]
+        missing = [
+            audio
+            for audio in (mic_audio_path(root, excerpt) for excerpt in excerpts)
+            if not audio.is_file()
+        ]
+        if missing:
+            print(
+                f"error: {len(missing)} audio file(s) missing, first {missing[0]}. "
+                "Run `make eval-data ARGS=--audio`.",
+                file=sys.stderr,
+            )
+            return 1
         transcriber = BasicPitchTranscriber()
         analyzer = LibrosaStructureAnalyzer()
-        for index, path in enumerate(paths, 1):
-            excerpt = read_jams(path)
+        for index, excerpt in enumerate(excerpts, 1):
             audio = mic_audio_path(root, excerpt)
-            if not audio.is_file():
-                print(
-                    f"error: missing {audio}. Run `make eval-data ARGS=--audio`.",
-                    file=sys.stderr,
-                )
-                return 1
-            print(f"[{index}/{len(paths)}] {excerpt.name}", file=sys.stderr)
+            print(f"[{index}/{len(excerpts)}] {excerpt.name}", file=sys.stderr)
             scores.append(
                 score_full(
                     excerpt,

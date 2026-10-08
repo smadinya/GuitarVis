@@ -9,7 +9,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from guitarvis_core.contracts import TabNote
+from guitarvis_core.contracts import NoteEvent, TabNote
 from guitarvis_core.tabdoc import Chord
 
 from guitarvis_eval.dataset import TruthChord, TruthNote
@@ -88,7 +88,7 @@ def oracle_string_tally(truth: Sequence[TruthNote], placed: Sequence[TabNote]) -
 
 
 def match_notes(
-    truth: Sequence[TruthNote], estimated: Sequence[TabNote]
+    truth: Sequence[TruthNote], estimated: Sequence[TabNote] | Sequence[NoteEvent]
 ) -> list[tuple[int, int]]:
     """(truth index, estimate index) pairs: onset within 50ms, exact pitch,
     each note matched at most once, offsets ignored.
@@ -103,11 +103,15 @@ def match_notes(
     import mir_eval
     import numpy as np
 
-    def intervals(notes: Sequence[TruthNote] | Sequence[TabNote]) -> object:
+    def intervals(
+        notes: Sequence[TruthNote] | Sequence[TabNote] | Sequence[NoteEvent],
+    ) -> object:
         # mir_eval rejects zero-length intervals; offsets are ignored anyway.
         return np.array([[n.onset, n.onset + max(n.duration, 1e-3)] for n in notes])
 
-    def hertz(notes: Sequence[TruthNote] | Sequence[TabNote]) -> object:
+    def hertz(
+        notes: Sequence[TruthNote] | Sequence[TabNote] | Sequence[NoteEvent],
+    ) -> object:
         return 440.0 * 2.0 ** ((np.array([n.midi for n in notes]) - 69) / 12)
 
     pairs = mir_eval.transcription.match_notes(

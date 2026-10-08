@@ -65,7 +65,7 @@ def fetch(archive: Archive, root: Path, url: str | None = None) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     partial = root / f"{archive.filename}.part"
     with (
-        urllib.request.urlopen(url or archive.url) as response,
+        urllib.request.urlopen(url or archive.url, timeout=60) as response,
         partial.open("wb") as out,
     ):
         shutil.copyfileobj(response, out, CHUNK)

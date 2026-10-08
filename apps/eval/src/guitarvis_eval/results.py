@@ -19,7 +19,11 @@ RESULTS_DIR = REPO_ROOT / "eval" / "results"
 
 def git_state(repo: Path = REPO_ROOT) -> tuple[str, bool]:
     """(short sha, dirty). ("unknown", True) when there is no repository: an
-    evaluation must not fail because it ran from an exported tree."""
+    evaluation must not fail because it ran from an exported tree.
+
+    Untracked files count, because a new module the run imported is code
+    that is not in git. Earlier results files do not: they are outputs.
+    """
     try:
         sha = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
@@ -29,7 +33,14 @@ def git_state(repo: Path = REPO_ROOT) -> tuple[str, bool]:
             check=True,
         ).stdout.strip()
         status = subprocess.run(
-            ["git", "status", "--porcelain", "--untracked-files=no"],
+            [
+                "git",
+                "status",
+                "--porcelain",
+                "--",
+                ".",
+                f":(exclude){RESULTS_DIR.relative_to(REPO_ROOT).as_posix()}",
+            ],
             cwd=repo,
             capture_output=True,
             text=True,
@@ -53,7 +64,10 @@ def write_results(
 ) -> Path:
     sha, dirty = git_state(repo)
     day = (today or date.today()).isoformat()
-    path = out_dir / f"{day}-{sha}-{mode}-{split}.json"
+    # A dirty run gets its own name, so that rerunning mid-edit can never
+    # overwrite the clean, committable result for the same commit.
+    suffix = "-dirty" if dirty else ""
+    path = out_dir / f"{day}-{sha}-{mode}-{split}{suffix}.json"
     payload = {
         "date": day,
         "commit": sha,

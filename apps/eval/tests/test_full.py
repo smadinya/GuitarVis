@@ -150,3 +150,49 @@ def test_full_mode_without_mir_eval_says_what_to_install(
 
     assert code == 1
     assert "uv sync --extra eval-full" in capsys.readouterr().err
+
+
+def test_note_f1_measures_the_transcriber_not_the_mapper(tmp_path: Path) -> None:
+    # A perfect transcription of two notes no hand can hold together: the
+    # mapper drops one, but the transcriber got both right.
+    excerpt = read_jams(
+        write_jams(
+            tmp_path, "05_a_comp", notes=[(0.0, 0.5, 41.0, 0), (0.0, 0.5, 84.0, 5)]
+        )
+    )
+    score = score_full(
+        excerpt,
+        tmp_path / "05_a_comp_mic.wav",
+        transcriber=EchoTranscriber(
+            [NoteEvent(0.0, 0.5, 41, 0.9), NoteEvent(0.0, 0.5, 84, 0.8)]
+        ),
+        analyzer=FixedAnalyzer([]),
+        mapper=ViterbiFretboardMapper(),
+    )
+
+    assert score.notes == NoteCounts(matched=2, truth=2, estimated=2)
+    assert score.strings == Tally(correct=1, total=1)  # only the placed note
+
+
+def test_full_mode_checks_every_audio_file_before_transcribing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import guitarvis_worker.stages.structure as structure
+    import guitarvis_worker.stages.transcription as transcription
+    from guitarvis_eval.__main__ import main
+
+    echo = EchoTranscriber([])
+    monkeypatch.setattr(transcription, "BasicPitchTranscriber", lambda: echo)
+    monkeypatch.setattr(
+        structure, "LibrosaStructureAnalyzer", lambda: FixedAnalyzer([])
+    )
+    write_jams(tmp_path / "annotation", "05_a_comp")
+    write_jams(tmp_path / "annotation", "05_b_solo")
+    (tmp_path / "audio_mono-mic").mkdir()
+    (tmp_path / "audio_mono-mic" / "05_a_comp_mic.wav").write_bytes(b"")
+
+    code = main(["--full", "--data-dir", str(tmp_path), "--out", str(tmp_path / "out")])
+
+    assert code == 1
+    assert echo.seen == []  # nothing transcribed before the missing file was found
+    assert "05_b_solo_mic.wav" in capsys.readouterr().err
