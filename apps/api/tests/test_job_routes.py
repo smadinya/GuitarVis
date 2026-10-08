@@ -1,6 +1,7 @@
 """Reading jobs: status, document, audio redirects, errors and reconciliation."""
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from api_fixture import Api, make_api
@@ -13,7 +14,7 @@ from guitarvis_core.tabdoc import Instrument, Source, TabDocument, Timing
 from guitarvis_jobs.blobs import PRESIGN_EXPIRES_SEC
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE, JobStatus
 from guitarvis_jobs.store import InMemoryJobStore
-from guitarvis_jobs.testing import sample_new_job
+from guitarvis_jobs.testing import FakeClock, sample_new_job
 
 MISSING_ID = "5f0c6c2e-0000-4000-8000-0000000000ff"
 STEM_KEY = "cache/v1/" + "a" * 64 + "/separation/stem.wav"
@@ -89,6 +90,23 @@ def test_a_queued_job() -> None:
         "created_at": "2026-10-08T12:00:00Z",
         "updated_at": "2026-10-08T12:00:00Z",
     }
+
+
+def test_timestamps_are_utc_whatever_offset_the_store_returns() -> None:
+    """Postgres answers in its session's time zone; the body must not."""
+    plus_two = FakeClock(
+        start=datetime(2026, 10, 8, 12, 0, tzinfo=UTC).astimezone(
+            timezone(timedelta(hours=2))
+        )
+    )
+    api = make_api(store=InMemoryJobStore(clock=plus_two))
+    job_id = queued(api)
+    assert api.job(job_id).updated_at.utcoffset() == timedelta(hours=2)  # the setup
+
+    body = api.client.get(f"/jobs/{job_id}").json()
+
+    assert body["created_at"] == "2026-10-08T12:00:00Z"
+    assert body["updated_at"] == "2026-10-08T12:00:00Z"
 
 
 def test_a_running_job_reports_its_stage_and_percent() -> None:
