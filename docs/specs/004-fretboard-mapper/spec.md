@@ -84,8 +84,8 @@ span_weight · span + height_weight · position − open_bonus · open_strings
 where `position` is the lowest fretted fret. The height term is the "mild
 penalty for high frets when a lower position exists"; the open bonus is the
 open-string preference. Only the `beam` cheapest fingerings per voicing are
-kept, which bounds Viterbi's per-step work. A single note has two to four
-candidates and a full six-note chord rarely has more than twenty playable
+kept, which bounds Viterbi's per-step work. A single note has at most one
+candidate per string and a full six-note chord rarely has more than twenty playable
 fingerings, so in practice the beam only bites on pathological input.
 
 **Transition cost.** `move_weight · |position_a − position_b|`. The parent
@@ -177,7 +177,7 @@ grouping and no search. It exists only in the harness, as the number the
 mapper has to beat; without it, a string accuracy figure has no reference
 point.
 
-**Full mode** (`make eval ARGS=--full`, requires `uv sync --extra ml`).
+**Full mode** (`make eval ARGS=--full`, requires `uv sync --extra eval-full`).
 Separation is skipped — GuitarSet is already solo guitar — and the mic audio
 goes straight to `BasicPitchTranscriber`, then the mapper, and to
 `LibrosaStructureAnalyzer`. Metrics:

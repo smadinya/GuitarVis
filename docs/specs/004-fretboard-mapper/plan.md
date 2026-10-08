@@ -55,7 +55,7 @@ The contract change and the orchestrator change land together: changing the retu
 - Consumes: nothing new.
 - Produces: `guitarvis_core.contracts.FretboardResult(notes: list[TabNote], warnings: list[str] = [])`, frozen dataclass. `FretboardMapper.assign(self, notes: Sequence[NoteEvent], tuning: Sequence[str]) -> FretboardResult`. Pipeline warning text on mapper failure: `"Fretboard assignment failed ({ExceptionName}), so this document carries no notes."`
 
-- [ ] **Step 1: Write the failing contract test**
+- [x] **Step 1: Write the failing contract test**
 
 In `packages/core/tests/test_contracts.py`, add `FretboardResult` to the `guitarvis_core.contracts` import list, change `FakeMapper.assign` inside the protocol-conformance test to:
 
@@ -79,12 +79,12 @@ def test_fretboard_result_warnings_default_to_empty() -> None:
         result.notes = []  # type: ignore[misc]
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `uv run pytest packages/core/tests/test_contracts.py -v`
 Expected: collection error, `ImportError: cannot import name 'FretboardResult'`.
 
-- [ ] **Step 3: Add `FretboardResult` and change the protocol**
+- [x] **Step 3: Add `FretboardResult` and change the protocol**
 
 In `contracts.py`, directly after the `TabNote` class:
 
@@ -116,12 +116,12 @@ class FretboardMapper(Protocol):
 
 In `apps/worker/src/guitarvis_worker/stages/fretboard.py`, change the import to `from guitarvis_core.contracts import FretboardResult, NoteEvent` and the stub's return annotation to `-> FretboardResult`. Leave the `raise NotImplementedError(...)` body; Task 2 replaces it.
 
-- [ ] **Step 4: Run the contract tests**
+- [x] **Step 4: Run the contract tests**
 
 Run: `uv run pytest packages/core/tests/test_contracts.py -v`
 Expected: all PASS.
 
-- [ ] **Step 5: Update the pipeline tests to the new contract (failing)**
+- [x] **Step 5: Update the pipeline tests to the new contract (failing)**
 
 In `apps/worker/tests/test_pipeline.py`:
 
@@ -221,12 +221,12 @@ In `test_progress_still_reports_when_stages_degrade`, change `mapper=Unimplement
 
 In `apps/worker/tests/test_cli.py`, in `test_reports_the_fretboard_stage_is_not_implemented`, change the asserted string to `"Fretboard assignment failed (NotImplementedError)"`. (Task 2 replaces this test outright.)
 
-- [ ] **Step 6: Run them to verify they fail**
+- [x] **Step 6: Run them to verify they fail**
 
 Run: `uv run pytest apps/worker/tests/test_pipeline.py apps/worker/tests/test_cli.py -v`
 Expected: FAIL — `AttributeError: 'FretboardResult' object has no attribute 'onset'` (the pipeline still iterates the result as a list) and the degradation tests fail because `RuntimeError` is not caught.
 
-- [ ] **Step 7: Change the orchestrator's stage 4 block**
+- [x] **Step 7: Change the orchestrator's stage 4 block**
 
 In `apps/worker/src/guitarvis_worker/pipeline.py`, replace everything from the `# Stage 4.` comment down to (not including) `_report(progress, "fretboard")` with:
 
@@ -249,16 +249,16 @@ In `apps/worker/src/guitarvis_worker/pipeline.py`, replace everything from the `
         warnings.extend(fretboard.warnings)
 ```
 
-- [ ] **Step 8: Run the worker and core tests**
+- [x] **Step 8: Run the worker and core tests**
 
 Run: `uv run pytest packages/core apps/worker -v`
 Expected: all PASS (CLI tests needing `ffprobe` may SKIP).
 
-- [ ] **Step 9: Update the two docs that state the signature**
+- [x] **Step 9: Update the two docs that state the signature**
 
 `docs/specs/001-guitarvis-design/spec.md` line 212 and `.claude/skills/pipeline-stage/SKILL.md` line 15: change `-> list[TabNote]` to `-> FretboardResult`.
 
-- [ ] **Step 10: Run `make check` and commit**
+- [x] **Step 10: Run `make check` and commit**
 
 Run: `make check`
 Expected: exit 0.
@@ -287,7 +287,7 @@ The deterministic core. Replaces the stub body. The algorithm is the spec's; the
 - Consumes: `FretboardResult` from Task 1; `guitarvis_core.fretboard.parse_pitch(name: str) -> int`.
 - Produces: `guitarvis_worker.stages.fretboard.MapperCosts` — frozen dataclass with fields `move_weight: float`, `span_weight: float`, `height_weight: float`, `open_bonus: float`, `max_fret: int = 20`, `max_span: int = 4`, `beam: int = 50`. `ViterbiFretboardMapper(costs: MapperCosts | None = None)` with attribute `.costs: MapperCosts` and `.assign(notes, tuning) -> FretboardResult`. Warning texts: `"{n} note(s) outside the guitar's range {was/were} dropped."` and `"{n} note(s) in chords no hand could play {was/were} dropped."` — singular form `"1 note ... was dropped."`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `apps/worker/tests/test_fretboard_mapper.py`:
 
@@ -505,12 +505,12 @@ def test_every_placed_note_satisfies_the_invariant() -> None:
             assert_invariant(result, tuning)
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest apps/worker/tests/test_fretboard_mapper.py -v`
 Expected: collection error — `ImportError: cannot import name 'MapperCosts'`.
 
-- [ ] **Step 3: Implement the mapper**
+- [x] **Step 3: Implement the mapper**
 
 Replace `apps/worker/src/guitarvis_worker/stages/fretboard.py` entirely:
 
@@ -763,12 +763,12 @@ if TYPE_CHECKING:  # Static conformance: isinstance compares method names
 
 Note on the backtrack: `back[k]` holds, for each fingering of voicing `k + 1`, the index of its best predecessor in voicing `k`. Walking `step` from `len - 2` down to `0` reads `back[step]` to go from voicing `step + 1` to voicing `step`.
 
-- [ ] **Step 4: Run the mapper tests**
+- [x] **Step 4: Run the mapper tests**
 
 Run: `uv run pytest apps/worker/tests/test_fretboard_mapper.py -v`
 Expected: all PASS.
 
-- [ ] **Step 5: Retire the stub's tests and update the CLI test**
+- [x] **Step 5: Retire the stub's tests and update the CLI test**
 
 In `apps/worker/tests/test_stages.py`: delete `test_fretboard_is_not_implemented_yet`, remove the now-unused `import pytest` and `STANDARD_TUNING` import, and replace the module docstring with:
 
@@ -801,7 +801,7 @@ def test_places_transcribed_notes_on_the_neck(
     assert "1 notes placed" in capsys.readouterr().err
 ```
 
-- [ ] **Step 6: Update `PipelineResult`'s docstring**
+- [x] **Step 6: Update `PipelineResult`'s docstring**
 
 In `pipeline.py`, replace the `PipelineResult` docstring with:
 
@@ -816,12 +816,12 @@ In `pipeline.py`, replace the `PipelineResult` docstring with:
     """
 ```
 
-- [ ] **Step 7: Run the whole Python suite**
+- [x] **Step 7: Run the whole Python suite**
 
 Run: `uv run pytest -v`
 Expected: all PASS (ffprobe-dependent tests may SKIP if ffmpeg is absent; install it to run them — `sudo apt install ffmpeg`).
 
-- [ ] **Step 8: Add the degradation rows**
+- [x] **Step 8: Add the degradation rows**
 
 In `docs/specs/001-guitarvis-design/spec.md`'s *Failure handling* table and `.claude/skills/pipeline-stage/SKILL.md`'s *Degrade, do not fail* table, append:
 
@@ -830,7 +830,7 @@ In `docs/specs/001-guitarvis-design/spec.md`'s *Failure handling* table and `.cl
 | Notes no hand could play, or outside the neck's range | Those notes dropped, never approximated; a warning gives the count |
 ```
 
-- [ ] **Step 9: Run `make check` and commit**
+- [x] **Step 9: Run `make check` and commit**
 
 Run: `make check`
 Expected: exit 0.
@@ -858,7 +858,7 @@ Standard-library JAMS reading, the player split, and where the data lives. No wo
 - Produces, in `guitarvis_eval.dataset`: `Split = Literal["test", "dev"]`; `TEST_PLAYERS: frozenset[str]`; `DEFAULT_DATA_DIR: Path`; `ANNOTATION_DIR = "annotation"`; `MIC_AUDIO_DIR = "audio_mono-mic"`; `class DatasetMissing(Exception)`; frozen dataclasses `TruthNote(onset: float, duration: float, midi: int, string: int)`, `TruthChord(start: float, end: float, label: str)`, `Excerpt(name: str, player: str, style: str, duration: float, notes: list[TruthNote], chords: list[TruthChord])`; `data_dir() -> Path`; `excerpt_paths(root: Path, split: Split) -> list[Path]`; `mic_audio_path(root: Path, excerpt: Excerpt) -> Path`; `read_jams(path: Path) -> Excerpt`.
 - Produces, in `apps/eval/tests/guitarset_fixture.py`: `write_jams(directory: Path, name: str, *, notes: Sequence[tuple[float, float, float, int]] = (), performed: Sequence[tuple[float, float, str]] = (), instructed: Sequence[tuple[float, float, str]] = (), duration: float = 10.0) -> Path` — notes are `(onset, duration, midi_float, string)`, chords are `(time, duration, label)`.
 
-- [ ] **Step 1: Write the fixture helper**
+- [x] **Step 1: Write the fixture helper**
 
 Create `apps/eval/tests/guitarset_fixture.py`:
 
@@ -940,7 +940,7 @@ def write_jams(
     return path
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `apps/eval/tests/test_dataset.py`:
 
@@ -1042,12 +1042,12 @@ def test_mic_audio_path_follows_the_archive_naming(tmp_path: Path) -> None:
     )
 ```
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `uv run pytest apps/eval/tests/test_dataset.py -v`
 Expected: collection error — `ModuleNotFoundError: No module named 'guitarvis_eval.dataset'`.
 
-- [ ] **Step 4: Implement the reader**
+- [x] **Step 4: Implement the reader**
 
 Create `apps/eval/src/guitarvis_eval/dataset.py`:
 
@@ -1183,12 +1183,12 @@ def read_jams(path: Path) -> Excerpt:
     )
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `uv run pytest apps/eval/tests/test_dataset.py -v`
 Expected: all PASS.
 
-- [ ] **Step 6: Run `make check` and commit**
+- [x] **Step 6: Run `make check` and commit**
 
 Run: `make check`
 Expected: exit 0.
@@ -1219,7 +1219,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `guitarvis_eval.metrics.Tally(correct: int = 0, total: int = 0)` with `__add__` and `.rate -> float | None`; `NoteCounts(matched: int = 0, truth: int = 0, estimated: int = 0)` with `__add__`, `.precision`, `.recall`, `.f1` (each `float | None`); `oracle_string_tally(truth: Sequence[TruthNote], placed: Sequence[TabNote]) -> Tally`.
   - `guitarvis_eval.runner.ExcerptScore(name: str, style: str, strings: Tally, baseline_strings: Tally | None = None, notes: NoteCounts | None = None, chords: Tally | None = None)`; `score_oracle(excerpt: Excerpt, mapper: FretboardMapper, baseline: FretboardMapper) -> ExcerptScore`; `summarize(scores: Sequence[ExcerptScore]) -> dict[str, object]` keyed `"all"`, then each style; `score_to_dict(score: ExcerptScore) -> dict[str, object]`. Each group's dict: `{"excerpts": int, "string": {"correct", "total", "rate"}, ["baseline_string": {...}], ["note": {"matched","truth","estimated","precision","recall","f1"}], ["chord": {...}]}`.
 
-- [ ] **Step 1: Depend on the worker**
+- [x] **Step 1: Depend on the worker**
 
 In `apps/eval/pyproject.toml` change `dependencies = ["guitarvis-core"]` to:
 
@@ -1232,7 +1232,7 @@ dependencies = ["guitarvis-core", "guitarvis-worker"]
 Run: `uv lock && uv sync`
 Expected: lock updates; sync succeeds with no new third-party packages.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `apps/eval/tests/test_oracle.py`:
 
@@ -1358,12 +1358,12 @@ def test_score_to_dict_names_the_excerpt(tmp_path: Path) -> None:
     assert row["string"] == {"correct": 1, "total": 1, "rate": 1.0}
 ```
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `uv run pytest apps/eval/tests/test_oracle.py -v`
 Expected: collection error — `ModuleNotFoundError: No module named 'guitarvis_eval.baseline'`.
 
-- [ ] **Step 4: Implement the baseline**
+- [x] **Step 4: Implement the baseline**
 
 Create `apps/eval/src/guitarvis_eval/baseline.py`:
 
@@ -1423,7 +1423,7 @@ if TYPE_CHECKING:
     _conforms: FretboardMapper = LowestFretMapper()
 ```
 
-- [ ] **Step 5: Implement the counting metrics**
+- [x] **Step 5: Implement the counting metrics**
 
 Create `apps/eval/src/guitarvis_eval/metrics.py`:
 
@@ -1504,7 +1504,7 @@ def oracle_string_tally(truth: Sequence[TruthNote], placed: Sequence[TabNote]) -
     return Tally(correct, len(truth))
 ```
 
-- [ ] **Step 6: Implement the runner (oracle half)**
+- [x] **Step 6: Implement the runner (oracle half)**
 
 Create `apps/eval/src/guitarvis_eval/runner.py`:
 
@@ -1599,12 +1599,12 @@ def _tally(tally: Tally) -> dict[str, object]:
 
 `sorted(groups.items())` puts `"all"` before `"comp"` and `"solo"` alphabetically, which is the order `test_summary_groups_by_style_and_weights_by_notes` asserts.
 
-- [ ] **Step 7: Run the tests**
+- [x] **Step 7: Run the tests**
 
 Run: `uv run pytest apps/eval/tests/test_oracle.py -v`
 Expected: all PASS.
 
-- [ ] **Step 8: Run `make check` and commit**
+- [x] **Step 8: Run `make check` and commit**
 
 Run: `make check`
 Expected: exit 0.
@@ -1631,7 +1631,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes: Tasks 3–4 (`excerpt_paths`, `read_jams`, `data_dir`, `DatasetMissing`, `LowestFretMapper`, `score_oracle`, `summarize`, `score_to_dict`); `ViterbiFretboardMapper`, `MapperCosts` (Task 2).
 - Produces: `guitarvis_eval.results.REPO_ROOT: Path`, `RESULTS_DIR: Path`, `git_state(repo: Path = REPO_ROOT) -> tuple[str, bool]`, `write_results(*, mode: str, split: str, costs: MapperCosts, summary: dict[str, object], excerpts: list[dict[str, object]], out_dir: Path = RESULTS_DIR, today: date | None = None, repo: Path = REPO_ROOT) -> Path`. File name `<YYYY-MM-DD>-<sha>-<mode>-<split>.json`; top-level keys `date, commit, dirty, mode, split, mapper_costs, summary, excerpts`. `guitarvis_eval.__main__.main(argv: list[str] | None = None) -> int` with flags `--split {test,dev}` (default `test`), `--data-dir PATH`, `--out PATH`, and `--full` (added in Task 7).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `apps/eval/tests/test_results.py`. It writes only into `tmp_path` and must never spell the tracked results directory's path (see Global Constraints):
 
@@ -1716,12 +1716,12 @@ def test_main_without_data_says_how_to_get_it(tmp_path: Path) -> None:
 
 In `apps/eval/tests/test_eval.py`, delete `test_harness_entry_point_exists_and_reports_its_status` (superseded by the two `main` tests above), remove the now-unused `sys` import, and change the module docstring's last sentence to: `These tests hold the one rule that must never be relaxed.`
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest apps/eval/tests/test_results.py -v`
 Expected: collection error — `ModuleNotFoundError: No module named 'guitarvis_eval.results'`.
 
-- [ ] **Step 3: Implement the results writer**
+- [x] **Step 3: Implement the results writer**
 
 Create `apps/eval/src/guitarvis_eval/results.py`:
 
@@ -1799,7 +1799,7 @@ def write_results(
 
 `parents[4]` walks `results.py → guitarvis_eval → src → eval → apps → repo root`; the workspace installs `guitarvis-eval` editable, so `__file__` is the source file.
 
-- [ ] **Step 4: Replace the entry point**
+- [x] **Step 4: Replace the entry point**
 
 Replace `apps/eval/src/guitarvis_eval/__main__.py`:
 
@@ -1905,7 +1905,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 5: Pass arguments through `make eval`**
+- [x] **Step 5: Pass arguments through `make eval`**
 
 In `Makefile`, add below `UV_SYNC_FLAGS ?=`:
 
@@ -1922,12 +1922,12 @@ eval: ## GuitarSet evaluation. Measured, never gated — not part of `check`.
 	$(UV) run python -m guitarvis_eval $(ARGS)
 ```
 
-- [ ] **Step 6: Run the eval tests**
+- [x] **Step 6: Run the eval tests**
 
 Run: `uv run pytest apps/eval -v`
 Expected: all PASS, including `test_eval_never_gates_ci.py` (proves the new test file does not trip the tripwire).
 
-- [ ] **Step 7: Run `make check` and commit**
+- [x] **Step 7: Run `make check` and commit**
 
 Run: `make check`
 Expected: exit 0.
@@ -1952,7 +1952,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes: `guitarvis_eval.dataset.{ANNOTATION_DIR, MIC_AUDIO_DIR, data_dir}`.
 - Produces: `guitarvis_eval.download.Archive(filename: str, md5: str, unpack_to: str)` with `.url`; constants `ANNOTATIONS`, `MIC_AUDIO`; `class ChecksumMismatch(Exception)`; `md5_of(path: Path) -> str`; `fetch(archive: Archive, root: Path, url: str | None = None) -> Path`; `main(argv) -> int` with `--audio`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `apps/eval/tests/test_download.py`:
 
@@ -2024,12 +2024,12 @@ def test_archives_point_at_the_zenodo_record() -> None:
     assert MIC_AUDIO.md5 == "275966d6610ac34999b58426beb119c3"
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest apps/eval/tests/test_download.py -v`
 Expected: collection error — `ModuleNotFoundError: No module named 'guitarvis_eval.download'`.
 
-- [ ] **Step 3: Implement the downloader**
+- [x] **Step 3: Implement the downloader**
 
 Create `apps/eval/src/guitarvis_eval/download.py`:
 
@@ -2149,7 +2149,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 4: Add the Makefile target**
+- [x] **Step 4: Add the Makefile target**
 
 Add `eval-data` to the `.PHONY` list, and below the `eval` target:
 
@@ -2158,17 +2158,17 @@ eval-data: ## Download GuitarSet into ~/.cache (ARGS=--audio for full mode's aud
 	$(UV) run python -m guitarvis_eval.download $(ARGS)
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `uv run pytest apps/eval/tests/test_download.py -v`
 Expected: all PASS.
 
-- [ ] **Step 6: Fetch the real annotations once**
+- [x] **Step 6: Fetch the real annotations once**
 
 Run: `make eval-data`
 Expected: prints `annotation.zip → ~/.cache/guitarvis/guitarset/annotation`, exits 0; `ls ~/.cache/guitarvis/guitarset/annotation | wc -l` prints `360`.
 
-- [ ] **Step 7: Run `make check` and commit**
+- [x] **Step 7: Run `make check` and commit**
 
 Run: `make check`
 Expected: exit 0.
@@ -2200,7 +2200,7 @@ Note F1 via `mir_eval`, string accuracy over matched notes, chord accuracy again
 - Consumes: Tasks 3–5; the worker's `BasicPitchTranscriber`, `LibrosaStructureAnalyzer`; `guitarvis_core.tabdoc.Chord(t, dur, symbol, confidence)`.
 - Produces: in `metrics`: `ONSET_TOLERANCE_SEC = 0.05`, `CHORD_HOP_SEC = 0.1`, `NO_CHORD = "N"`, `match_notes(truth: Sequence[TruthNote], estimated: Sequence[TabNote]) -> list[tuple[int, int]]`, `reduce_chord(label: str) -> str | None`, `chord_tally(truth: Sequence[TruthChord], predicted: Sequence[Chord], duration: float, hop: float = CHORD_HOP_SEC) -> Tally`. In `runner`: `score_full(excerpt: Excerpt, audio: Path, *, transcriber: Transcriber, analyzer: StructureAnalyzer, mapper: FretboardMapper) -> ExcerptScore`.
 
-- [ ] **Step 1: Add the extras and mypy sections**
+- [x] **Step 1: Add the extras and mypy sections**
 
 `apps/eval/pyproject.toml`, below `dependencies`:
 
@@ -2235,7 +2235,7 @@ ignore_missing_imports = True
 Run: `uv lock && uv sync`
 Expected: lock updates; the default sync does not install `mir_eval`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `apps/eval/tests/test_full.py`:
 
@@ -2370,12 +2370,12 @@ def test_score_full_with_stub_stages(tmp_path: Path) -> None:
     assert "note" in summarize([score])["all"]  # type: ignore[operator]
 ```
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `uv run pytest apps/eval/tests/test_full.py -v`
 Expected: collection error — `ImportError: cannot import name 'chord_tally'`.
 
-- [ ] **Step 4: Append the full-mode metrics**
+- [x] **Step 4: Append the full-mode metrics**
 
 At the top of `apps/eval/src/guitarvis_eval/metrics.py`, change the imports to:
 
@@ -2489,7 +2489,7 @@ def _label_at(chords: Sequence[TruthChord], t: float) -> str:
 
 `round(duration / hop)` rather than `int(...)`: `2.0 / 0.1` is `19.999…` in floating point, and `int` would lose the last frame.
 
-- [ ] **Step 5: Append `score_full`**
+- [x] **Step 5: Append `score_full`**
 
 In `apps/eval/src/guitarvis_eval/runner.py`, change the imports to:
 
@@ -2546,7 +2546,7 @@ def score_full(
     )
 ```
 
-- [ ] **Step 6: Add `--full` to the entry point**
+- [x] **Step 6: Add `--full` to the entry point**
 
 In `__main__.py`: add `mic_audio_path` to the `guitarvis_eval.dataset` import and `score_full` to the `guitarvis_eval.runner` import. In `_build_parser`, add as the first argument:
 
@@ -2608,7 +2608,7 @@ and in the `write_results(...)` call change `mode="oracle"` to `mode=mode`.
 
 The stage imports stay inside the `if`: the worker's stage modules import cleanly without the `ml` extra, but `mir_eval` does not, and the check must fail before any excerpt runs.
 
-- [ ] **Step 7: Add a test for the missing-extra message**
+- [x] **Step 7: Add a test for the missing-extra message**
 
 Append to `apps/eval/tests/test_full.py`:
 
@@ -2637,7 +2637,7 @@ def test_full_mode_without_mir_eval_says_what_to_install(
     assert "uv sync --extra eval-full" in capsys.readouterr().err
 ```
 
-- [ ] **Step 8: Run the eval tests**
+- [x] **Step 8: Run the eval tests**
 
 Run: `uv run pytest apps/eval -v`
 Expected: all PASS; `test_match_notes_needs_onset_within_50ms_and_the_exact_pitch` and `test_score_full_with_stub_stages` SKIP (no `mir_eval` in the default environment).
@@ -2645,7 +2645,7 @@ Expected: all PASS; `test_match_notes_needs_onset_within_50ms_and_the_exact_pitc
 Then with the extra: `uv sync --extra eval-full && uv run pytest apps/eval -v`
 Expected: all PASS, nothing skipped. Then `uv sync` to return to the default environment before `make check`.
 
-- [ ] **Step 9: Run `make check` and commit**
+- [x] **Step 9: Run `make check` and commit**
 
 Run: `make check`
 Expected: exit 0.
@@ -2674,7 +2674,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes: everything above.
 - Produces: documentation and the first tracked before-number.
 
-- [ ] **Step 1: README**
+- [x] **Step 1: README**
 
 Replace the status paragraph (lines 7–9) with:
 
@@ -2694,7 +2694,7 @@ the neck's range, or in a chord no hand could play — are dropped rather than
 given a wrong fret, and the document's warnings say how many.
 ```
 
-- [ ] **Step 2: CLAUDE.md and CONTRIBUTING.md**
+- [x] **Step 2: CLAUDE.md and CONTRIBUTING.md**
 
 `CLAUDE.md`, *Build phases*: move `← **next**` from phase 2 to phase 3. *Commands*: change the line to
 `` `make install` · `make check` · `make test` · `make schema` · `make eval-data` · `make eval` · `make help` ``.
@@ -2714,7 +2714,7 @@ given a wrong fret, and the document's warnings say how many.
 
 and change the `make eval` row's description to `GuitarSet evaluation — measured, never gated (`ARGS="--full"`, `ARGS="--split dev"`)`.
 
-- [ ] **Step 3: The eval-harness skill and the results README**
+- [x] **Step 3: The eval-harness skill and the results README**
 
 In `.claude/skills/eval-harness/SKILL.md`, replace the opening code block with:
 
@@ -2744,7 +2744,7 @@ field is `true` measured uncommitted code — rerun from a clean tree before
 committing it.
 ```
 
-- [ ] **Step 4: Close 003's findings**
+- [x] **Step 4: Close 003's findings**
 
 In `docs/specs/003-pipeline-skeleton/review-notes.md`, append to the *Stage 4's narrow `except NotImplementedError`* bullet and the *`--tuning` validation* bullet, respectively:
 
@@ -2759,7 +2759,7 @@ In `docs/specs/003-pipeline-skeleton/review-notes.md`, append to the *Stage 4's 
   every note stage 4 returns, whatever tuning it was handed.
 ```
 
-- [ ] **Step 5: Commit the docs, then produce the before-number from a clean tree**
+- [x] **Step 5: Commit the docs, then produce the before-number from a clean tree**
 
 ```bash
 git add README.md CLAUDE.md CONTRIBUTING.md .claude/skills/eval-harness/SKILL.md eval/results/README.md docs/specs/003-pipeline-skeleton/review-notes.md
@@ -2783,7 +2783,7 @@ solo (30 excerpts)
 
 Check: the JSON's `"dirty"` is `false`. If it is `true`, something is uncommitted — commit or stash it and rerun.
 
-- [ ] **Step 6: Run `make check` and commit the result**
+- [x] **Step 6: Run `make check` and commit the result**
 
 Run: `make check`
 Expected: exit 0.
@@ -2798,3 +2798,13 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - [ ] **Step 7: Full mode, if the ML stack is available**
 
 Optional for this branch — it takes tens of minutes on CPU. If run: `uv sync --extra eval-full && make eval-data ARGS=--audio && make eval ARGS=--full`, then `uv sync`, and commit the `full-test` result file on its own. If not run, say so in the PR description rather than implying it was.
+
+## Deviations
+
+- **Open voicings carry the hand position** (a3dfec3). Task 4's `_viterbi`
+  made a move into or out of an all-open voicing free, so one open note
+  excused any jump. The Viterbi state is now a fingering plus the hand
+  position. The spec's *Transition cost* paragraph was updated to match.
+  String accuracy on test went from 52.7% to 54.0%.
+- **Full mode not yet run** (Task 8, Step 7). The harness is built and tested
+  with stubs, but no `full-test` result is committed.

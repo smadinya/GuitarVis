@@ -16,7 +16,9 @@ Metrics, per the design spec:
 
 - **note F1** — an onset within 50ms with the correct pitch counts as a hit
 - **string accuracy** — of correctly-pitched notes, the share placed on the
-  right string
-- **chord accuracy** — frame-wise agreement with the ground-truth chord
+  right string. In oracle mode a note the mapper dropped counts as wrong.
+- **chord accuracy** — frame-wise agreement with the ground-truth chord, on a
+  100ms grid. Frames whose chord has no major/minor reading (sus, dim, aug,
+  power chords) are left out, since the analyzer cannot name them.
 
 These numbers are measured, never gated. No CI job may read them.

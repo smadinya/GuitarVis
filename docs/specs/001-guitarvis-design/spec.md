@@ -212,7 +212,7 @@ optional; if unreliable, the field stays empty and the UI omits them.
 `FretboardMapper.assign(notes, tuning) -> FretboardResult`
 
 The deterministic core. Notes within a ~50ms window group into a simultaneous
-*voicing*. Each pitch has 2–4 candidate string/fret positions; each voicing has
+*voicing*. Each pitch has up to one candidate position per string; each voicing has
 a set of playable combinations, filtered by physical constraints (max ~4-fret
 stretch, one note per string, barre feasibility). A Viterbi pass over the
 voicing sequence minimizes total cost:
@@ -237,9 +237,11 @@ failure does not force re-running separation on retry.
 ### Evaluation harness
 
 Infrastructure, not a nice-to-have. GuitarSet provides audio with ground-truth
-string/fret annotations. `make eval` reports note F1 (onset within 50ms plus
-correct pitch), string-assignment accuracy, and chord accuracy on a held-out
-set, written to a tracked file so changes are visible over time.
+string/fret annotations. `make eval` feeds ground-truth pitches to the mapper
+and reports string-assignment accuracy against a lowest-fret baseline;
+`make eval ARGS=--full` runs the real transcriber and analyzer and adds note F1
+(onset within 50ms plus correct pitch) and chord accuracy. Both run on a
+held-out set and write a tracked file so changes are visible over time.
 
 Without this, "swap in a better model later" is a wish. With it, it is a
 measurement. Build it alongside stage 4, before any model swap.
