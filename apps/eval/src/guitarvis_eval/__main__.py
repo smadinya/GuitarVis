@@ -76,19 +76,9 @@ def main(argv: list[str] | None = None) -> int:
     scores: list[ExcerptScore] = []
 
     if args.full:
-        try:
-            import mir_eval  # noqa: F401  (fail now, not after minutes of audio)
-            from guitarvis_worker.stages.structure import LibrosaStructureAnalyzer
-            from guitarvis_worker.stages.transcription import BasicPitchTranscriber
-        except ImportError as error:
-            print(
-                f"error: full mode needs the ML stack ({error}). "
-                "Run `uv sync --extra eval-full`.",
-                file=sys.stderr,
-            )
-            return 1
         # Check every file before transcribing any: a missing one found at
-        # excerpt 40 would throw away minutes of work.
+        # excerpt 40 would throw away minutes of work. This needs no ML stack,
+        # so it runs first.
         excerpts = [read_jams(path) for path in paths]
         missing = [
             audio
@@ -99,6 +89,17 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"error: {len(missing)} audio file(s) missing, first {missing[0]}. "
                 "Run `make eval-data ARGS=--audio`.",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            import mir_eval  # noqa: F401  (fail now, not after minutes of audio)
+            from guitarvis_worker.stages.structure import LibrosaStructureAnalyzer
+            from guitarvis_worker.stages.transcription import BasicPitchTranscriber
+        except ImportError as error:
+            print(
+                f"error: full mode needs the ML stack ({error}). "
+                "Run `uv sync --extra eval-full`.",
                 file=sys.stderr,
             )
             return 1

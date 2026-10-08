@@ -145,6 +145,8 @@ def test_full_mode_without_mir_eval_says_what_to_install(
 
     monkeypatch.setattr(builtins, "__import__", no_mir_eval)
     write_jams(tmp_path / "annotation", "05_a_comp")
+    (tmp_path / "audio_mono-mic").mkdir()
+    (tmp_path / "audio_mono-mic" / "05_a_comp_mic.wav").write_bytes(b"")
 
     code = main(["--full", "--data-dir", str(tmp_path), "--out", str(tmp_path / "out")])
 
@@ -155,6 +157,7 @@ def test_full_mode_without_mir_eval_says_what_to_install(
 def test_note_f1_measures_the_transcriber_not_the_mapper(tmp_path: Path) -> None:
     # A perfect transcription of two notes no hand can hold together: the
     # mapper drops one, but the transcriber got both right.
+    pytest.importorskip("mir_eval")
     excerpt = read_jams(
         write_jams(
             tmp_path, "05_a_comp", notes=[(0.0, 0.5, 41.0, 0), (0.0, 0.5, 84.0, 5)]
