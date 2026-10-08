@@ -7431,3 +7431,11 @@ Known while writing this plan; append any found during implementation.
 - **An empty upload is refused** with 422 `unsupported_format` before it is probed.
 - **For transcription and structure, a cache read or write error is a miss, not a stage failure.** The spec is silent here. Without this, a storage blip would come out as a degraded document. The separation stem must still be stored, because the api serves it.
 - **The Demucs child is killed** if anything raises while it runs (a job timeout, a failing progress write), so it cannot outlive the job.
+- **`POST /jobs` answers 503 `internal` when ffprobe is missing in the api.** The spec gives 422 for probe failures and 503 only for a failed enqueue. A missing ffprobe is our fault, not the file's.
+- **`create_app` takes a `Services` bundle** (store, blobs, queue, settings, probe, clock), not just the store, blob store and queue. Tests hand in the twins, a stub probe and a fake clock through the one argument.
+- **There is no `@requires_services` marker.** Integration fixtures call `guitarvis_jobs.testing.require(service)`, which skips, or fails under `GUITARVIS_REQUIRE_SERVICES=1`. The behaviour is the same.
+- **One integration test creates and deletes a throwaway bucket**, `guitarvis-test-ensure`, beside `guitarvis-test`. It is how `ensure_bucket` is tested against a bucket that does not exist yet.
+- **The api-side Redis connection has a 5 s socket timeout** (`RQJobQueue.from_settings`), so a dead Redis raises quickly and reads answer from Postgres. The worker builds its own connection, which waits for work without one.
+- **`JobView` serialises `created_at` and `updated_at` as UTC with a `Z` suffix**, whatever offset the store returns.
+- **A body that cannot be parsed as multipart answers 422 `unsupported_format`.** A failure while reading the body on our side, such as a full disk while spooling, answers 500 `internal` and is logged. A NUL byte in a filename is dropped.
+- **The worker declares `redis` and `rq` directly**, because `runner.py` imports them.

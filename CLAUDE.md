@@ -10,7 +10,7 @@ Start here: [`docs/specs/001-guitarvis-design/spec.md`](docs/specs/001-guitarvis
 ## Commands
 
 `make install` · `make check` · `make test` · `make schema` · `make eval-data` · `make eval` ·
-`make help`
+`make services` · `make migrate` · `make api` · `make worker` · `make help`
 
 `make check` is what CI runs. Run it before claiming anything works.
 
@@ -18,7 +18,8 @@ Start here: [`docs/specs/001-guitarvis-design/spec.md`](docs/specs/001-guitarvis
 
 1. `pitch_of(string, fret, tuning) == note.midi`, for every note, always.
 2. **Seconds are authoritative.** Never store a note position as bar/beat.
-3. `apps/api` must not import torch, demucs, basic_pitch, librosa, or numpy.
+3. `apps/api` must not import torch, demucs, basic_pitch, librosa, or numpy —
+   nor `guitarvis_worker`, which it reaches only through the queue.
 4. **Evaluation never gates CI.** `make eval` stays out of `make check`.
 5. After changing `tabdoc.py`, run `make schema` and commit both generated
    artifacts.
@@ -44,8 +45,8 @@ any default that would write specs elsewhere — see
 
 1. Pipeline skeleton (CLI, no UI)
 2. Fretboard mapper and evaluation harness
-3. API and job queue ← **next**
-4. Web client: tab view and sync
+3. API and job queue
+4. Web client: tab view and sync ← **next**
 5. 2D fretboard, then 3D guitar
 6. URL ingestion
 
@@ -63,3 +64,12 @@ Phases 1–2 hold the technical risk. The rest is conventional work.
 - Transcription accuracy is 70–85% at best. Degrade, never fail: a broken stage
   omits its track and the job continues. Only "no usable guitar audio" fails a
   job outright.
+- Integration tests need `make services` (Postgres, Redis and RustFS, via
+  Docker). Without them those tests skip locally; CI sets
+  `GUITARVIS_REQUIRE_SERVICES=1`, which turns the skip into a failure. So
+  `make check` can pass locally and fail in CI — run `make services` first.
+- Object storage is RustFS, not MinIO: MinIO's community images are gone.
+  Only `compose.yaml` names the server; the code speaks plain S3.
+- Bump `CACHE_VERSION` in `apps/worker/src/guitarvis_worker/caching.py`
+  whenever a stage's output for the same input changes. Nothing enforces it.
+- `make worker` runs the real stages, so it needs `uv sync --extra ml`.

@@ -4,10 +4,10 @@ Takes a recording of a song, isolates the guitar, transcribes what it plays,
 and renders the result as tablature you can play along with — in three synced
 views: scrolling tab, a 2D fretboard, and a 3D guitar.
 
-**Status: phase 2 of 6 done.** The pipeline runs end to end and emits real
-tablature: stage 4 places every transcribed note on the neck, and a GuitarSet
-evaluation harness measures how well (`make eval`). Phase 3 (the API and job
-queue) is next.
+**Status: phase 3 of 6 done.** The pipeline runs end to end and emits real
+tablature, and it now runs as a service: upload audio to the api, poll the
+job, fetch the tab document and the audio to play it against. The web client
+(phase 4) is next.
 
 ## How it works
 
@@ -91,6 +91,28 @@ feeding a stem into something else without re-running separation by hand:
 ```bash
 uv run guitarvis-worker process song.mp3 -o song.json --stems-dir ./stems
 ```
+
+## Running the service
+
+Postgres, Redis and S3-compatible storage run in Docker; the api and the
+worker run on your machine, so `--device cuda` works as it does for the CLI.
+
+```bash
+make services      # docker compose up -d --wait
+make migrate       # create the jobs table and the bucket
+make api           # localhost:8000
+make worker        # in another terminal; needs `uv sync --extra ml`
+```
+
+```bash
+curl -F file=@song.mp3 localhost:8000/jobs        # → 202 and a job id
+curl localhost:8000/jobs/<id>                      # stage and percent
+curl localhost:8000/jobs/<id>/document             # the tab document
+curl -L localhost:8000/jobs/<id>/audio/mix -o mix  # a redirect to storage
+```
+
+Uploading the same file again returns the same job. Uploads and stems stay in
+storage until you run `docker compose down -v`.
 
 ## Documentation
 

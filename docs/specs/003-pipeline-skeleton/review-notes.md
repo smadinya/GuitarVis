@@ -9,15 +9,28 @@ survive it. Spec 004 (fretboard mapper) should read this before starting.
   `test_separation.py` each define their own `write_wav`; `test_ingest.py` and
   `test_cli.py` each define their own `requires_ffprobe` marker; and
   `test_cli.py`, `test_pipeline.py`, and `test_transcription.py` each define an
-  unrelated `StubTranscriber`. A shared `conftest.py` under `apps/worker/tests`
-  is the fix — not attempted here to keep this review's diff scoped to
-  behaviour, not test infrastructure.
+  unrelated `StubTranscriber`. A helper module beside the tests, imported by
+  bare name, is the fix — not attempted here to keep this review's diff scoped
+  to behaviour, not test infrastructure.
+  **Still open after 005, which added more copies:** `requires_ffprobe` and
+  `write_wav` in `packages/core/tests/test_audio.py`; `requires_ffprobe` in
+  `apps/api/tests/test_upload.py`; `StubAudioSource` (a second copy of the one
+  in `test_cli.py`) and the stub stages in `apps/worker/tests/test_runner.py`;
+  and `write_wav`, `requires_ffprobe` and the stub stages in
+  `apps/worker/tests/test_end_to_end.py`. The helper module follows the
+  `apps/api/tests/api_fixture.py` and `apps/eval/tests/guitarset_fixture.py`
+  pattern, not a `conftest.py`: the repo allows none, because a second one
+  collides in mypy (see the Makefile's note on `PY_SOURCES`), and a helper's
+  file name must be unique across the repo for the same reason.
 
 - **Progress looks frozen during separation.** `_report` only fires after a
   stage completes, and separation dominates runtime (minutes on CPU). A user
   watching the CLI sees `0%` for most of the run, then `separation 40%` all at
   once. Sub-stage progress would need Demucs's own progress output plumbed
   through, which is out of scope here.
+  **Resolved in 005:** progress names the running stage, and Demucs's tqdm
+  output drives separation from 0 to 40% (`pipeline.py`,
+  `stages/separation.py`).
 
 - **Stage 4's narrow `except NotImplementedError` must widen deliberately.**
   `pipeline.py` now carries a comment at the point where this bites — a real
@@ -50,6 +63,7 @@ survive it. Spec 004 (fretboard mapper) should read this before starting.
   `stems` to whatever `work_dir` it is given, which reads as redundant when the
   caller has already named a stems directory explicitly. Cosmetic, but it is the
   first thing a user notices when they pass the flag.
+  **Resolved in 005:** stems land directly in `work_dir`.
 
 - **Chord detection is noisy on real material.** The first real songs processed
   produced 17 chords in 14 seconds and 19 in 15, with symbols jumping between
@@ -70,8 +84,11 @@ survive it. Spec 004 (fretboard mapper) should read this before starting.
   argument when that phase lands; fixing the seven test construction sites and
   the static-conformance assignment is in-scope work there, and was not worth
   churning a merge-ready branch for.
+  **Resolved in 005:** `work_dir` is a required keyword; the job runner passes
+  its temporary directory.
 
 - **The CLI's output write is guarded only by `OSError`.** Everything around the
   pipeline run is now caught and mapped to a typed failure, but a non-`OSError`
   raised by `model_dump_json` or `write_text` would still surface as a traceback.
   Narrow gap, one `except` clause to close.
+  **Resolved in 005:** it catches any exception and reports it as internal.
