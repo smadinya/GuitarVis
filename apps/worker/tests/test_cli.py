@@ -2,7 +2,10 @@
 
 import json
 import os
+import re
 import shutil
+import subprocess
+import sys
 import wave
 from pathlib import Path
 
@@ -331,13 +334,57 @@ def test_serve_runs_the_queue_worker_with_the_device(
     # Recorded so monkeypatch restores it, although serve sets it directly.
     monkeypatch.setenv("GUITARVIS_DEVICE", "")
     seen: dict[str, object] = {}
+    calls: list[str] = []
 
     def fake_serve(settings: Settings, *, burst: bool) -> None:
+        calls.append("serve")
         seen.update(device=settings.device, burst=burst)
 
     monkeypatch.setattr(runner, "serve", fake_serve)
+    monkeypatch.setattr(cli, "configure_logging", lambda: calls.append("logging"))
 
     assert cli.main(["serve", "--device", "cuda", "--burst"]) == 0
     assert seen == {"device": "cuda", "burst": True}
+    assert calls == ["logging", "serve"]  # before RQ looks for a handler
     # Each job runs in a forked work horse that reads the environment.
     assert os.environ["GUITARVIS_DEVICE"] == "cuda"
+
+
+# What `serve` logs, run in a child interpreter so the logging setup cannot
+# leak into this one.
+LOGGING_SCRIPT = """
+import logging
+from rq.logutils import setup_loghandlers
+from guitarvis_worker import cli
+
+cli.configure_logging()
+setup_loghandlers(None, name="rq.worker")  # what Worker.work does on start
+logging.warning("Coremltools is not installed.")  # what importing basic_pitch does
+logging.getLogger("rq.worker").info("rq info line")
+logging.getLogger("rq.worker").warning("rq warning line")
+logging.getLogger("guitarvis_worker.runner").info("worker line")
+logging.getLogger("guitarvis_jobs.queue").info("jobs line")
+logging.getLogger("botocore.hooks").info("library chatter")
+"""
+
+
+def test_serve_logs_each_line_once_with_its_time_and_logger() -> None:
+    result = subprocess.run(
+        [sys.executable, "-c", LOGGING_SCRIPT],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=True,
+    )
+    output = result.stdout + result.stderr
+
+    assert re.search(
+        r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3} INFO "
+        r"guitarvis_worker\.runner: worker line$",
+        output,
+        re.MULTILINE,
+    ), output
+    assert "INFO guitarvis_jobs.queue: jobs line" in output
+    assert output.count("rq info line") == 1
+    assert output.count("rq warning line") == 1  # not again via basic-pitch's root
+    assert "library chatter" not in output

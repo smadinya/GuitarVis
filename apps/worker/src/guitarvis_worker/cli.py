@@ -7,6 +7,7 @@ patch. `serve` hands the same stages to the queue worker in runner.py.
 
 import argparse
 import contextlib
+import logging
 import os
 import sys
 import tempfile
@@ -27,6 +28,10 @@ from guitarvis_worker.stages.structure import LibrosaStructureAnalyzer
 from guitarvis_worker.stages.transcription import BasicPitchTranscriber
 
 TUNING_STRING_COUNT = 6  # matches Instrument.string_count and the fretboard invariant
+
+LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+# Ours and RQ's speak at INFO; every other library only when something is wrong.
+INFO_LOGGERS = ("guitarvis_worker", "guitarvis_jobs", "rq")
 
 
 def _print_progress(update: StageProgress) -> None:
@@ -107,7 +112,21 @@ def main(argv: list[str] | None = None) -> int:
     return _process(args)
 
 
+def configure_logging() -> None:
+    """One handler, on the root logger, installed before RQ starts.
+
+    RQ gives its loggers handlers of its own only when no logger above them
+    has one, and basic-pitch's import-time logging.warning gives the root a
+    handler only when it has none. With this one in place first, neither adds
+    a handler, so every line prints once, with its time and logger name.
+    """
+    logging.basicConfig(level=logging.WARNING, format=LOG_FORMAT)
+    for name in INFO_LOGGERS:
+        logging.getLogger(name).setLevel(logging.INFO)
+
+
 def _serve(args: argparse.Namespace) -> int:
+    configure_logging()
     if args.device:
         # Each job runs in a forked work horse that reads its settings from
         # the environment, so this is how the flag reaches every job.
