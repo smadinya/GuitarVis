@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from guitarvis_core.contracts import FailureReason
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.formparsers import MultiPartException
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +49,20 @@ def error_body(reason: Reason, message: str) -> dict[str, dict[str, str]]:
     return {"error": {"reason": reason.value, "message": message}}
 
 
+def _internal_error(request: Request, exc: BaseException) -> JSONResponse:
+    """The answer for a failure that is ours: logged, and no detail given out."""
+    log.error(
+        "unhandled error on %s %s",
+        request.method,
+        request.url.path,
+        exc_info=exc,
+    )
+    return JSONResponse(
+        error_body(FailureReason.INTERNAL, INTERNAL_FAILURE_MESSAGE),
+        status_code=500,
+    )
+
+
 def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:
@@ -55,14 +70,19 @@ def install_error_handlers(app: FastAPI) -> None:
         if isinstance(exc, ApiError):
             reason: Reason = exc.reason
             message = exc.message
-        elif status_code == 400:
-            # Only parsing a request body raises a bare 400, and POST /jobs's
-            # multipart upload is the only body this api parses. Starlette says
-            # "Invalid multipart data." or "Missing boundary in multipart.":
-            # the client sent something unreadable, which is not our failure.
+        elif status_code == 400 and isinstance(exc.__context__, MultiPartException):
+            # Starlette raises this 400 from inside `except MultiPartException`
+            # ("Invalid multipart data.", "Missing boundary in multipart."): the
+            # client sent a body that cannot be read, which is not our failure.
+            # POST /jobs's upload is the only body this api parses.
             status_code = 422
             reason = FailureReason.UNSUPPORTED_FORMAT
             message = UNREADABLE_UPLOAD_MESSAGE
+        elif status_code == 400 and exc.__cause__ is not None:
+            # FastAPI wraps any other exception from reading the body, such as
+            # a full disk while the upload is spooled, in this bare 400 with the
+            # exception as its cause. That is our failure: log it, answer 500.
+            return _internal_error(request, exc.__cause__)
         else:  # Starlette's own: an unknown route, a wrong method
             reason = (
                 HttpReason.NOT_FOUND
@@ -88,13 +108,4 @@ def install_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception) -> JSONResponse:
-        log.error(
-            "unhandled error on %s %s",
-            request.method,
-            request.url.path,
-            exc_info=exc,
-        )
-        return JSONResponse(
-            error_body(FailureReason.INTERNAL, INTERNAL_FAILURE_MESSAGE),
-            status_code=500,
-        )
+        return _internal_error(request, exc)

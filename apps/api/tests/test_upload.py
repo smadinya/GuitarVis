@@ -1,8 +1,10 @@
 """POST /jobs: validate, dedupe, limit, store, enqueue — cheapest check first."""
 
 import asyncio
+import errno
 import hashlib
 import json
+import logging
 import shutil
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -23,6 +25,7 @@ from guitarvis_api.uploads import (
 from guitarvis_core.audio import probe_duration
 from guitarvis_core.contracts import FailureReason, PipelineError
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE, Job, JobStatus, NewJob
+from starlette.datastructures import UploadFile
 from starlette.types import Message, Receive, Scope, Send
 
 SONG = b"ID3 pretend these are mp3 bytes"
@@ -361,6 +364,31 @@ def test_a_body_that_is_not_readable_multipart_is_the_clients_mistake(
     assert response.json() == {
         "error": {"reason": "unsupported_format", "message": UNREADABLE_UPLOAD_MESSAGE}
     }
+    assert api.queue.enqueued == []
+
+
+def test_a_disk_that_fills_while_spooling_the_upload_is_our_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """FastAPI wraps any exception from reading the body in a bare 400. Only
+    Starlette's own multipart failures are the client's; this one is ours."""
+    full = OSError(errno.ENOSPC, "No space left on device")
+
+    async def write(self: UploadFile, data: bytes) -> None:
+        raise full
+
+    monkeypatch.setattr(UploadFile, "write", write)
+    api = make_api()
+
+    with caplog.at_level(logging.ERROR, logger="guitarvis_api.errors"):
+        response = post(api.client)
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "error": {"reason": "internal", "message": INTERNAL_FAILURE_MESSAGE}
+    }
+    logged = [record.exc_info[1] for record in caplog.records if record.exc_info]
+    assert logged == [full]
     assert api.queue.enqueued == []
 
 
