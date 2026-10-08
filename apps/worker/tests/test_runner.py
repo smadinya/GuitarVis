@@ -454,3 +454,35 @@ def test_a_job_timeout_under_a_real_rq_worker_is_retried_then_failed(
         assert (row.failed_stage, row.attempts) == ("transcription", 2)
         assert rq_job.get_status() == RQJobStatus.FAILED
         assert harness.job_id in queue.failed_job_registry
+
+
+def broken_succeed(job_id: str, *, document: object, stem_key: str) -> bool:
+    raise ConnectionError("postgres went away")
+
+
+def test_a_failed_success_write_with_retries_left_requeues_and_reraises(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(harness.store, "succeed", broken_succeed)
+
+    with pytest.raises(ConnectionError):
+        harness.run(retries_left=1)
+
+    row = harness.row()
+    assert row.status is JobStatus.QUEUED
+    assert (row.stage, row.percent, row.attempts) == (None, 0, 1)
+
+
+def test_a_failed_success_write_on_the_last_attempt_fails_internal(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Left running, the row would wait out the reconciliation window.
+    monkeypatch.setattr(harness.store, "succeed", broken_succeed)
+
+    with pytest.raises(ConnectionError):
+        harness.run(retries_left=0)
+
+    row = harness.row()
+    assert row.status is JobStatus.FAILED
+    assert row.failure_reason is FailureReason.INTERNAL
+    assert row.failure_message == INTERNAL_FAILURE_MESSAGE

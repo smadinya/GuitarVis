@@ -120,6 +120,9 @@ def process_job(job_id: str, deps: WorkerDeps, *, retries_left: int) -> None:
     progress = _ProgressWriter(deps.store, job_id)
     try:
         document, stem_key = _run(job, deps, progress)
+        # Inside the try: a write that fails here is a failed attempt too,
+        # not a row left running until reconciliation notices it.
+        stored = deps.store.succeed(job_id, document=document, stem_key=stem_key)
     except PipelineError as error:
         # Deterministic: another attempt gives the same answer. Returning
         # normally tells RQ not to retry.
@@ -149,7 +152,7 @@ def process_job(job_id: str, deps: WorkerDeps, *, retries_left: int) -> None:
         # the traceback. The row is what the user sees.
         raise
 
-    if not deps.store.succeed(job_id, document=document, stem_key=stem_key):
+    if not stored:
         log.warning("job %s was failed while it ran; dropping its result", job_id)
 
 
