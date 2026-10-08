@@ -19,6 +19,7 @@ from guitarvis_api import __version__
 from guitarvis_api.errors import install_error_handlers
 from guitarvis_api.routes import router
 from guitarvis_api.services import Services, build_services
+from guitarvis_api.uploads import UploadSizeLimit
 
 
 def create_app(services: Services | None = None) -> FastAPI:
@@ -37,6 +38,7 @@ def create_app(services: Services | None = None) -> FastAPI:
     if services is not None:
         app.state.services = services
     install_error_handlers(app)
+    app.add_middleware(UploadSizeLimit)
     app.include_router(router)
     return app
 

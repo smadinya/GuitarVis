@@ -8,6 +8,7 @@ dependencies = [
     "guitarvis-jobs",
     "fastapi>=0.115",
     "uvicorn>=0.30",
+    "python-multipart>=0.0.18",
 ]
 
 [build-system]

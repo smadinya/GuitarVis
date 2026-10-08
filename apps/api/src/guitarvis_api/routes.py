@@ -2,18 +2,22 @@
 its threadpool."""
 
 import logging
+import tempfile
+from pathlib import Path
 from typing import cast
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse
-from guitarvis_core.contracts import FailureReason
+from guitarvis_core.audio import check_duration
+from guitarvis_core.contracts import FailureReason, PipelineError
 from guitarvis_jobs.blobs import PRESIGN_EXPIRES_SEC
-from guitarvis_jobs.models import Job, JobStatus
+from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE, Job, JobStatus, NewJob
 
 from guitarvis_api.errors import ApiError, HttpReason, error_body
 from guitarvis_api.reconcile import reconcile
 from guitarvis_api.schemas import JobView
 from guitarvis_api.services import Services
+from guitarvis_api.uploads import receive, title_of, upload_key
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +45,97 @@ def _not_ready(job: Job, what: str) -> ApiError:
         HttpReason.NOT_READY,
         f"The {what} is not ready yet. Poll the job until it succeeds.",
     )
+
+
+@router.post("/jobs", status_code=202, response_model=JobView)
+def create_job(file: UploadFile, request: Request, response: Response) -> JobView:
+    """Validate, dedupe, limit, store and enqueue — cheapest check first."""
+    services = services_of(request)
+    settings = services.settings
+    client_ip = request.client.host if request.client is not None else "unknown"
+
+    with tempfile.TemporaryDirectory(prefix="guitarvis-upload-") as tmp:
+        upload = receive(
+            file.file, Path(tmp) / "upload", max_bytes=settings.max_upload_bytes
+        )
+        duration = _probe(services, upload.path)
+
+        live = _live_job(services, upload.content_hash)
+        if live is not None:  # starts no work, so it is not counted below
+            response.status_code = 200
+            return JobView.of(live)
+
+        active = services.store.count_active(client_ip)
+        if active >= settings.max_active_jobs_per_ip:
+            songs = "song" if active == 1 else "songs"
+            raise ApiError(
+                429,
+                HttpReason.TOO_MANY_JOBS,
+                f"You already have {active} {songs} processing. Wait for one to "
+                "finish, then try again.",
+            )
+
+        key = upload_key(upload.content_hash, file.filename)
+        if not services.blobs.exists(key):
+            services.blobs.put_file(key, upload.path)
+
+    job, created = services.store.create(
+        NewJob(
+            content_hash=upload.content_hash,
+            title=title_of(file.filename),
+            duration_sec=duration,
+            upload_key=key,
+            client_ip=client_ip,
+        )
+    )
+    if not created:  # the same file, uploaded at the same moment, got there first
+        response.status_code = 200
+        return JobView.of(job)
+
+    try:
+        services.queue.enqueue(job.id)
+    except Exception as exc:
+        log.exception("could not enqueue job %s", job.id)
+        services.store.fail(
+            job.id,
+            reason=FailureReason.INTERNAL,
+            message=INTERNAL_FAILURE_MESSAGE,
+            stage=None,
+            expect=JobStatus.QUEUED,
+        )
+        raise ApiError(
+            503,
+            FailureReason.INTERNAL,
+            "We could not queue that song. Try again in a minute.",
+        ) from exc
+
+    response.headers["Location"] = f"/jobs/{job.id}"
+    return JobView.of(job)
+
+
+def _probe(services: Services, path: Path) -> float:
+    """ffprobe now, so a bad file is refused in a second, not after a queue wait."""
+    try:
+        duration = services.probe(path)
+        check_duration(duration)
+    except PipelineError as error:
+        if error.reason is FailureReason.INTERNAL:  # ffprobe missing: ours, not theirs
+            raise ApiError(503, error.reason, str(error)) from error
+        raise ApiError(422, error.reason, str(error)) from error
+    return duration
+
+
+def _live_job(services: Services, content_hash: str) -> Job | None:
+    """The live job for this upload, repaired first if the queue lost it.
+
+    A lookup is a read like any other, so it reconciles: a dead job must not
+    be handed back as though it were still coming.
+    """
+    job = services.store.find_live(content_hash)
+    if job is None:
+        return None
+    job = reconcile(job, services)
+    return None if job.status is JobStatus.FAILED else job
 
 
 @router.get("/jobs/{job_id}", response_model=JobView)
