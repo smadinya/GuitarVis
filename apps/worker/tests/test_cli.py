@@ -98,7 +98,7 @@ def test_places_transcribed_notes_on_the_neck(
     assert code == 0
     notes = json.loads(out.read_text())["notes"]
     assert [(n["string"], n["fret"], n["midi"]) for n in notes] == [(0, 0, 40)]
-    assert "1 notes placed" in capsys.readouterr().err
+    assert "1 note placed" in capsys.readouterr().err
 
 
 def test_missing_file_reports_its_reason(

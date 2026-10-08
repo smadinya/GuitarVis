@@ -18,6 +18,10 @@ from guitarvis_core.contracts import FretboardResult, NoteEvent, TabNote
 from guitarvis_core.fretboard import parse_pitch
 
 VOICING_WINDOW_SEC = 0.05
+# Path totals are rounded to this many places before they are compared, so
+# that two equally good paths summed in a different order tie exactly and the
+# tie-break rule decides, not the last bit of a float.
+COST_PLACES = 9
 FINGERS_BEYOND_BARRE = 3  # the index finger holds the lowest fret; three remain
 
 
@@ -36,6 +40,22 @@ class MapperCosts:
     max_fret: int = 20
     max_span: int = 4
     beam: int = 50
+
+    def __post_init__(self) -> None:
+        # Below these bounds a lone note can have no fingering at all, and the
+        # drop loop in assign() relies on a lone note always being playable.
+        if self.beam < 1:
+            raise ValueError(f"beam must be at least 1, not {self.beam}")
+        if self.max_span < 0 or self.max_fret < 0:
+            raise ValueError("max_span and max_fret cannot be negative")
+        weights = (
+            self.move_weight,
+            self.span_weight,
+            self.height_weight,
+            self.open_bonus,
+        )
+        if any(weight < 0 for weight in weights):
+            raise ValueError("cost weights cannot be negative")
 
 
 @dataclass(frozen=True)
@@ -197,12 +217,14 @@ class ViterbiFretboardMapper:
             return []
 
         # States are (fingering index, hand position), sorted so that index
-        # order follows order_key and strict `<` keeps the lowest-fret
-        # predecessor among equal costs.
+        # order follows order_key. Among equal (rounded) totals, the final
+        # `min` takes the lowest-fret fingering of the last voicing, and
+        # strict `<` gives each state its lowest-fret predecessor: ties break
+        # toward lower frets, latest voicing first.
         states: list[tuple[int, int | None]] = [
             (index, fingering.position) for index, fingering in enumerate(fingerings[0])
         ]
-        totals = [fingering.cost for fingering in fingerings[0]]
+        totals = [round(fingering.cost, COST_PLACES) for fingering in fingerings[0]]
         history: list[list[tuple[int, int | None]]] = [states]
         back: list[list[int]] = []
         for current in fingerings[1:]:
@@ -210,7 +232,10 @@ class ViterbiFretboardMapper:
             for before, (_, hand) in enumerate(states):
                 for index, option in enumerate(current):
                     landing = hand if option.position is None else option.position
-                    total = totals[before] + self._move(hand, option) + option.cost
+                    total = round(
+                        totals[before] + self._move(hand, option) + option.cost,
+                        COST_PLACES,
+                    )
                     key = (index, landing)
                     if key not in best or total < best[key][0]:
                         best[key] = (total, before)

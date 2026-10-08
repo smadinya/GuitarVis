@@ -143,28 +143,28 @@ def run_pipeline(
         warnings.extend(fretboard.warnings)
     _report(progress, "fretboard")
 
-    notes = [
-        Note(
-            id=f"n_{index:04d}",
-            t=tab.onset,
-            dur=tab.duration,
-            midi=tab.midi,
-            string=tab.string,
-            fret=tab.fret,
-            confidence=tab.confidence,
-        )
-        for index, tab in enumerate(tab_notes)
-    ]
-
     # A tab that renders the wrong fret is worse than no tab: a beginner cannot
-    # tell it from a hard passage. Refuse to emit one.
-    for note in notes:
+    # tell it from a hard passage. Refuse to emit one. A string or fret that
+    # does not exist on the neck is the same failure, not a crash: pitch_of
+    # raises IndexError and Note's validation raises ValueError.
+    notes: list[Note] = []
+    for index, tab in enumerate(tab_notes):
         try:
+            note = Note(
+                id=f"n_{index:04d}",
+                t=tab.onset,
+                dur=tab.duration,
+                midi=tab.midi,
+                string=tab.string,
+                fret=tab.fret,
+                confidence=tab.confidence,
+            )
             check_invariant(note, tuning)
-        except InvariantViolation as exc:
+        except (InvariantViolation, IndexError, ValueError) as exc:
             raise PipelineError(
                 FailureReason.INTERNAL, f"Fretboard assignment is inconsistent: {exc}"
             ) from exc
+        notes.append(note)
 
     document = TabDocument(
         source=Source(

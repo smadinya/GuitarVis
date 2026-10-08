@@ -300,3 +300,20 @@ def test_a_note_violating_the_invariant_is_rejected(tmp_path: Path) -> None:
             mapper=StubMapper([TabNote(1.0, 0.5, 53, 2, 2, 0.8)]),
         )
     assert excinfo.value.reason is FailureReason.INTERNAL
+
+
+@pytest.mark.parametrize(
+    "tab",
+    [
+        TabNote(1.0, 0.5, 52, 9, 2, 0.8),  # no string 9 on a six-string
+        TabNote(1.0, 0.5, 52, 2, -1, 0.8),  # no fret below the nut
+    ],
+)
+def test_a_note_off_the_neck_is_rejected(tmp_path: Path, tab: TabNote) -> None:
+    with pytest.raises(PipelineError) as excinfo:
+        run(
+            tmp_path,
+            transcriber=StubTranscriber([NoteEvent(1.0, 0.5, 52, 0.8)]),
+            mapper=StubMapper([tab]),
+        )
+    assert excinfo.value.reason is FailureReason.INTERNAL

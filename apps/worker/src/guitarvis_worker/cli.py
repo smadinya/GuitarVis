@@ -142,7 +142,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print(
         f"wrote {args.output}: {result.transcribed_note_count} note events "
-        f"transcribed, {len(document.notes)} notes placed, "
+        f"transcribed, {len(document.notes)} "
+        f"{'note' if len(document.notes) == 1 else 'notes'} placed, "
         f"{len(document.chords)} chords, {len(document.timing.beats)} beats",
         file=sys.stderr,
     )

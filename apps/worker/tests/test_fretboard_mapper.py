@@ -8,6 +8,7 @@ rules — and the one invariant that holds whatever the costs are.
 import random
 from collections.abc import Sequence
 
+import pytest
 from guitarvis_core.contracts import FretboardResult, NoteEvent
 from guitarvis_core.fretboard import check_invariant
 from guitarvis_core.tabdoc import STANDARD_TUNING, Note
@@ -229,3 +230,29 @@ def test_every_placed_note_satisfies_the_invariant() -> None:
             for pair in placed:
                 remaining.remove(pair)  # every output note came from the input
             assert_invariant(result, tuning)
+
+
+def test_an_exact_tie_goes_to_the_lower_frets() -> None:
+    # Two paths cost exactly 4.2. Summed in floating point they differ in the
+    # last bit; the tie must still break toward the lower frets, not the bit.
+    notes = [note(0.0, 47), *chord(0.5, 49, 55), *chord(1.0, 57, 59)]
+    assert places(assign(notes))[-2:] == [(57, 3, 2), (59, 4, 0)]
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"beam": 0},
+        {"max_span": -1},
+        {"max_fret": -1},
+        {"move_weight": -1.0},
+        {"span_weight": -0.5},
+        {"height_weight": -0.1},
+        {"open_bonus": -0.3},
+    ],
+)
+def test_costs_that_could_never_place_a_note_are_refused(
+    bad: dict[str, float],
+) -> None:
+    with pytest.raises(ValueError):
+        MapperCosts(**bad)  # type: ignore[arg-type]

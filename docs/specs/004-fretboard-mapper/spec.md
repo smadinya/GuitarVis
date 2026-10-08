@@ -98,8 +98,10 @@ hand position, and an open fingering carries one state per position it can be
 reached from.
 
 **Search.** Viterbi over the voicing sequence, minimising the sum of fingering
-and transition costs. Ties break toward the lower fret, then the lower string,
-so the same input always yields the same tab. Output is sorted by onset, then
+and transition costs. Path totals are rounded to nine places before they are
+compared, so equally good paths tie exactly whatever order their costs were
+summed in. Ties break toward the lower fret, then the lower string, deciding
+the latest voicing first, so the same input always yields the same tab. Output is sorted by onset, then
 string.
 
 **Configuration.** A frozen `MapperCosts` dataclass holds the four weights plus
@@ -184,7 +186,9 @@ goes straight to `BasicPitchTranscriber`, then the mapper, and to
 
 - **Note F1** via `mir_eval.transcription`, offsets ignored: a hit is an onset
   within 50ms with the exact pitch, each note matched at most once. Using
-  `mir_eval` keeps the number comparable with published results.
+  `mir_eval` keeps the number comparable with published results. It scores
+  the transcriber's own output, before the mapper drops anything, so the
+  mapper's limits cannot move it.
 - **String accuracy:** of the matched pairs, the share on the ground-truth
   string.
 - **Chord accuracy:** ground truth and prediction sampled on a 100ms grid;
@@ -194,7 +198,9 @@ goes straight to `BasicPitchTranscriber`, then the mapper, and to
   rather than counted against an analyzer that cannot express them.
 
 **Results.** One run writes
-`eval/results/<date>-<short sha>-<mode>-<split>.json`, holding the commit and
+`eval/results/<date>-<short sha>-<mode>-<split>.json` (with `-dirty` before
+`.json` when the tree had uncommitted changes, untracked files included, so a
+mid-edit rerun never overwrites a clean result), holding the commit and
 whether the working tree was dirty, the mode, split and `MapperCosts` values,
 the aggregates, and a per-excerpt breakdown. It also prints a summary table.
 Committing the file is a deliberate human step. Nothing in CI reads it.
