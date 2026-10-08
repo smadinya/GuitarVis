@@ -1,0 +1,959 @@
+{
+  "date": "2026-10-07",
+  "commit": "a3dfec3",
+  "dirty": false,
+  "mode": "oracle",
+  "split": "test",
+  "mapper_costs": {
+    "move_weight": 1.0,
+    "span_weight": 0.5,
+    "height_weight": 0.1,
+    "open_bonus": 0.3,
+    "max_fret": 20,
+    "max_span": 4,
+    "beam": 50
+  },
+  "summary": {
+    "all": {
+      "excerpts": 60,
+      "string": {
+        "correct": 4710,
+        "total": 8715,
+        "rate": 0.540447504302926
+      },
+      "baseline_string": {
+        "correct": 3284,
+        "total": 8715,
+        "rate": 0.3768215720022949
+      }
+    },
+    "comp": {
+      "excerpts": 30,
+      "string": {
+        "correct": 4053,
+        "total": 6536,
+        "rate": 0.6201040391676866
+      },
+      "baseline_string": {
+        "correct": 2832,
+        "total": 6536,
+        "rate": 0.43329253365973075
+      }
+    },
+    "solo": {
+      "excerpts": 30,
+      "string": {
+        "correct": 657,
+        "total": 2179,
+        "rate": 0.30151445617255623
+      },
+      "baseline_string": {
+        "correct": 452,
+        "total": 2179,
+        "rate": 0.20743460302891234
+      }
+    }
+  },
+  "excerpts": [
+    {
+      "name": "05_BN1-129-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 36,
+        "total": 148,
+        "rate": 0.24324324324324326
+      },
+      "baseline_string": {
+        "correct": 27,
+        "total": 148,
+        "rate": 0.18243243243243243
+      }
+    },
+    {
+      "name": "05_BN1-129-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 8,
+        "total": 44,
+        "rate": 0.18181818181818182
+      },
+      "baseline_string": {
+        "correct": 5,
+        "total": 44,
+        "rate": 0.11363636363636363
+      }
+    },
+    {
+      "name": "05_BN1-147-Gb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 63,
+        "total": 96,
+        "rate": 0.65625
+      },
+      "baseline_string": {
+        "correct": 63,
+        "total": 96,
+        "rate": 0.65625
+      }
+    },
+    {
+      "name": "05_BN1-147-Gb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 2,
+        "total": 27,
+        "rate": 0.07407407407407407
+      },
+      "baseline_string": {
+        "correct": 1,
+        "total": 27,
+        "rate": 0.037037037037037035
+      }
+    },
+    {
+      "name": "05_BN2-131-B_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 76,
+        "total": 202,
+        "rate": 0.37623762376237624
+      },
+      "baseline_string": {
+        "correct": 73,
+        "total": 202,
+        "rate": 0.3613861386138614
+      }
+    },
+    {
+      "name": "05_BN2-131-B_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 7,
+        "total": 69,
+        "rate": 0.10144927536231885
+      },
+      "baseline_string": {
+        "correct": 7,
+        "total": 69,
+        "rate": 0.10144927536231885
+      }
+    },
+    {
+      "name": "05_BN2-166-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 109,
+        "total": 173,
+        "rate": 0.630057803468208
+      },
+      "baseline_string": {
+        "correct": 96,
+        "total": 173,
+        "rate": 0.5549132947976878
+      }
+    },
+    {
+      "name": "05_BN2-166-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 26,
+        "total": 67,
+        "rate": 0.3880597014925373
+      },
+      "baseline_string": {
+        "correct": 21,
+        "total": 67,
+        "rate": 0.31343283582089554
+      }
+    },
+    {
+      "name": "05_BN3-119-G_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 85,
+        "total": 180,
+        "rate": 0.4722222222222222
+      },
+      "baseline_string": {
+        "correct": 72,
+        "total": 180,
+        "rate": 0.4
+      }
+    },
+    {
+      "name": "05_BN3-119-G_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 5,
+        "total": 62,
+        "rate": 0.08064516129032258
+      },
+      "baseline_string": {
+        "correct": 4,
+        "total": 62,
+        "rate": 0.06451612903225806
+      }
+    },
+    {
+      "name": "05_BN3-154-E_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 46,
+        "total": 185,
+        "rate": 0.24864864864864866
+      },
+      "baseline_string": {
+        "correct": 39,
+        "total": 185,
+        "rate": 0.21081081081081082
+      }
+    },
+    {
+      "name": "05_BN3-154-E_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 6,
+        "total": 56,
+        "rate": 0.10714285714285714
+      },
+      "baseline_string": {
+        "correct": 2,
+        "total": 56,
+        "rate": 0.03571428571428571
+      }
+    },
+    {
+      "name": "05_Funk1-114-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 180,
+        "total": 181,
+        "rate": 0.994475138121547
+      },
+      "baseline_string": {
+        "correct": 94,
+        "total": 181,
+        "rate": 0.5193370165745856
+      }
+    },
+    {
+      "name": "05_Funk1-114-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 23,
+        "total": 60,
+        "rate": 0.38333333333333336
+      },
+      "baseline_string": {
+        "correct": 8,
+        "total": 60,
+        "rate": 0.13333333333333333
+      }
+    },
+    {
+      "name": "05_Funk1-97-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 83,
+        "total": 177,
+        "rate": 0.4689265536723164
+      },
+      "baseline_string": {
+        "correct": 51,
+        "total": 177,
+        "rate": 0.288135593220339
+      }
+    },
+    {
+      "name": "05_Funk1-97-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 34,
+        "total": 58,
+        "rate": 0.5862068965517241
+      },
+      "baseline_string": {
+        "correct": 15,
+        "total": 58,
+        "rate": 0.25862068965517243
+      }
+    },
+    {
+      "name": "05_Funk2-108-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 210,
+        "total": 245,
+        "rate": 0.8571428571428571
+      },
+      "baseline_string": {
+        "correct": 110,
+        "total": 245,
+        "rate": 0.4489795918367347
+      }
+    },
+    {
+      "name": "05_Funk2-108-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 33,
+        "total": 61,
+        "rate": 0.5409836065573771
+      },
+      "baseline_string": {
+        "correct": 28,
+        "total": 61,
+        "rate": 0.45901639344262296
+      }
+    },
+    {
+      "name": "05_Funk2-119-G_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 154,
+        "total": 182,
+        "rate": 0.8461538461538461
+      },
+      "baseline_string": {
+        "correct": 67,
+        "total": 182,
+        "rate": 0.36813186813186816
+      }
+    },
+    {
+      "name": "05_Funk2-119-G_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 29,
+        "total": 99,
+        "rate": 0.29292929292929293
+      },
+      "baseline_string": {
+        "correct": 19,
+        "total": 99,
+        "rate": 0.1919191919191919
+      }
+    },
+    {
+      "name": "05_Funk3-112-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 207,
+        "total": 212,
+        "rate": 0.9764150943396226
+      },
+      "baseline_string": {
+        "correct": 118,
+        "total": 212,
+        "rate": 0.5566037735849056
+      }
+    },
+    {
+      "name": "05_Funk3-112-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 27,
+        "total": 70,
+        "rate": 0.38571428571428573
+      },
+      "baseline_string": {
+        "correct": 19,
+        "total": 70,
+        "rate": 0.2714285714285714
+      }
+    },
+    {
+      "name": "05_Funk3-98-A_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 129,
+        "total": 184,
+        "rate": 0.7010869565217391
+      },
+      "baseline_string": {
+        "correct": 67,
+        "total": 184,
+        "rate": 0.3641304347826087
+      }
+    },
+    {
+      "name": "05_Funk3-98-A_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 14,
+        "total": 65,
+        "rate": 0.2153846153846154
+      },
+      "baseline_string": {
+        "correct": 6,
+        "total": 65,
+        "rate": 0.09230769230769231
+      }
+    },
+    {
+      "name": "05_Jazz1-130-D_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 83,
+        "total": 141,
+        "rate": 0.5886524822695035
+      },
+      "baseline_string": {
+        "correct": 59,
+        "total": 141,
+        "rate": 0.41843971631205673
+      }
+    },
+    {
+      "name": "05_Jazz1-130-D_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 25,
+        "total": 58,
+        "rate": 0.43103448275862066
+      },
+      "baseline_string": {
+        "correct": 14,
+        "total": 58,
+        "rate": 0.2413793103448276
+      }
+    },
+    {
+      "name": "05_Jazz1-200-B_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 39,
+        "total": 175,
+        "rate": 0.22285714285714286
+      },
+      "baseline_string": {
+        "correct": 34,
+        "total": 175,
+        "rate": 0.19428571428571428
+      }
+    },
+    {
+      "name": "05_Jazz1-200-B_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 12,
+        "total": 50,
+        "rate": 0.24
+      },
+      "baseline_string": {
+        "correct": 8,
+        "total": 50,
+        "rate": 0.16
+      }
+    },
+    {
+      "name": "05_Jazz2-110-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 182,
+        "total": 252,
+        "rate": 0.7222222222222222
+      },
+      "baseline_string": {
+        "correct": 132,
+        "total": 252,
+        "rate": 0.5238095238095238
+      }
+    },
+    {
+      "name": "05_Jazz2-110-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 40,
+        "total": 103,
+        "rate": 0.3883495145631068
+      },
+      "baseline_string": {
+        "correct": 26,
+        "total": 103,
+        "rate": 0.2524271844660194
+      }
+    },
+    {
+      "name": "05_Jazz2-187-F#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 127,
+        "total": 247,
+        "rate": 0.5141700404858299
+      },
+      "baseline_string": {
+        "correct": 108,
+        "total": 247,
+        "rate": 0.43724696356275305
+      }
+    },
+    {
+      "name": "05_Jazz2-187-F#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 14,
+        "total": 61,
+        "rate": 0.22950819672131148
+      },
+      "baseline_string": {
+        "correct": 16,
+        "total": 61,
+        "rate": 0.26229508196721313
+      }
+    },
+    {
+      "name": "05_Jazz3-137-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 158,
+        "total": 235,
+        "rate": 0.6723404255319149
+      },
+      "baseline_string": {
+        "correct": 61,
+        "total": 235,
+        "rate": 0.25957446808510637
+      }
+    },
+    {
+      "name": "05_Jazz3-137-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 21,
+        "total": 77,
+        "rate": 0.2727272727272727
+      },
+      "baseline_string": {
+        "correct": 6,
+        "total": 77,
+        "rate": 0.07792207792207792
+      }
+    },
+    {
+      "name": "05_Jazz3-150-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 56,
+        "total": 227,
+        "rate": 0.24669603524229075
+      },
+      "baseline_string": {
+        "correct": 17,
+        "total": 227,
+        "rate": 0.07488986784140969
+      }
+    },
+    {
+      "name": "05_Jazz3-150-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 27,
+        "total": 69,
+        "rate": 0.391304347826087
+      },
+      "baseline_string": {
+        "correct": 21,
+        "total": 69,
+        "rate": 0.30434782608695654
+      }
+    },
+    {
+      "name": "05_Rock1-130-A_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 64,
+        "total": 312,
+        "rate": 0.20512820512820512
+      },
+      "baseline_string": {
+        "correct": 64,
+        "total": 312,
+        "rate": 0.20512820512820512
+      }
+    },
+    {
+      "name": "05_Rock1-130-A_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 2,
+        "total": 60,
+        "rate": 0.03333333333333333
+      },
+      "baseline_string": {
+        "correct": 1,
+        "total": 60,
+        "rate": 0.016666666666666666
+      }
+    },
+    {
+      "name": "05_Rock1-90-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 172,
+        "total": 277,
+        "rate": 0.6209386281588448
+      },
+      "baseline_string": {
+        "correct": 140,
+        "total": 277,
+        "rate": 0.5054151624548736
+      }
+    },
+    {
+      "name": "05_Rock1-90-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 32,
+        "total": 99,
+        "rate": 0.32323232323232326
+      },
+      "baseline_string": {
+        "correct": 24,
+        "total": 99,
+        "rate": 0.24242424242424243
+      }
+    },
+    {
+      "name": "05_Rock2-142-D_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 277,
+        "total": 460,
+        "rate": 0.6021739130434782
+      },
+      "baseline_string": {
+        "correct": 111,
+        "total": 460,
+        "rate": 0.24130434782608695
+      }
+    },
+    {
+      "name": "05_Rock2-142-D_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 6,
+        "total": 86,
+        "rate": 0.06976744186046512
+      },
+      "baseline_string": {
+        "correct": 3,
+        "total": 86,
+        "rate": 0.03488372093023256
+      }
+    },
+    {
+      "name": "05_Rock2-85-F_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 197,
+        "total": 325,
+        "rate": 0.6061538461538462
+      },
+      "baseline_string": {
+        "correct": 132,
+        "total": 325,
+        "rate": 0.40615384615384614
+      }
+    },
+    {
+      "name": "05_Rock2-85-F_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 53,
+        "total": 125,
+        "rate": 0.424
+      },
+      "baseline_string": {
+        "correct": 43,
+        "total": 125,
+        "rate": 0.344
+      }
+    },
+    {
+      "name": "05_Rock3-117-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 261,
+        "total": 398,
+        "rate": 0.6557788944723618
+      },
+      "baseline_string": {
+        "correct": 67,
+        "total": 398,
+        "rate": 0.16834170854271358
+      }
+    },
+    {
+      "name": "05_Rock3-117-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 36,
+        "total": 70,
+        "rate": 0.5142857142857142
+      },
+      "baseline_string": {
+        "correct": 28,
+        "total": 70,
+        "rate": 0.4
+      }
+    },
+    {
+      "name": "05_Rock3-148-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 107,
+        "total": 249,
+        "rate": 0.42971887550200805
+      },
+      "baseline_string": {
+        "correct": 112,
+        "total": 249,
+        "rate": 0.4497991967871486
+      }
+    },
+    {
+      "name": "05_Rock3-148-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 12,
+        "total": 61,
+        "rate": 0.19672131147540983
+      },
+      "baseline_string": {
+        "correct": 7,
+        "total": 61,
+        "rate": 0.11475409836065574
+      }
+    },
+    {
+      "name": "05_SS1-100-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 102,
+        "total": 102,
+        "rate": 1.0
+      },
+      "baseline_string": {
+        "correct": 102,
+        "total": 102,
+        "rate": 1.0
+      }
+    },
+    {
+      "name": "05_SS1-100-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 52,
+        "total": 60,
+        "rate": 0.8666666666666667
+      },
+      "baseline_string": {
+        "correct": 44,
+        "total": 60,
+        "rate": 0.7333333333333333
+      }
+    },
+    {
+      "name": "05_SS1-68-E_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 143,
+        "total": 143,
+        "rate": 1.0
+      },
+      "baseline_string": {
+        "correct": 143,
+        "total": 143,
+        "rate": 1.0
+      }
+    },
+    {
+      "name": "05_SS1-68-E_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 7,
+        "total": 78,
+        "rate": 0.08974358974358974
+      },
+      "baseline_string": {
+        "correct": 8,
+        "total": 78,
+        "rate": 0.10256410256410256
+      }
+    },
+    {
+      "name": "05_SS2-107-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 148,
+        "total": 222,
+        "rate": 0.6666666666666666
+      },
+      "baseline_string": {
+        "correct": 111,
+        "total": 222,
+        "rate": 0.5
+      }
+    },
+    {
+      "name": "05_SS2-107-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 12,
+        "total": 87,
+        "rate": 0.13793103448275862
+      },
+      "baseline_string": {
+        "correct": 10,
+        "total": 87,
+        "rate": 0.11494252873563218
+      }
+    },
+    {
+      "name": "05_SS2-88-F_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 177,
+        "total": 196,
+        "rate": 0.9030612244897959
+      },
+      "baseline_string": {
+        "correct": 196,
+        "total": 196,
+        "rate": 1.0
+      }
+    },
+    {
+      "name": "05_SS2-88-F_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 33,
+        "total": 93,
+        "rate": 0.3548387096774194
+      },
+      "baseline_string": {
+        "correct": 20,
+        "total": 93,
+        "rate": 0.21505376344086022
+      }
+    },
+    {
+      "name": "05_SS3-84-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 183,
+        "total": 211,
+        "rate": 0.8672985781990521
+      },
+      "baseline_string": {
+        "correct": 167,
+        "total": 211,
+        "rate": 0.7914691943127962
+      }
+    },
+    {
+      "name": "05_SS3-84-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 34,
+        "total": 111,
+        "rate": 0.3063063063063063
+      },
+      "baseline_string": {
+        "correct": 21,
+        "total": 111,
+        "rate": 0.1891891891891892
+      }
+    },
+    {
+      "name": "05_SS3-98-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 199,
+        "total": 199,
+        "rate": 1.0
+      },
+      "baseline_string": {
+        "correct": 199,
+        "total": 199,
+        "rate": 1.0
+      }
+    },
+    {
+      "name": "05_SS3-98-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 25,
+        "total": 93,
+        "rate": 0.26881720430107525
+      },
+      "baseline_string": {
+        "correct": 17,
+        "total": 93,
+        "rate": 0.1827956989247312
+      }
+    }
+  ]
+}
