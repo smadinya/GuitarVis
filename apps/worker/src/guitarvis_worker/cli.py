@@ -11,11 +11,12 @@ import sys
 import tempfile
 from pathlib import Path
 
+from guitarvis_core.audio import MAX_DURATION_SEC
 from guitarvis_core.contracts import FailureReason, PipelineError
 from guitarvis_core.fretboard import parse_pitch
 from guitarvis_core.tabdoc import STANDARD_TUNING
 
-from guitarvis_worker.ingest import MAX_DURATION_SEC, UploadSource
+from guitarvis_worker.ingest import UploadSource
 from guitarvis_worker.pipeline import StageProgress, run_pipeline
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
 from guitarvis_worker.stages.separation import DemucsSeparator
