@@ -45,7 +45,7 @@ PY_SOURCES := packages/core/src packages/jobs/src apps/api/src apps/worker/src a
               packages/core/tests packages/jobs/tests apps/api/tests apps/worker/tests apps/eval/tests
 
 .PHONY: help install lint format typecheck test test-py test-web \
-        schema schema-check check eval eval-data clean
+        schema schema-check check eval eval-data services migrate clean
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -119,6 +119,12 @@ eval: ## GuitarSet evaluation. Measured, never gated — not part of `check`.
 
 eval-data: ## Download GuitarSet into ~/.cache (ARGS=--audio for full mode's audio)
 	$(UV) run python -m guitarvis_eval.download $(ARGS)
+
+services: ## Start Postgres, Redis and object storage (docker compose)
+	docker compose up -d --wait
+
+migrate: ## Bring the database schema up to date
+	$(UV) run python -m guitarvis_jobs.migrate
 
 clean: ## Remove caches and build output
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .venv web/node_modules web/dist

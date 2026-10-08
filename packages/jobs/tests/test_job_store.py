@@ -1,14 +1,16 @@
-"""The JobStore contract. Task 6 adds a "postgres" param, so these same
-tests run against the database the system actually uses, and the in-memory
-twin cannot quietly drift from it."""
+"""The JobStore contract. Every test runs against the in-memory twin and
+against the Postgres the system actually uses, so the twin cannot quietly
+drift from it. The postgres param skips when `make services` has not been run,
+and fails under GUITARVIS_REQUIRE_SERVICES=1."""
 
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from guitarvis_core.contracts import FailureReason
 from guitarvis_jobs.models import JobStatus
 from guitarvis_jobs.store import InMemoryJobStore, JobStore
-from guitarvis_jobs.testing import FakeClock, sample_new_job
+from guitarvis_jobs.testing import FakeClock, postgres_store, sample_new_job
 
 HASH_B = "b" * 64
 
@@ -18,9 +20,13 @@ def clock() -> FakeClock:
     return FakeClock()
 
 
-@pytest.fixture(params=["memory"])
+@pytest.fixture(params=["memory", "postgres"])
 def store(request: pytest.FixtureRequest, clock: FakeClock) -> Iterator[JobStore]:
-    yield InMemoryJobStore(clock=clock)
+    if request.param == "memory":
+        yield InMemoryJobStore(clock=clock)
+        return
+    with postgres_store(clock=clock) as postgres:
+        yield postgres
 
 
 def running(store: JobStore, content_hash: str = "a" * 64) -> str:
@@ -291,3 +297,11 @@ def test_requeue_resets_stage_and_percent_but_keeps_attempts(store: JobStore) ->
 
 def test_ping_answers(store: JobStore) -> None:
     store.ping()
+
+
+def test_simultaneous_uploads_of_one_file_make_one_job(store: JobStore) -> None:
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda _: store.create(sample_new_job()), range(8)))
+
+    assert sum(created for _, created in results) == 1
+    assert len({job.id for job, _ in results}) == 1

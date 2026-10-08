@@ -3,7 +3,12 @@ name = "guitarvis-jobs"
 version = "0.1.0"
 description = "Job state the api and the worker share: store, blobs, queue, settings."
 requires-python = ">=3.12"
-dependencies = ["guitarvis-core"]
+dependencies = [
+    "guitarvis-core",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "alembic>=1.13",
+]
 
 [build-system]
 requires = ["hatchling"]

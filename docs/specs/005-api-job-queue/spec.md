@@ -2,6 +2,7 @@
 
 **Date:** 2026-10-08
 **Status:** Approved design, pre-implementation
+**Amended:** 2026-10-08 — RustFS replaces MinIO, whose community edition is archived and no longer published as an image. The bucket is created by `make migrate` through boto3 rather than by a one-shot `mc` container.
 **Parent spec:** [001-guitarvis-design](../001-guitarvis-design/spec.md)
 **Builds on:** [004-fretboard-mapper](../004-fretboard-mapper/spec.md), and the
 two findings in [003's review notes](../003-pipeline-skeleton/review-notes.md)
@@ -30,7 +31,7 @@ The success conditions:
 3. A job whose worker crashes after separation, then succeeds on retry, does
    not run separation twice.
 4. `make check` runs the integration suite against real Postgres, Redis and
-   MinIO in CI, and cannot pass by skipping it.
+   RustFS in CI, and cannot pass by skipping it.
 
 ## Scope
 
@@ -61,7 +62,7 @@ WebSockets. No `tabdoc.py` change, so no schema regeneration.
            ┌──────────── guitarvis_jobs ────────────┐
   api ───▶ │ JobStore   BlobStore   JobQueue  Settings│ ◀─── worker
            └──┬────────────┬───────────┬─────────────┘
-          Postgres       MinIO       Redis (RQ)
+          Postgres      RustFS       Redis (RQ)
 ```
 
 **`packages/jobs` (`guitarvis_jobs`)** is a new workspace member that both the
@@ -75,7 +76,7 @@ through the queue. It imports nothing from the ML stack.
   `InMemoryJobStore`. One contract test suite runs against both, so the fake
   cannot quietly drift from the database the system actually runs on.
 - **`BlobStore`** — a Protocol: put and get a file or bytes, check existence,
-  presign a GET. `S3BlobStore` (boto3; MinIO locally, any S3 later) and
+  presign a GET. `S3BlobStore` (boto3; RustFS locally, any S3 later) and
   `InMemoryBlobStore`, under the same shared contract suite.
 - **`JobQueue`** — a thin wrapper over RQ. It enqueues by dotted path,
   `"guitarvis_worker.runner.run_job"`, so the api never imports the function
@@ -192,11 +193,11 @@ stages.
   `too_long`, or `internal` from the fretboard invariant — is deterministic;
   running it again gives the same answer. Mark `failed` with its reason,
   message and current stage, and return normally so RQ does not retry.
-- **Any other exception** — MinIO or Postgres unreachable, `JobTimeoutException`,
-  a bug — with retries left: set the row back to `queued` with `stage` null
-  and `percent` 0, keeping `attempts`, and re-raise so RQ schedules the
-  retry. The cache means the retry resumes
-  after the last finished stage.
+- **Any other exception** — object storage or Postgres unreachable,
+  `JobTimeoutException`, a bug — with retries left: set the row back to
+  `queued` with `stage` null and `percent` 0, keeping `attempts`, and re-raise
+  so RQ schedules the retry. The cache means the retry resumes after the last
+  finished stage.
 - **The same on the final attempt**: mark `failed/internal`, message "Something
   went wrong on our side. Try again later.", `failed_stage` recorded; re-raise
   so RQ files it in its `FailedJobRegistry` with the traceback. That registry
@@ -281,7 +282,7 @@ nobody looks at can stay wrong until somebody does.
 | `GET /jobs/{id}/document` | the tab document · 404 · 409 `not_ready` |
 | `GET /jobs/{id}/audio/mix` | 307 to a presigned URL of the upload · 404 |
 | `GET /jobs/{id}/audio/guitar` | 307 to a presigned URL of the stem · 404 · 409 `not_ready` |
-| `GET /health` | 200, or 503 naming which of Postgres, Redis, MinIO did not answer |
+| `GET /health` | 200, or 503 naming which of Postgres, Redis, object storage did not answer |
 
 A job:
 
@@ -306,10 +307,11 @@ can produce — `too_large`, `too_many_jobs`, `not_found`, `not_ready` — so a
 client maps one vocabulary to text. A malformed job id is `not_found`, not a
 validation error.
 
-Audio is a redirect to a presigned MinIO URL rather than bytes streamed through
-the api: MinIO already answers `Range` requests, which seeking needs, and the
-api stays thin. URLs are signed against `GUITARVIS_S3_PUBLIC_ENDPOINT` so a
-browser can reach them, and live fifteen minutes.
+Audio is a redirect to a presigned object-storage URL rather than bytes
+streamed through the api: S3 storage already answers `Range` requests, which
+seeking needs, and the api stays thin. URLs are signed against
+`GUITARVIS_S3_PUBLIC_ENDPOINT` so a browser can reach them, and live fifteen
+minutes.
 
 `source.audio_url` in a document the api produced is the relative path
 `/jobs/{id}/audio/mix`, resolved against the api's base URL. The field is
@@ -330,14 +332,14 @@ shared package pulls in nothing from the ML stack.
 
 ### Running it
 
-`compose.yaml` at the root runs `postgres:16`, `redis:7` and MinIO, with a
-one-shot `minio/mc` service that creates the bucket and a Postgres init script
-that also creates `guitarvis_test`. Healthchecks on each, so `docker compose
-up --wait` returns when they are ready. New Make targets: `services`
-(`docker compose up -d --wait`), `migrate` (Alembic upgrade plus bucket
-creation), `api` (uvicorn, reload on), `worker` (`guitarvis-worker serve`).
-The api and worker run on the host, which is what makes `--extra ml` and
-`--device cuda` work as they do for the CLI.
+`compose.yaml` at the root runs `postgres:16`, `redis:7` and RustFS
+(`rustfs/rustfs:1.0.1`), with a Postgres init script that also creates
+`guitarvis_test`; `make migrate` creates the bucket. Healthchecks on each, so
+`docker compose up --wait` returns when they are ready. New Make targets:
+`services` (`docker compose up -d --wait`), `migrate` (Alembic upgrade plus
+bucket creation), `api` (uvicorn, reload on), `worker` (`guitarvis-worker
+serve`). The api and worker run on the host, which is what makes `--extra ml`
+and `--device cuda` work as they do for the CLI.
 
 ### Testing
 
@@ -359,7 +361,7 @@ The api and worker run on the host, which is what makes `--extra ml` and
 - The store and blob contract suites, against the in-memory implementations.
 
 **Integration, `@requires_services`:** the same contract suites against
-Postgres and MinIO; RQ enqueue and fetch against Redis; and one end-to-end
+Postgres and RustFS; RQ enqueue and fetch against Redis; and one end-to-end
 path — `POST /jobs` through `TestClient` on real stores, an in-process RQ
 `SimpleWorker` in burst mode with the stage factory patched to stubs, then
 `GET` the job, the document, and the audio redirect. They use the
@@ -409,8 +411,8 @@ asks about, which is every job that matters to a user.
 The pipeline is reachable over HTTP, and phase 4 can build against a real
 surface rather than a fixture.
 
-**Audio now persists.** Uploads and stems stay in MinIO indefinitely. That is
-fine for a local demo and is exactly the takedown surface open decision 13
+**Audio now persists.** Uploads and stems stay in object storage indefinitely.
+That is fine for a local demo and is exactly the takedown surface open decision 13
 describes; a retention policy is needed before public users, and this spec
 does not supply one.
 

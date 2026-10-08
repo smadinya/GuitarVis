@@ -71,7 +71,7 @@ everything it needs comes from the job payload and object storage.
 synced views. Talks only to the documented HTTP API.
 
 **Storage** — Postgres (jobs, tab documents), S3-compatible object storage
-(uploaded audio, isolated stems, intermediate artifacts; MinIO locally), Redis
+(uploaded audio, isolated stems, intermediate artifacts; RustFS locally), Redis
 (queue broker).
 
 ### Job flow
