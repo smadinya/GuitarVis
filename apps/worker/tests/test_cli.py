@@ -296,3 +296,28 @@ def test_stems_dir_option_keeps_the_directory_in_place(
     assert code == 0
     assert captured["work_dir"] == stems_dir
     assert stems_dir.exists()  # opted in, so it is left in place
+
+
+def test_any_failure_writing_the_output_reports_its_reason(
+    tmp_path: Path,
+    stub_stages: None,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # 003's finding: only OSError was caught here, so anything else raised
+    # while serialising or writing surfaced as a traceback.
+    monkeypatch.setattr(cli, "UploadSource", StubAudioSource)
+
+    def explode(self: Path, *args: object, **kwargs: object) -> int:
+        raise ValueError("cannot serialise that")
+
+    monkeypatch.setattr(Path, "write_text", explode)
+
+    code = cli.main(
+        ["process", str(tmp_path / "song.wav"), "-o", str(tmp_path / "o.json")]
+    )
+
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "internal" in err
+    assert "cannot serialise that" in err

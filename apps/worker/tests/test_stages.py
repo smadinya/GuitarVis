@@ -47,14 +47,14 @@ def module_level_imported_roots(source_file: Path) -> set[str]:
 
 # Static conformance: isinstance compares method names only, so these typed
 # assignments are what actually make mypy check the stage signatures.
-_separator: Separator = DemucsSeparator()
+_separator: Separator = DemucsSeparator(work_dir=Path("unused"))
 _transcriber: Transcriber = BasicPitchTranscriber()
 _analyzer: StructureAnalyzer = LibrosaStructureAnalyzer()
 _mapper: FretboardMapper = ViterbiFretboardMapper()
 
 
 def test_stages_satisfy_their_protocols() -> None:
-    assert isinstance(DemucsSeparator(), Separator)
+    assert isinstance(DemucsSeparator(work_dir=Path("unused")), Separator)
     assert isinstance(BasicPitchTranscriber(), Transcriber)
     assert isinstance(LibrosaStructureAnalyzer(), StructureAnalyzer)
     assert isinstance(ViterbiFretboardMapper(), FretboardMapper)

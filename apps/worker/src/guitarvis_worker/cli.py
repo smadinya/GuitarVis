@@ -133,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
     document = result.document
     try:
         Path(args.output).write_text(document.model_dump_json(indent=2))
-    except OSError as error:
+    except Exception as error:  # OSError, or anything serialising raised
         print(
             f"error [{FailureReason.INTERNAL.value}]: could not write "
             f"{args.output}: {error}",
