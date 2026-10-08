@@ -5,7 +5,7 @@ for originals, `cache/v{N}/{hash}/...` for stage output.
 """
 
 import threading
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any, Protocol
 
 import boto3
@@ -15,6 +15,32 @@ from botocore.exceptions import ClientError
 from guitarvis_jobs.settings import Settings
 
 PRESIGN_EXPIRES_SEC = 15 * 60
+
+# The Content-Type every stored object is served with, by its key's
+# extension. An upload keeps the extension its client sent, and a server left
+# to guess would serve `uploads/<hash>.html` as text/html; anything off this
+# list is opaque bytes a browser downloads rather than renders.
+_CONTENT_TYPES = {
+    "mp3": "audio/mpeg",
+    "wav": "audio/wav",
+    "flac": "audio/flac",
+    "ogg": "audio/ogg",
+    "opus": "audio/ogg",
+    "m4a": "audio/mp4",
+    "aac": "audio/mp4",
+    "mp4": "audio/mp4",
+    "aif": "audio/aiff",
+    "aiff": "audio/aiff",
+    "webm": "audio/webm",
+    "json": "application/json",
+}
+_OPAQUE = "application/octet-stream"
+
+
+def content_type_for(key: str) -> str:
+    """The Content-Type to store `key` with: from the allow-list, else opaque."""
+    extension = PurePosixPath(key).suffix.removeprefix(".").lower()
+    return _CONTENT_TYPES.get(extension, _OPAQUE)
 
 
 class BlobNotFound(KeyError):
@@ -135,10 +161,17 @@ class S3BlobStore:
         )
 
     def put_file(self, key: str, path: Path) -> None:
-        self._client.upload_file(str(path), self.bucket, key)
+        self._client.upload_file(
+            str(path),
+            self.bucket,
+            key,
+            ExtraArgs={"ContentType": content_type_for(key)},
+        )
 
     def put_bytes(self, key: str, data: bytes) -> None:
-        self._client.put_object(Bucket=self.bucket, Key=key, Body=data)
+        self._client.put_object(
+            Bucket=self.bucket, Key=key, Body=data, ContentType=content_type_for(key)
+        )
 
     def get_file(self, key: str, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

@@ -14,6 +14,7 @@ from guitarvis_jobs.blobs import (
     BlobStore,
     InMemoryBlobStore,
     S3BlobStore,
+    content_type_for,
     s3_client,
 )
 from guitarvis_jobs.settings import Settings
@@ -137,3 +138,62 @@ def test_ensure_bucket_creates_a_missing_bucket_and_is_repeatable() -> None:
         client.head_bucket(Bucket=settings.s3_bucket)
     finally:
         _delete_bucket_if_present(client, settings.s3_bucket)
+
+
+STEM_KEY = f"cache/v1/{'a' * 64}/separation/stem.wav"
+
+
+@pytest.mark.parametrize(
+    ("key", "content_type"),
+    [
+        ("uploads/h.mp3", "audio/mpeg"),
+        ("uploads/h.wav", "audio/wav"),
+        ("uploads/h.flac", "audio/flac"),
+        ("uploads/h.ogg", "audio/ogg"),
+        ("uploads/h.opus", "audio/ogg"),
+        ("uploads/h.m4a", "audio/mp4"),
+        ("uploads/h.aac", "audio/mp4"),
+        ("uploads/h.mp4", "audio/mp4"),
+        ("uploads/h.aif", "audio/aiff"),
+        ("uploads/h.aiff", "audio/aiff"),
+        ("uploads/h.webm", "audio/webm"),
+        ("cache/v1/h/separation/result.json", "application/json"),
+        (STEM_KEY, "audio/wav"),
+        ("uploads/h.html", "application/octet-stream"),
+        ("uploads/h.svg", "application/octet-stream"),
+        ("uploads/h", "application/octet-stream"),
+    ],
+)
+def test_content_type_comes_from_an_allow_list(key: str, content_type: str) -> None:
+    assert content_type_for(key) == content_type
+
+
+@pytest.mark.parametrize("put", ["bytes", "file"])
+@pytest.mark.parametrize(
+    ("key", "content_type"),
+    [
+        # An upload keeps its client's extension; a browser must never be
+        # handed one to render.
+        ("uploads/x.html", "application/octet-stream"),
+        ("uploads/x.mp3", "audio/mpeg"),
+        (STEM_KEY, "audio/wav"),
+    ],
+)
+def test_stored_objects_carry_a_content_type_from_an_allow_list(
+    key: str, content_type: str, put: str, tmp_path: Path
+) -> None:
+    with s3_blob_store() as store:
+        body = b"<script>alert(1)</script>"
+        if put == "bytes":
+            store.put_bytes(key, body)
+        else:
+            path = tmp_path / "body"
+            path.write_bytes(body)
+            store.put_file(key, path)
+
+        settings = integration_settings()
+        head = s3_client(settings, settings.s3_endpoint).head_object(
+            Bucket=store.bucket, Key=key
+        )
+
+    assert head["ContentType"] == content_type
