@@ -12,7 +12,7 @@ import httpx2
 import pytest
 from api_fixture import CLIENT_IP, make_api
 from fastapi.testclient import TestClient
-from guitarvis_api.errors import ApiError
+from guitarvis_api.errors import UNREADABLE_UPLOAD_MESSAGE, ApiError
 from guitarvis_api.uploads import (
     MAX_TITLE_CHARS,
     MULTIPART_ALLOWANCE,
@@ -331,6 +331,39 @@ def test_a_request_without_a_file_field() -> None:
     assert "`file`" in response.json()["error"]["message"]
 
 
+@pytest.mark.parametrize(
+    ("body", "content_type"),
+    [
+        pytest.param(
+            b"not multipart at all",
+            "multipart/form-data; boundary=zzz",
+            id="garbage-with-a-boundary",
+        ),
+        pytest.param(b"x", "multipart/form-data", id="no-boundary"),
+        pytest.param(
+            b"--zzz\r\nContent-Disposition form-data\r\n\r\nabc\r\n--zzz--\r\n",
+            "multipart/form-data; boundary=zzz",
+            id="malformed-part-header",
+        ),
+    ],
+)
+def test_a_body_that_is_not_readable_multipart_is_the_clients_mistake(
+    body: bytes, content_type: str
+) -> None:
+    """Starlette answers these with a bare 400, which would read as our fault."""
+    api = make_api()
+
+    response = api.client.post(
+        "/jobs", content=body, headers={"content-type": content_type}
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "error": {"reason": "unsupported_format", "message": UNREADABLE_UPLOAD_MESSAGE}
+    }
+    assert api.queue.enqueued == []
+
+
 def test_a_queue_that_refuses_the_job() -> None:
     api = make_api()
     api.queue.fail_next = True
@@ -389,6 +422,8 @@ def test_the_real_probe_refuses_bytes_that_are_not_audio() -> None:
         ("", "Untitled", ""),
         (None, "Untitled", ""),
         ("x" * 300 + ".mp3", "x" * MAX_TITLE_CHARS, ".mp3"),
+        ("a\x00b.mp3", "ab", ".mp3"),
+        ("\x00", "Untitled", ""),
     ],
 )
 def test_title_and_extension_from_awkward_filenames(
@@ -406,3 +441,25 @@ def test_a_windows_path_filename_is_reduced_to_its_basename() -> None:
 
     assert body["title"] == "Song"
     assert api.job(body["id"]).upload_key == f"uploads/{SONG_HASH}.mp3"
+
+
+def test_a_nul_byte_in_the_filename_is_dropped_not_stored() -> None:
+    """Postgres refuses NUL in text, and the in-memory twin does not, so the
+    title is checked for it directly."""
+    api = make_api()
+    body = (
+        b'--zzz\r\nContent-Disposition: form-data; name="file"; '
+        b'filename="a\x00b.mp3"\r\nContent-Type: audio/mpeg\r\n\r\n'
+        + SONG
+        + b"\r\n--zzz--\r\n"
+    )
+
+    response = api.client.post(
+        "/jobs",
+        content=body,
+        headers={"content-type": "multipart/form-data; boundary=zzz"},
+    )
+
+    assert response.status_code == 202
+    assert response.json()["title"] == "ab"
+    assert "\x00" not in api.job(response.json()["id"]).title

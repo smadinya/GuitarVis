@@ -27,6 +27,8 @@ class HttpReason(StrEnum):
 
 Reason = FailureReason | HttpReason
 
+UNREADABLE_UPLOAD_MESSAGE = "Send the audio as a multipart form field named `file`."
+
 
 class ApiError(StarletteHTTPException):
     """An HTTP error carrying a reason a client can map to text.
@@ -49,19 +51,28 @@ def error_body(reason: Reason, message: str) -> dict[str, dict[str, str]]:
 def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+        status_code = exc.status_code
         if isinstance(exc, ApiError):
             reason: Reason = exc.reason
             message = exc.message
+        elif status_code == 400:
+            # Only parsing a request body raises a bare 400, and POST /jobs's
+            # multipart upload is the only body this api parses. Starlette says
+            # "Invalid multipart data." or "Missing boundary in multipart.":
+            # the client sent something unreadable, which is not our failure.
+            status_code = 422
+            reason = FailureReason.UNSUPPORTED_FORMAT
+            message = UNREADABLE_UPLOAD_MESSAGE
         else:  # Starlette's own: an unknown route, a wrong method
             reason = (
                 HttpReason.NOT_FOUND
-                if exc.status_code in (404, 405)
+                if status_code in (404, 405)
                 else FailureReason.INTERNAL
             )
             message = str(exc.detail)
         return JSONResponse(
             error_body(reason, message),
-            status_code=exc.status_code,
+            status_code=status_code,
             headers=exc.headers,
         )
 
@@ -71,10 +82,7 @@ def install_error_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         # The only validated input is POST /jobs's multipart body.
         return JSONResponse(
-            error_body(
-                FailureReason.UNSUPPORTED_FORMAT,
-                "Send the audio as a multipart form field named `file`.",
-            ),
+            error_body(FailureReason.UNSUPPORTED_FORMAT, UNREADABLE_UPLOAD_MESSAGE),
             status_code=422,
         )
 

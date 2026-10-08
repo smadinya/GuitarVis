@@ -114,8 +114,13 @@ def receive(source: BinaryIO, destination: Path, *, max_bytes: int) -> ReceivedU
 
 
 def _basename(filename: str | None) -> str:
-    """The last path component, whichever separator the client's OS used."""
-    return (filename or "").replace("\\", "/").rsplit("/", 1)[-1].strip()
+    """The last path component, whichever separator the client's OS used.
+
+    NUL is dropped first: a crafted filename can carry one, and Postgres
+    refuses it in the title.
+    """
+    name = (filename or "").replace("\x00", "").replace("\\", "/")
+    return name.rsplit("/", 1)[-1].strip()
 
 
 def title_of(filename: str | None) -> str:
