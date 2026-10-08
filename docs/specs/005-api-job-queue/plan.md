@@ -7439,3 +7439,7 @@ Known while writing this plan; append any found during implementation.
 - **`JobView` serialises `created_at` and `updated_at` as UTC with a `Z` suffix**, whatever offset the store returns.
 - **A body that cannot be parsed as multipart answers 422 `unsupported_format`.** A failure while reading the body on our side, such as a full disk while spooling, answers 500 `internal` and is logged. A NUL byte in a filename is dropped.
 - **The worker declares `redis` and `rq` directly**, because `runner.py` imports them.
+- **Job timeouts are not catchable as `Exception`.** The worker's death penalty raises a `BaseException` subclass (`guitarvis_worker.timeouts.JobTimedOut`), so a stage's degrade handler cannot swallow it, and it reaches the runner's requeue/fail path.
+- **Reconciliation treats a terminal RQ job as lost.** A row `queued` past its grace whose RQ job is FINISHED, FAILED, STOPPED or CANCELED is repaired like one whose RQ job is gone. This covers the third disagreement the spec's Risks section named.
+- **Stored objects carry an explicit Content-Type** from an allow-list keyed on the extension, `application/octet-stream` otherwise. The key keeps the spec's extension rule.
+- **Compose binds every service port to 127.0.0.1.**
