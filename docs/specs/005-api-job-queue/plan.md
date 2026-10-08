@@ -506,9 +506,7 @@ def test_progress_is_monotonic_whatever_the_separator_reports(tmp_path: Path) ->
     seen: list[StageProgress] = []
     run(
         tmp_path,
-        separator=StubSeparator(
-            fractions=[0.5, 0.2, 0.5, 1.7, math.nan, -1.0, 0.9]
-        ),
+        separator=StubSeparator(fractions=[0.5, 0.2, 0.5, 1.7, math.nan, -1.0, 0.9]),
         progress=seen.append,
     )
 
@@ -1075,7 +1073,9 @@ class FakeDemucs:
             stem = out_dir / command[command.index("-n") + 1] / audio.stem
             stem.mkdir(parents=True, exist_ok=True)
             (stem / "guitar.wav").write_bytes(b"")
-        process = FakeProcess(TrickleReader(self.output, error=self.read_error), self.exit_code)
+        process = FakeProcess(
+            TrickleReader(self.output, error=self.read_error), self.exit_code
+        )
         self.processes.append(process)
         return process
 
@@ -1360,57 +1360,58 @@ Replace the constructor with:
 Replace the body of `_demucs` (keep the signature from Task 2) with:
 
 ```python
-        """Run Demucs as a subprocess and return the requested stem.
+"""Run Demucs as a subprocess and return the requested stem.
 
-        A subprocess rather than the Python API: the CLI is stable across
-        releases, and a model that dies cannot take the worker down with it.
-        stderr is merged into stdout and read as it arrives, because that is
-        where tqdm draws the bar that progress is parsed from.
-        """
-        command = [
-            sys.executable,
-            "-m",
-            "demucs",
-            "-n",
-            model,
-            "-o",
-            str(self.work_dir),
-            str(audio_path),
-        ]
-        if self.device:
-            command += ["-d", self.device]
+A subprocess rather than the Python API: the CLI is stable across
+releases, and a model that dies cannot take the worker down with it.
+stderr is merged into stdout and read as it arrives, because that is
+where tqdm draws the bar that progress is parsed from.
+"""
 
-        try:
-            process = subprocess.Popen(
-                command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-            )
-        except FileNotFoundError as exc:
-            raise PipelineError(
-                FailureReason.INTERNAL,
-                "demucs is not installed. Run `uv sync --extra ml`.",
-            ) from exc
+command = [
+    sys.executable,
+    "-m",
+    "demucs",
+    "-n",
+    model,
+    "-o",
+    str(self.work_dir),
+    str(audio_path),
+]
+if self.device:
+    command += ["-d", self.device]
 
-        try:
-            tail = _stream(process, progress)
-            exit_code = process.wait()
-        finally:
-            # A job timeout, or a progress write that fails, raises in here.
-            # The Demucs child must not outlive the job that started it.
-            if process.poll() is None:
-                process.kill()
-                process.wait()
+try:
+    process = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
+except FileNotFoundError as exc:
+    raise PipelineError(
+        FailureReason.INTERNAL,
+        "demucs is not installed. Run `uv sync --extra ml`.",
+    ) from exc
 
-        if exit_code != 0:
-            raise PipelineError(
-                FailureReason.INTERNAL, f"Separation failed: {tail[-_TAIL_CHARS:]}"
-            )
+try:
+    tail = _stream(process, progress)
+    exit_code = process.wait()
+finally:
+    # A job timeout, or a progress write that fails, raises in here.
+    # The Demucs child must not outlive the job that started it.
+    if process.poll() is None:
+        process.kill()
+        process.wait()
 
-        stem = self.work_dir / model / audio_path.stem / f"{stem_name}.wav"
-        if not stem.exists():
-            raise PipelineError(
-                FailureReason.INTERNAL, f"Separation produced no stem at {stem}"
-            )
-        return stem
+if exit_code != 0:
+    raise PipelineError(
+        FailureReason.INTERNAL, f"Separation failed: {tail[-_TAIL_CHARS:]}"
+    )
+
+stem = self.work_dir / model / audio_path.stem / f"{stem_name}.wav"
+if not stem.exists():
+    raise PipelineError(
+        FailureReason.INTERNAL, f"Separation produced no stem at {stem}"
+    )
+return stem
 ```
 
 Add this module-level function after the class (before the `TYPE_CHECKING` block):
@@ -2232,7 +2233,11 @@ class InMemoryJobStore:
         with self._lock:
             row = None if key is None else self._rows.get(key)
             # A copy, as a database read would be.
-            return None if row is None else replace(row, document=copy.deepcopy(row.document))
+            return (
+                None
+                if row is None
+                else replace(row, document=copy.deepcopy(row.document))
+            )
 
     def find_live(self, content_hash: str) -> Job | None:
         with self._lock:
@@ -2462,7 +2467,12 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from guitarvis_jobs.blobs import PRESIGN_EXPIRES_SEC, BlobNotFound, BlobStore, InMemoryBlobStore
+from guitarvis_jobs.blobs import (
+    PRESIGN_EXPIRES_SEC,
+    BlobNotFound,
+    BlobStore,
+    InMemoryBlobStore,
+)
 
 
 @pytest.fixture(params=["memory"])
@@ -3654,7 +3664,9 @@ def test_ensure_bucket_creates_a_missing_bucket_and_is_repeatable() -> None:
         store.ensure_bucket()
         store.ping()
     finally:
-        s3_client(settings, settings.s3_endpoint).delete_bucket(Bucket=settings.s3_bucket)
+        s3_client(settings, settings.s3_endpoint).delete_bucket(
+            Bucket=settings.s3_bucket
+        )
 ```
 
 In `packages/jobs/tests/test_job_queue.py`, add `from guitarvis_jobs.queue import QUEUE_NAME, RQJobQueue`, `from guitarvis_jobs.testing import redis_connection` and `from rq.job import Job as RQJob`. Replace the fixture with:
@@ -3953,7 +3965,9 @@ def _ping_redis(settings: Settings) -> None:
 
 
 def _ping_storage(settings: Settings) -> None:
-    client = s3_client(settings, settings.s3_endpoint, connect_timeout=1, max_attempts=1)
+    client = s3_client(
+        settings, settings.s3_endpoint, connect_timeout=1, max_attempts=1
+    )
     client.list_buckets()
 
 
@@ -4270,8 +4284,12 @@ def test_the_decorators_implement_the_stage_protocols(tmp_path: Path) -> None:
     assert isinstance(
         CachedSeparator(CountingSeparator(tmp_path), blobs, KEYS, tmp_path), Separator
     )
-    assert isinstance(CachedTranscriber(CountingTranscriber(), blobs, KEYS), Transcriber)
-    assert isinstance(CachedAnalyzer(CountingAnalyzer(), blobs, KEYS), StructureAnalyzer)
+    assert isinstance(
+        CachedTranscriber(CountingTranscriber(), blobs, KEYS), Transcriber
+    )
+    assert isinstance(
+        CachedAnalyzer(CountingAnalyzer(), blobs, KEYS), StructureAnalyzer
+    )
 
 
 def test_a_separation_miss_runs_the_stage_and_stores_its_output(tmp_path: Path) -> None:
@@ -4342,9 +4360,9 @@ def test_failing_to_store_the_stem_fails_the_attempt(tmp_path: Path) -> None:
     inner = CountingSeparator(stem_file(tmp_path))
 
     with pytest.raises(ConnectionError):
-        CachedSeparator(inner, FlakyBlobStore(writes_fail=True), KEYS, tmp_path).isolate(
-            tmp_path / "a.mp3"
-        )
+        CachedSeparator(
+            inner, FlakyBlobStore(writes_fail=True), KEYS, tmp_path
+        ).isolate(tmp_path / "a.mp3")
 
 
 def test_a_transcription_miss_then_hit(tmp_path: Path) -> None:
@@ -4540,7 +4558,9 @@ def _store(blobs: BlobStore, key: str, value: Any) -> None:
     try:
         blobs.put_bytes(key, json.dumps(value).encode())
     except Exception:
-        log.warning("cache write failed for %s; using the result anyway", key, exc_info=True)
+        log.warning(
+            "cache write failed for %s; using the result anyway", key, exc_info=True
+        )
 
 
 class CachedSeparator:
@@ -4583,7 +4603,9 @@ class CachedSeparator:
         try:
             self._blobs.get_file(self._keys.stem, stem_path)
         except BlobNotFound:
-            log.warning("%s has no stem beside it; separating again", self._keys.separation)
+            log.warning(
+                "%s has no stem beside it; separating again", self._keys.separation
+            )
             return None
         return SeparationResult(stem_path=stem_path, warnings=warnings)
 
@@ -4964,7 +4986,9 @@ def test_a_retry_resumes_from_the_cached_separation(
             raise ConnectionError("postgres went away")
         return write(job_id, stage, percent)
 
-    monkeypatch.setattr(harness.store, "set_progress", crash_once_when_transcription_starts)
+    monkeypatch.setattr(
+        harness.store, "set_progress", crash_once_when_transcription_starts
+    )
 
     with pytest.raises(ConnectionError):
         harness.run(retries_left=2)
@@ -5010,9 +5034,7 @@ def test_a_result_after_the_row_was_failed_is_dropped(harness: Harness) -> None:
 
 
 def test_an_unknown_job_is_dropped(harness: Harness) -> None:
-    process_job(
-        "5f0c6c2e-0000-4000-8000-0000000000ff", harness.deps(), retries_left=2
-    )
+    process_job("5f0c6c2e-0000-4000-8000-0000000000ff", harness.deps(), retries_left=2)
 
     assert harness.separator.calls == 0
 
@@ -5021,10 +5043,14 @@ def test_the_dotted_path_the_api_enqueues_is_run_job() -> None:
     # Renaming or moving run_job must fail here, not in every queued job.
     module_name, _, function_name = RUN_JOB.rpartition(".")
 
-    assert getattr(importlib.import_module(module_name), function_name) is runner.run_job
+    assert (
+        getattr(importlib.import_module(module_name), function_name) is runner.run_job
+    )
 
 
-@pytest.mark.parametrize(("current", "expected"), [(SimpleNamespace(retries_left=1), 1), (None, 0)])
+@pytest.mark.parametrize(
+    ("current", "expected"), [(SimpleNamespace(retries_left=1), 1), (None, 0)]
+)
 def test_run_job_hands_rq_retries_left_to_process_job(
     monkeypatch: pytest.MonkeyPatch, current: object, expected: int
 ) -> None:
@@ -5286,9 +5312,7 @@ def serve(settings: Settings, *, burst: bool = False) -> None:
     intervals.
     """
     connection = Redis.from_url(settings.redis_url)
-    Worker([QUEUE_NAME], connection=connection).work(
-        with_scheduler=True, burst=burst
-    )
+    Worker([QUEUE_NAME], connection=connection).work(with_scheduler=True, burst=burst)
 ```
 
 - [ ] **Step 3: Add `serve` to the CLI**
@@ -5296,13 +5320,11 @@ def serve(settings: Settings, *, burst: bool = False) -> None:
 In `apps/worker/src/guitarvis_worker/cli.py`, add `import os`, `from guitarvis_jobs.settings import Settings` and `from guitarvis_worker import runner`. In `_build_parser`, before `return parser`, add:
 
 ```python
-    serve = subparsers.add_parser("serve", help="run jobs from the queue until stopped")
-    serve.add_argument(
-        "--device", default=None, help="torch device for every job, e.g. cuda"
-    )
-    serve.add_argument(
-        "--burst", action="store_true", help="exit once the queue is empty"
-    )
+serve = subparsers.add_parser("serve", help="run jobs from the queue until stopped")
+serve.add_argument(
+    "--device", default=None, help="torch device for every job, e.g. cuda"
+)
+serve.add_argument("--burst", action="store_true", help="exit once the queue is empty")
 ```
 
 Rename the existing `def main(argv: list[str] | None = None) -> int:` to `def _process(args: argparse.Namespace) -> int:`, delete its first line (`args = _build_parser().parse_args(argv)`), and add above it:
@@ -5616,11 +5638,14 @@ def test_the_document_of_a_finished_job_is_a_tab_document() -> None:
     response = api.client.get(f"/jobs/{job_id}/document")
 
     assert response.status_code == 200
-    assert TabDocument.model_validate(response.json()).model_dump(mode="json") == DOCUMENT
+    assert (
+        TabDocument.model_validate(response.json()).model_dump(mode="json") == DOCUMENT
+    )
 
 
 @pytest.mark.parametrize(
-    ("make", "says"), [(queued, "not ready"), (running, "not ready"), (failed, "failed")]
+    ("make", "says"),
+    [(queued, "not ready"), (running, "not ready"), (failed, "failed")],
 )
 def test_a_document_that_is_not_ready(make: Callable[[Api], str], says: str) -> None:
     api = make_api()
@@ -5829,7 +5854,11 @@ def test_the_queue_does_not_answer() -> None:
 
     assert response.status_code == 503
     body = response.json()
-    assert body["services"] == {"postgres": "ok", "redis": "unreachable", "storage": "ok"}
+    assert body["services"] == {
+        "postgres": "ok",
+        "redis": "unreachable",
+        "storage": "ok",
+    }
     assert body["error"] == {"reason": "internal", "message": "Not answering: redis."}
 
 
@@ -6130,7 +6159,9 @@ def _load(services: Services, job_id: str) -> Job:
 
 def _not_ready(job: Job, what: str) -> ApiError:
     if job.status is JobStatus.FAILED:
-        return ApiError(409, HttpReason.NOT_READY, f"That job failed, so it has no {what}.")
+        return ApiError(
+            409, HttpReason.NOT_READY, f"That job failed, so it has no {what}."
+        )
     return ApiError(
         409,
         HttpReason.NOT_READY,
@@ -6477,8 +6508,8 @@ def test_an_oversized_body_with_no_declared_length_is_abandoned() -> None:
 
     def chunked() -> Iterator[bytes]:
         yield (
-            b"--zzz\r\nContent-Disposition: form-data; name=\"file\"; "
-            b"filename=\"big.mp3\"\r\nContent-Type: audio/mpeg\r\n\r\n"
+            b'--zzz\r\nContent-Disposition: form-data; name="file"; '
+            b'filename="big.mp3"\r\nContent-Type: audio/mpeg\r\n\r\n'
         )
         for _ in range(20):
             yield b"x" * (64 * 1024)
@@ -6504,7 +6535,9 @@ def test_an_empty_file_is_refused() -> None:
 def test_a_file_that_is_not_audio_is_refused_before_it_is_stored() -> None:
     api = make_api(
         probe=refuse(
-            PipelineError(FailureReason.UNSUPPORTED_FORMAT, "That file could not be read.")
+            PipelineError(
+                FailureReason.UNSUPPORTED_FORMAT, "That file could not be read."
+            )
         )
     )
 
@@ -6751,7 +6784,9 @@ def _basename(filename: str | None) -> str:
 
 def title_of(filename: str | None) -> str:
     """The upload's filename without its last extension: the job's title."""
-    return PurePosixPath(_basename(filename)).stem.strip()[:MAX_TITLE_CHARS] or "Untitled"
+    return (
+        PurePosixPath(_basename(filename)).stem.strip()[:MAX_TITLE_CHARS] or "Untitled"
+    )
 
 
 def extension_of(filename: str | None) -> str:
@@ -6976,7 +7011,9 @@ Append to `packages/jobs/tests/test_settings.py`:
 def test_settings_env_round_trips_through_from_env() -> None:
     from guitarvis_jobs.testing import settings_env
 
-    settings = Settings(redis_url="redis://elsewhere:6380/15", max_upload_mb=3, device="cuda")
+    settings = Settings(
+        redis_url="redis://elsewhere:6380/15", max_upload_mb=3, device="cuda"
+    )
 
     assert Settings.from_env(settings_env(settings)) == settings
 ```
@@ -7131,7 +7168,9 @@ def test_upload_process_and_fetch(
     )
 
     job = client.get(f"/jobs/{job_id}").json()
-    assert (job["status"], job["percent"], job["attempts"]) == ("succeeded", 100, 1), job
+    assert (job["status"], job["percent"], job["attempts"]) == ("succeeded", 100, 1), (
+        job
+    )
 
     document = TabDocument.model_validate(client.get(f"/jobs/{job_id}/document").json())
     assert document.source.title == "song"
@@ -7140,7 +7179,9 @@ def test_upload_process_and_fetch(
 
     mix = client.get(f"/jobs/{job_id}/audio/mix", follow_redirects=False)
     assert mix.status_code == 307
-    request = urllib.request.Request(mix.headers["location"], headers={"Range": "bytes=0-3"})
+    request = urllib.request.Request(
+        mix.headers["location"], headers={"Range": "bytes=0-3"}
+    )
     with urllib.request.urlopen(request, timeout=10) as response:
         assert response.status == 206
         assert response.read() == song[:4]
