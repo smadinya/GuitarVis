@@ -9,10 +9,14 @@ Four stages, each behind a narrow interface, each separately testable.
 
 | Stage | Interface | Progress |
 |---|---|---|
-| 1 Separation | `Separator.isolate(audio_path) -> Path` | 0–40% |
-| 2 Transcription | `Transcriber.transcribe(stem_path) -> list[NoteEvent]` | 40–65% |
-| 3 Structure | `StructureAnalyzer.analyze(stem, mix) -> StructureResult` | 65–80% |
-| 4 Fretboard | `FretboardMapper.assign(notes, tuning) -> FretboardResult` | 80–100% |
+| 1 Separation | `Separator.isolate(audio_path, *, progress=None) -> SeparationResult` | 0–40%, live: `progress(fraction)` while it runs |
+| 2 Transcription | `Transcriber.transcribe(stem_path) -> list[NoteEvent]` | starts at 40% |
+| 3 Structure | `StructureAnalyzer.analyze(stem, mix) -> StructureResult` | starts at 65% |
+| 4 Fretboard | `FretboardMapper.assign(notes, tuning) -> FretboardResult` | starts at 80%; 100% when the document is built |
+
+Progress names the stage **running**. The pipeline reports each stage's start
+and keeps the percent monotonic whatever a separator reports, so a separator
+may report nothing, or nonsense, without breaking a client.
 
 Protocols live in `packages/core/src/guitarvis_core/contracts.py`.
 Implementations live in `apps/worker/src/guitarvis_worker/stages/`.

@@ -19,11 +19,34 @@ import wave
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from guitarvis_core.contracts import FailureReason, PipelineError, SeparationResult
+from guitarvis_core.contracts import (
+    FailureReason,
+    PipelineError,
+    SeparationProgress,
+    SeparationResult,
+)
 
 SILENCE_RMS = 1e-3  # below this, a stem is empty rather than quiet
 
 _RMS_STRIDE = 97  # sample every Nth frame; silence detection needs no more
+
+# The 6-stem pass fills this share of the stage's progress; the 4-stem
+# fallback, when it runs, fills the rest, so progress never runs backwards.
+FIRST_PASS_SHARE = 0.75
+
+
+def _span(
+    progress: SeparationProgress | None, start: float, end: float
+) -> SeparationProgress | None:
+    """Map one Demucs pass's 0..1 onto [start, end] of the whole stage."""
+    if progress is None:
+        return None
+    report = progress
+
+    def scaled(fraction: float) -> None:
+        report(start + (end - start) * fraction)
+
+    return scaled
 
 
 def measure_rms(path: Path) -> float:
@@ -68,15 +91,24 @@ class DemucsSeparator:
         # land next to the user's audio in normal use.
         self.work_dir = work_dir
 
-    def isolate(self, audio_path: Path) -> SeparationResult:
-        guitar = self._demucs(self.model, audio_path, "guitar")
+    def isolate(
+        self, audio_path: Path, *, progress: SeparationProgress | None = None
+    ) -> SeparationResult:
+        guitar = self._demucs(
+            self.model, audio_path, "guitar", _span(progress, 0.0, FIRST_PASS_SHARE)
+        )
         if measure_rms(guitar) >= SILENCE_RMS:
             return SeparationResult(stem_path=guitar)
 
         # A heavily distorted guitar is often attributed elsewhere by the
         # 6-stem model. The 4-stem `other` track is the next best thing, and
         # saying so is better than returning silence.
-        other = self._demucs(self.fallback_model, audio_path, "other")
+        other = self._demucs(
+            self.fallback_model,
+            audio_path,
+            "other",
+            _span(progress, FIRST_PASS_SHARE, 1.0),
+        )
         if measure_rms(other) < SILENCE_RMS:
             raise PipelineError(
                 FailureReason.NO_GUITAR_DETECTED,
@@ -91,7 +123,13 @@ class DemucsSeparator:
             ],
         )
 
-    def _demucs(self, model: str, audio_path: Path, stem_name: str) -> Path:
+    def _demucs(
+        self,
+        model: str,
+        audio_path: Path,
+        stem_name: str,
+        progress: SeparationProgress | None = None,
+    ) -> Path:
         """Run Demucs as a subprocess and return the requested stem.
 
         A subprocess rather than the Python API: the CLI is stable across

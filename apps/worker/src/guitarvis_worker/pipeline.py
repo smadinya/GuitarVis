@@ -33,16 +33,21 @@ from guitarvis_core.tabdoc import (
     Timing,
 )
 
-STAGE_PERCENT = {
-    "separation": 40,
-    "transcription": 65,
-    "structure": 80,
-    "fretboard": 100,
+# The whole job's percent when each stage starts. Separation fills the band
+# up to transcription's start as it reports; `fretboard 100` marks the end.
+STAGE_START_PERCENT = {
+    "separation": 0,
+    "transcription": 40,
+    "structure": 65,
+    "fretboard": 80,
 }
+_SEPARATION_BAND = STAGE_START_PERCENT["transcription"]
 
 
 @dataclass(frozen=True)
 class StageProgress:
+    """The stage now running, and the whole job's percent. 100 means done."""
+
     stage: str
     percent: int
 
@@ -65,9 +70,36 @@ class PipelineResult:
     transcribed_note_count: int
 
 
-def _report(progress: ProgressCallback | None, stage: str) -> None:
-    if progress is not None:
-        progress(StageProgress(stage=stage, percent=STAGE_PERCENT[stage]))
+class _Reporter:
+    """Turns stage starts and separation fractions into monotonic progress.
+
+    A separator's fractions are not trusted: anything that would not raise
+    the whole-number percent is dropped, values past 1 are clamped and NaN or
+    negative values are ignored. That is what lets the worker write the row
+    only when something changed — at most about a hundred writes a job.
+    """
+
+    def __init__(self, callback: ProgressCallback | None) -> None:
+        self._callback = callback
+        self._percent = -1
+
+    def start(self, stage: str) -> None:
+        self._emit(stage, max(STAGE_START_PERCENT[stage], self._percent))
+
+    def separation(self, fraction: float) -> None:
+        if not fraction >= 0.0:  # also False for NaN
+            return
+        percent = int(min(fraction, 1.0) * _SEPARATION_BAND)
+        if percent > self._percent:
+            self._emit("separation", percent)
+
+    def finish(self) -> None:
+        self._emit("fretboard", 100)
+
+    def _emit(self, stage: str, percent: int) -> None:
+        self._percent = percent
+        if self._callback is not None:
+            self._callback(StageProgress(stage=stage, percent=percent))
 
 
 def run_pipeline(
@@ -79,20 +111,28 @@ def run_pipeline(
     mapper: FretboardMapper,
     tuning: Sequence[str] = STANDARD_TUNING,
     progress: ProgressCallback | None = None,
+    audio_url: str | None = None,
 ) -> PipelineResult:
-    """Turn ingested audio into a tab document."""
+    """Turn ingested audio into a tab document.
+
+    `audio_url` becomes the document's `source.audio_url`. The CLI leaves it
+    unset and gets a file:// URI of the input; the job runner passes the api
+    path a client fetches the mix from.
+    """
+    report = _Reporter(progress)
     warnings: list[str] = []
 
     # Stage 1. The only stage whose failure is fatal: with no guitar audio
     # there is nothing to transcribe and nothing honest to show.
-    separation = separator.isolate(audio.path)
+    report.start("separation")
+    separation = separator.isolate(audio.path, progress=report.separation)
     warnings.extend(separation.warnings)
-    _report(progress, "separation")
 
     # Stage 2. Optional like stages 3 and 4: a raised exception costs notes,
     # not the whole job. A genuinely empty result (no exception, no notes)
     # gets its own, more specific warning, so a caller can tell "found
     # nothing" apart from "blew up".
+    report.start("transcription")
     events: list[NoteEvent] = []
     try:
         events = transcriber.transcribe(separation.stem_path)
@@ -104,7 +144,6 @@ def run_pipeline(
     else:
         if not events:
             warnings.append("No notes were detected in the isolated guitar part.")
-    _report(progress, "transcription")
 
     # Stage 3. Optional: notes carry their own onsets, so losing the beat grid
     # costs bar lines and chord symbols, never synchronisation. Beats and
@@ -114,6 +153,7 @@ def run_pipeline(
     # halves (or that dies before returning a StructureResult at all) — the
     # shipped LibrosaStructureAnalyzer never takes this path, since both of
     # its halves already degrade internally.
+    report.start("structure")
     structure = StructureResult(timing=Timing(), chords=[], sections=[])
     try:
         structure = analyzer.analyze(separation.stem_path, audio.path)
@@ -123,13 +163,13 @@ def run_pipeline(
             "so bar lines and chord symbols are unavailable."
         )
     warnings.extend(structure.warnings)
-    _report(progress, "structure")
 
     # Stage 4. Optional like stages 2 and 3: a mapper that raises costs the
     # notes track, not the job — including NotImplementedError, which a real
     # mapper may raise for a genuinely unsupported case. Notes the mapper
     # could not place arrive as warnings on its result. A wrong fret is a
     # different matter: the invariant check below fails the job instead.
+    report.start("fretboard")
     tab_notes: list[TabNote] = []
     try:
         fretboard = mapper.assign(events, tuning)
@@ -141,7 +181,6 @@ def run_pipeline(
     else:
         tab_notes = fretboard.notes
         warnings.extend(fretboard.warnings)
-    _report(progress, "fretboard")
 
     # A tab that renders the wrong fret is worse than no tab: a beginner cannot
     # tell it from a hard passage. Refuse to emit one. A string or fret that
@@ -166,11 +205,17 @@ def run_pipeline(
             ) from exc
         notes.append(note)
 
+    # 100 only once every note has passed the invariant: a job must never
+    # read 100% and then fail.
+    report.finish()
+
     document = TabDocument(
         source=Source(
             title=audio.title,
             duration_sec=audio.duration_sec,
-            audio_url=audio.path.resolve().as_uri(),
+            audio_url=(
+                audio_url if audio_url is not None else audio.path.resolve().as_uri()
+            ),
         ),
         instrument=Instrument(tuning=list(tuning), string_count=len(tuning)),
         timing=structure.timing,

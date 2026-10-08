@@ -9,6 +9,7 @@ import pytest
 from guitarvis_core.contracts import (
     IngestedAudio,
     NoteEvent,
+    SeparationProgress,
     SeparationResult,
     StructureResult,
 )
@@ -31,7 +32,9 @@ def write_wav(path: Path, seconds: float = 1.0, rate: int = 8000) -> Path:
 
 
 class StubSeparator:
-    def isolate(self, audio_path: Path) -> SeparationResult:
+    def isolate(
+        self, audio_path: Path, *, progress: SeparationProgress | None = None
+    ) -> SeparationResult:
         return SeparationResult(stem_path=audio_path)
 
 
@@ -203,7 +206,9 @@ class ExplodingSeparator:
     """Simulates an untyped failure escaping a stage, e.g. measure_rms's bare
     ValueError on a non-16-bit stem."""
 
-    def isolate(self, audio_path: Path) -> SeparationResult:
+    def isolate(
+        self, audio_path: Path, *, progress: SeparationProgress | None = None
+    ) -> SeparationResult:
         raise ValueError("expected 16-bit PCM, got 3 bytes")
 
 

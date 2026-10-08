@@ -10,8 +10,9 @@ import wave
 from pathlib import Path
 
 import pytest
-from guitarvis_core.contracts import FailureReason, PipelineError
+from guitarvis_core.contracts import FailureReason, PipelineError, SeparationProgress
 from guitarvis_worker.stages.separation import (
+    FIRST_PASS_SHARE,
     SILENCE_RMS,
     DemucsSeparator,
     measure_rms,
@@ -33,15 +34,28 @@ def write_wav(path: Path, amplitude: int = 8000, rate: int = 8000) -> Path:
 
 
 class FakeSeparator(DemucsSeparator):
-    """Replaces the Demucs subprocess with prepared files."""
+    """Replaces the Demucs subprocess with prepared files.
+
+    Each fake pass reports half-way, then done, so the scaling of the two
+    passes onto one stage is visible to a test.
+    """
 
     def __init__(self, stems: dict[str, Path]) -> None:
         super().__init__()
         self.stems = stems
         self.calls: list[tuple[str, str]] = []
 
-    def _demucs(self, model: str, audio_path: Path, stem_name: str) -> Path:
+    def _demucs(
+        self,
+        model: str,
+        audio_path: Path,
+        stem_name: str,
+        progress: SeparationProgress | None = None,
+    ) -> Path:
         self.calls.append((model, stem_name))
+        if progress is not None:
+            progress(0.5)
+            progress(1.0)
         return self.stems[model]
 
 
@@ -89,6 +103,32 @@ def test_two_silent_stems_fail_honestly(tmp_path: Path) -> None:
 
     assert excinfo.value.reason is FailureReason.NO_GUITAR_DETECTED
     assert "guitar" in str(excinfo.value).lower()
+
+
+def test_the_first_pass_fills_three_quarters_of_the_stage(tmp_path: Path) -> None:
+    separator = FakeSeparator({"htdemucs_6s": write_wav(tmp_path / "g.wav")})
+    seen: list[float] = []
+
+    separator.isolate(tmp_path / "song.wav", progress=seen.append)
+
+    assert seen == [0.375, FIRST_PASS_SHARE]
+
+
+def test_the_fallback_pass_fills_the_rest_without_running_backwards(
+    tmp_path: Path,
+) -> None:
+    separator = FakeSeparator(
+        {
+            "htdemucs_6s": write_wav(tmp_path / "guitar.wav", amplitude=0),
+            "htdemucs": write_wav(tmp_path / "other.wav", amplitude=8000),
+        }
+    )
+    seen: list[float] = []
+
+    separator.isolate(tmp_path / "song.wav", progress=seen.append)
+
+    assert seen == [0.375, 0.75, 0.875, 1.0]
+    assert seen == sorted(seen)
 
 
 # The tests above replace _demucs entirely, so nothing above exercises the

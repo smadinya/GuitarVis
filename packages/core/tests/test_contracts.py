@@ -7,6 +7,7 @@ exists to protect.
 """
 
 import dataclasses
+import inspect
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from guitarvis_core.contracts import (
     IngestedAudio,
     NoteEvent,
     PipelineError,
+    SeparationProgress,
     SeparationResult,
     Separator,
     StructureAnalyzer,
@@ -64,7 +66,9 @@ def test_note_event_carries_no_fingering() -> None:
 
 def test_a_fake_separator_satisfies_the_protocol() -> None:
     class FakeSeparator:
-        def isolate(self, audio_path: Path) -> SeparationResult:
+        def isolate(
+            self, audio_path: Path, *, progress: SeparationProgress | None = None
+        ) -> SeparationResult:
             return SeparationResult(stem_path=audio_path)
 
     assert isinstance(FakeSeparator(), Separator)
@@ -130,7 +134,17 @@ def test_separation_result_defaults_to_no_warnings() -> None:
 
 def test_separator_protocol_returns_separation_result() -> None:
     class Stub:
-        def isolate(self, audio_path: Path) -> SeparationResult:
+        def isolate(
+            self, audio_path: Path, *, progress: SeparationProgress | None = None
+        ) -> SeparationResult:
             return SeparationResult(stem_path=audio_path)
 
     assert isinstance(Stub(), Separator)
+
+
+def test_separator_takes_an_optional_keyword_only_progress_hook() -> None:
+    """Separation dominates job time; the hook is what keeps percent moving."""
+    parameter = inspect.signature(Separator.isolate).parameters["progress"]
+
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    assert parameter.default is None
