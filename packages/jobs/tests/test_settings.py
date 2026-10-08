@@ -62,3 +62,13 @@ def test_from_env_defaults_to_the_process_environment(
 
 def test_max_upload_bytes_is_mebibytes() -> None:
     assert Settings(max_upload_mb=2).max_upload_bytes == 2 * 1024 * 1024
+
+
+def test_settings_env_round_trips_through_from_env() -> None:
+    from guitarvis_jobs.testing import settings_env
+
+    settings = Settings(
+        redis_url="redis://elsewhere:6380/15", max_upload_mb=3, device="cuda"
+    )
+
+    assert Settings.from_env(settings_env(settings)) == settings

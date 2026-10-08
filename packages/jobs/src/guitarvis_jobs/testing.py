@@ -11,7 +11,7 @@ import functools
 import os
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from dataclasses import replace
+from dataclasses import fields, replace
 from datetime import UTC, datetime, timedelta
 from urllib.parse import urlsplit, urlunsplit
 
@@ -85,6 +85,20 @@ def integration_settings() -> Settings:
         ),
         s3_bucket=TEST_BUCKET,
     )
+
+
+def settings_env(settings: Settings) -> dict[str, str]:
+    """`settings` as the GUITARVIS_* variables Settings.from_env reads back.
+
+    The end-to-end test sets these, because run_job builds its own stores
+    from the environment exactly as it does under a real worker.
+    """
+    values = {field.name: getattr(settings, field.name) for field in fields(settings)}
+    return {
+        f"GUITARVIS_{name.upper()}": str(value)
+        for name, value in values.items()
+        if value is not None
+    }
 
 
 def require(service: str) -> None:

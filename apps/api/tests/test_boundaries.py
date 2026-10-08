@@ -14,6 +14,10 @@ Neither check is complete: an AST scan cannot see a dynamic
 `sys.modules` probe, since that call would not execute until some code path
 runs. This is worth revisiting once the api gains route handlers that could
 import lazily.
+
+The sys.modules probe imports guitarvis_api.app, which imports
+guitarvis_jobs, so it also proves the shared package pulls in nothing
+forbidden.
 """
 
 import ast
@@ -21,7 +25,16 @@ import subprocess
 import sys
 from pathlib import Path
 
-FORBIDDEN_ROOTS = {"torch", "demucs", "basic_pitch", "librosa", "numpy"}
+# The ML stack, and the worker itself: the api reaches the worker only
+# through the queue, by the dotted path in guitarvis_jobs.queue.RUN_JOB.
+FORBIDDEN_ROOTS = {
+    "torch",
+    "demucs",
+    "basic_pitch",
+    "librosa",
+    "numpy",
+    "guitarvis_worker",
+}
 API_SOURCE = Path(__file__).resolve().parents[1] / "src"
 
 
@@ -53,8 +66,9 @@ def test_api_source_imports_nothing_from_the_ml_stack() -> None:
             offenders[str(source_file)] = forbidden
 
     assert not offenders, (
-        f"api must stay free of the ML stack, but found: {offenders}. "
-        "That code belongs in apps/worker."
+        f"api must stay free of the ML stack and of the worker, but found: "
+        f"{offenders}. ML code belongs in apps/worker; the api reaches the "
+        "worker only through the queue."
     )
 
 
