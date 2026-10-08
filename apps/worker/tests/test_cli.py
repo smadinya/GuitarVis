@@ -1,6 +1,7 @@
 """The CLI's contract: a written document, honest errors, useful exit codes."""
 
 import json
+import os
 import shutil
 import wave
 from pathlib import Path
@@ -14,7 +15,8 @@ from guitarvis_core.contracts import (
     StructureResult,
 )
 from guitarvis_core.tabdoc import Timing
-from guitarvis_worker import cli
+from guitarvis_jobs.settings import Settings
+from guitarvis_worker import cli, runner
 
 requires_ffprobe = pytest.mark.skipif(
     shutil.which("ffprobe") is None,
@@ -321,3 +323,21 @@ def test_any_failure_writing_the_output_reports_its_reason(
     err = capsys.readouterr().err
     assert "internal" in err
     assert "cannot serialise that" in err
+
+
+def test_serve_runs_the_queue_worker_with_the_device(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Recorded so monkeypatch restores it, although serve sets it directly.
+    monkeypatch.setenv("GUITARVIS_DEVICE", "")
+    seen: dict[str, object] = {}
+
+    def fake_serve(settings: Settings, *, burst: bool) -> None:
+        seen.update(device=settings.device, burst=burst)
+
+    monkeypatch.setattr(runner, "serve", fake_serve)
+
+    assert cli.main(["serve", "--device", "cuda", "--burst"]) == 0
+    assert seen == {"device": "cuda", "burst": True}
+    # Each job runs in a forked work horse that reads the environment.
+    assert os.environ["GUITARVIS_DEVICE"] == "cuda"

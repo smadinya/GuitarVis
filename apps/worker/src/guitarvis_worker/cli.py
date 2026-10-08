@@ -2,11 +2,12 @@
 
 Stage construction happens here, not inside run_pipeline, so the CLI can be
 tested end to end without loading a model: the names below are what tests
-patch. It is also the seam the future job worker replaces.
+patch. `serve` hands the same stages to the queue worker in runner.py.
 """
 
 import argparse
 import contextlib
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -15,7 +16,9 @@ from guitarvis_core.audio import MAX_DURATION_SEC
 from guitarvis_core.contracts import FailureReason, PipelineError
 from guitarvis_core.fretboard import parse_pitch
 from guitarvis_core.tabdoc import STANDARD_TUNING
+from guitarvis_jobs.settings import Settings
 
+from guitarvis_worker import runner
 from guitarvis_worker.ingest import UploadSource
 from guitarvis_worker.pipeline import StageProgress, run_pipeline
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
@@ -86,12 +89,34 @@ def _build_parser() -> argparse.ArgumentParser:
             "this is useful when re-running later stages against the same song."
         ),
     )
+
+    serve = subparsers.add_parser("serve", help="run jobs from the queue until stopped")
+    serve.add_argument(
+        "--device", default=None, help="torch device for every job, e.g. cuda"
+    )
+    serve.add_argument(
+        "--burst", action="store_true", help="exit once the queue is empty"
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
+    if args.command == "serve":
+        return _serve(args)
+    return _process(args)
 
+
+def _serve(args: argparse.Namespace) -> int:
+    if args.device:
+        # Each job runs in a forked work horse that reads its settings from
+        # the environment, so this is how the flag reaches every job.
+        os.environ["GUITARVIS_DEVICE"] = args.device
+    runner.serve(Settings.from_env(), burst=args.burst)
+    return 0
+
+
+def _process(args: argparse.Namespace) -> int:
     try:
         audio = UploadSource(args.audio, max_duration_sec=args.max_duration).fetch()
         tuning = _parse_tuning(args.tuning)
