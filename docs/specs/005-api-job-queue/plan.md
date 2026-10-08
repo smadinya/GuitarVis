@@ -104,7 +104,7 @@ The api has to probe uploads too, and it may not import the worker. Probing move
 - Consumes: `guitarvis_core.contracts.FailureReason`, `PipelineError`.
 - Produces: `guitarvis_core.audio.MAX_DURATION_SEC: float = 600.0`; `probe_duration(path: Path) -> float` (raises `PipelineError` `unsupported_format` for unreadable input, `internal` when ffprobe is missing); `check_duration(duration_sec: float, max_duration_sec: float = MAX_DURATION_SEC) -> None` (raises `PipelineError` `too_long` when `duration_sec > max_duration_sec`, with a message containing "single song").
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `packages/core/tests/test_audio.py`:
 
@@ -189,12 +189,12 @@ def test_check_duration_honours_a_custom_limit() -> None:
     assert excinfo.value.reason is FailureReason.TOO_LONG
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/core/tests/test_audio.py -v`
 Expected: collection error, `ModuleNotFoundError: No module named 'guitarvis_core.audio'`.
 
-- [ ] **Step 3: Create `guitarvis_core/audio.py`**
+- [x] **Step 3: Create `guitarvis_core/audio.py`**
 
 ```python
 """Audio facts the api and the worker both need, from the standard library.
@@ -263,12 +263,12 @@ def check_duration(
         )
 ```
 
-- [ ] **Step 4: Run the new tests**
+- [x] **Step 4: Run the new tests**
 
 Run: `uv run pytest packages/core/tests/test_audio.py -v`
 Expected: 7 PASS (the two `requires_ffprobe` tests skip if ffmpeg is missing; it is installed on this machine and in CI).
 
-- [ ] **Step 5: Point the worker at core**
+- [x] **Step 5: Point the worker at core**
 
 Replace `apps/worker/src/guitarvis_worker/ingest.py` with:
 
@@ -328,12 +328,12 @@ from guitarvis_worker.ingest import UploadSource
 
 In `apps/worker/tests/test_ingest.py`, change the import to `from guitarvis_worker.ingest import UploadSource` and delete `test_probe_duration_reads_length`, which now lives in `test_audio.py`.
 
-- [ ] **Step 6: Run the affected suites**
+- [x] **Step 6: Run the affected suites**
 
 Run: `uv run pytest packages/core apps/worker/tests/test_ingest.py apps/worker/tests/test_cli.py -v`
 Expected: all PASS. `test_too_long_message_tells_the_user_what_to_do` still passes: the message is unchanged.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -369,7 +369,7 @@ Today `StageProgress` fires after each stage finishes. After this task it fires 
   - `run_pipeline(..., progress: ProgressCallback | None = None, audio_url: str | None = None)`. The events are `separation 0`, any `separation N` with 0 < N ≤ 40, `transcription 40`, `structure 65`, `fretboard 80`, then `fretboard 100`. The last one comes only after every note passes the invariant check.
   - `guitarvis_worker.stages.separation.FIRST_PASS_SHARE = 0.75`; `DemucsSeparator._demucs(self, model: str, audio_path: Path, stem_name: str, progress: SeparationProgress | None = None) -> Path`.
 
-- [ ] **Step 1: Write the failing contract test**
+- [x] **Step 1: Write the failing contract test**
 
 In `packages/core/tests/test_contracts.py`, add `import inspect` to the stdlib imports and `SeparationProgress` to the `guitarvis_core.contracts` import list. Change both separator doubles — `FakeSeparator` inside the protocol-conformance test (around line 66) and `Stub` in `test_separator_protocol_returns_separation_result` (around line 133) — to:
 
@@ -391,12 +391,12 @@ def test_separator_takes_an_optional_keyword_only_progress_hook() -> None:
     assert parameter.default is None
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `uv run pytest packages/core/tests/test_contracts.py -v`
 Expected: collection error, `ImportError: cannot import name 'SeparationProgress'`.
 
-- [ ] **Step 3: Change the protocol**
+- [x] **Step 3: Change the protocol**
 
 In `contracts.py`, change `from collections.abc import Sequence` to `from collections.abc import Callable, Sequence`. Directly after the `SeparationResult` class, add:
 
@@ -426,7 +426,7 @@ class Separator(Protocol):
 Run: `uv run pytest packages/core/tests/test_contracts.py -v`
 Expected: all PASS.
 
-- [ ] **Step 4: Write the failing pipeline tests**
+- [x] **Step 4: Write the failing pipeline tests**
 
 In `apps/worker/tests/test_pipeline.py`, add `import math` to the stdlib imports and `SeparationProgress` to the `guitarvis_core.contracts` import list. Replace `StubSeparator` and `FailingSeparator` with:
 
@@ -552,12 +552,12 @@ def test_an_invariant_failure_never_reports_100(tmp_path: Path) -> None:
 
 In `apps/worker/tests/test_cli.py`, add `SeparationProgress` to the `guitarvis_core.contracts` import list and change both `StubSeparator.isolate` and `ExplodingSeparator.isolate` to take `self, audio_path: Path, *, progress: SeparationProgress | None = None`.
 
-- [ ] **Step 5: Run them to verify they fail**
+- [x] **Step 5: Run them to verify they fail**
 
 Run: `uv run pytest apps/worker/tests/test_pipeline.py -v`
 Expected: the new and replaced tests FAIL. For example, `test_reports_each_stage_as_it_starts_then_100` sees `[("separation", 40), ...]`, and `test_audio_url_replaces_the_file_uri` fails with `TypeError: run_pipeline() got an unexpected keyword argument 'audio_url'`.
 
-- [ ] **Step 6: Rewrite `pipeline.py`**
+- [x] **Step 6: Rewrite `pipeline.py`**
 
 Replace `apps/worker/src/guitarvis_worker/pipeline.py` with:
 
@@ -791,7 +791,7 @@ def run_pipeline(
     return PipelineResult(document=document, transcribed_note_count=len(events))
 ```
 
-- [ ] **Step 7: Give `DemucsSeparator` the keyword and the pass scaling (failing test first)**
+- [x] **Step 7: Give `DemucsSeparator` the keyword and the pass scaling (failing test first)**
 
 In `apps/worker/tests/test_separation.py`, import `SeparationProgress` from `guitarvis_core.contracts` and `FIRST_PASS_SHARE` from `guitarvis_worker.stages.separation`. Replace `FakeSeparator` with:
 
@@ -922,7 +922,7 @@ Replace `isolate` and the `_demucs` signature with:
 
 Leave the body of `_demucs` alone; Task 3 replaces it.
 
-- [ ] **Step 8: Update the stage skill's interface table**
+- [x] **Step 8: Update the stage skill's interface table**
 
 In `.claude/skills/pipeline-stage/SKILL.md`, replace the table at lines 13–18 with:
 
@@ -939,7 +939,7 @@ and keeps the percent monotonic whatever a separator reports, so a separator
 may report nothing, or nonsense, without breaking a client.
 ```
 
-- [ ] **Step 9: Run every worker and core test**
+- [x] **Step 9: Run every worker and core test**
 
 Run: `uv run pytest packages/core apps/worker -v`
 Expected: all PASS. `test_cli.py::test_writes_a_valid_document_and_exits_zero` still sees `100%` on stderr.
@@ -947,7 +947,7 @@ Expected: all PASS. `test_cli.py::test_writes_a_valid_document_and_exits_zero` s
 Run: `uv run mypy packages/core/src apps/worker/src packages/core/tests apps/worker/tests`
 Expected: `Success`. A separator double you missed shows up here as an incompatible-type error on the Protocol.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -978,7 +978,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes: `SeparationProgress`, `FIRST_PASS_SHARE` and `_span` from Task 2.
 - Produces: `DemucsSeparator(*, work_dir: Path, model: str = "htdemucs_6s", fallback_model: str = "htdemucs", device: str | None = None)`. `work_dir` is required and keyword-only. A stem is written at `work_dir / model / audio_path.stem / f"{stem_name}.wav"`. `TqdmPercent().feed(chunk: str) -> list[int]` returns the percentages completed in that chunk.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `apps/worker/tests/test_separation.py`, replace everything from the comment `# The tests above replace _demucs entirely` to the end of the file with:
 
@@ -1294,12 +1294,12 @@ def test_any_failure_writing_the_output_reports_its_reason(
     assert "cannot serialise that" in err
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest apps/worker/tests/test_separation.py apps/worker/tests/test_stages.py apps/worker/tests/test_cli.py -v`
 Expected: collection error, `ImportError: cannot import name 'TqdmPercent'`. Once that exists, the `_demucs` tests fail because it still calls `subprocess.run`. The CLI test fails with a `ValueError` traceback.
 
-- [ ] **Step 3: Rewrite the subprocess half of `separation.py`**
+- [x] **Step 3: Rewrite the subprocess half of `separation.py`**
 
 In `apps/worker/src/guitarvis_worker/stages/separation.py`, add `import codecs`, `import io` and `import re` to the imports, and change `from typing import TYPE_CHECKING` to `from typing import TYPE_CHECKING, cast`. Add below `_span`:
 
@@ -1441,7 +1441,7 @@ def _stream(
 
 Change the `TYPE_CHECKING` conformance assignment to `_conforms: Separator = DemucsSeparator(work_dir=Path())`.
 
-- [ ] **Step 4: Guard the CLI's output write**
+- [x] **Step 4: Guard the CLI's output write**
 
 In `apps/worker/src/guitarvis_worker/cli.py`, change `except OSError as error:` (the one around `Path(args.output).write_text(...)`) to:
 
@@ -1449,7 +1449,7 @@ In `apps/worker/src/guitarvis_worker/cli.py`, change `except OSError as error:` 
     except Exception as error:  # OSError, or anything serialising raised
 ```
 
-- [ ] **Step 5: Run the worker suite**
+- [x] **Step 5: Run the worker suite**
 
 Run: `uv run pytest apps/worker -v`
 Expected: all PASS. `test_stems_dir_option_keeps_the_directory_in_place` still passes: the CLI hands `--stems-dir` straight through as `work_dir`, and the separator now writes into it directly.
@@ -1457,7 +1457,7 @@ Expected: all PASS. `test_stems_dir_option_keeps_the_directory_in_place` still p
 Run: `uv run mypy apps/worker/src apps/worker/tests`
 Expected: `Success`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -1504,7 +1504,7 @@ A new workspace member both apps will depend on. This task gives it the settings
     - `ping() -> None`
   - `guitarvis_jobs.testing`: `FakeClock` (callable; `.now`; `.advance(**timedelta_kwargs)`) and `sample_new_job(*, content_hash="a"*64, title="song", duration_sec=30.0, upload_key=None, client_ip="203.0.113.7") -> NewJob`.
 
-- [ ] **Step 1: Create the package skeleton**
+- [x] **Step 1: Create the package skeleton**
 
 `packages/jobs/pyproject.toml`:
 
@@ -1559,7 +1559,7 @@ In `packages/core/tests/test_py_typed_markers.py`, add to `WORKSPACE_PACKAGES`:
 Run: `uv lock && uv sync`
 Expected: `guitarvis-jobs` resolves as a workspace member.
 
-- [ ] **Step 2: Write the failing settings tests**
+- [x] **Step 2: Write the failing settings tests**
 
 `packages/jobs/tests/test_settings.py`:
 
@@ -1633,7 +1633,7 @@ def test_max_upload_bytes_is_mebibytes() -> None:
 Run: `uv run pytest packages/jobs/tests/test_settings.py -v`
 Expected: collection error, `ModuleNotFoundError: No module named 'guitarvis_jobs.settings'`.
 
-- [ ] **Step 3: Implement `settings.py`**
+- [x] **Step 3: Implement `settings.py`**
 
 ```python
 """Where the services are, and the limits the api enforces.
@@ -1701,7 +1701,7 @@ def _parse_int(name: str, raw: str) -> int:
 Run: `uv run pytest packages/jobs/tests/test_settings.py -v`
 Expected: 8 PASS.
 
-- [ ] **Step 4: Write the failing store contract suite**
+- [x] **Step 4: Write the failing store contract suite**
 
 `packages/jobs/tests/test_job_store.py`:
 
@@ -2029,7 +2029,7 @@ def test_importing_every_jobs_module_loads_nothing_forbidden() -> None:
 Run: `uv run pytest packages/jobs/tests -v`
 Expected: `test_job_store.py` fails to collect (`No module named 'guitarvis_jobs.models'`), and the package tests pass.
 
-- [ ] **Step 5: Implement `models.py`**
+- [x] **Step 5: Implement `models.py`**
 
 ```python
 """The job record, as the api and the worker both see it."""
@@ -2103,7 +2103,7 @@ class Job:
     updated_at: datetime
 ```
 
-- [ ] **Step 6: Implement `store.py`**
+- [x] **Step 6: Implement `store.py`**
 
 ```python
 """The jobs table's contract, and an in-memory twin of it.
@@ -2360,7 +2360,7 @@ if TYPE_CHECKING:  # Static conformance: the typed assignment is what mypy check
     _conforms: JobStore = InMemoryJobStore()
 ```
 
-- [ ] **Step 7: Implement `testing.py`**
+- [x] **Step 7: Implement `testing.py`**
 
 ```python
 """Test support shared by every package's tests.
@@ -2412,7 +2412,7 @@ def sample_new_job(
     )
 ```
 
-- [ ] **Step 8: Run the jobs suite and the type check**
+- [x] **Step 8: Run the jobs suite and the type check**
 
 Run: `uv run pytest packages/jobs packages/core/tests/test_py_typed_markers.py -v`
 Expected: all PASS.
@@ -2420,7 +2420,7 @@ Expected: all PASS.
 Run: `uv run mypy packages/jobs/src packages/jobs/tests`
 Expected: `Success`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -2456,7 +2456,7 @@ The api and worker tests run on these twins. Task 7 adds the S3 and RQ implement
     - `ping()`
   - `guitarvis_jobs.queue`: `RUN_JOB = "guitarvis_worker.runner.run_job"`, `QUEUE_NAME = "jobs"`, `MAX_RETRIES = 2`, `RETRY_INTERVALS_SEC = (10, 60)`, the `JobQueue` Protocol (`enqueue(job_id) -> None`, `exists(job_id) -> bool`, `ping() -> None`), and `InMemoryJobQueue`. The twin has `.enqueued: list[str]`, `.fail_next: bool` (the next `enqueue` raises `ConnectionError`), `.down: bool` (`exists` and `ping` raise `ConnectionError`) and `.lose(job_id)` (forget it, as a flushed Redis would).
 
-- [ ] **Step 1: Write the failing contract suites**
+- [x] **Step 1: Write the failing contract suites**
 
 `packages/jobs/tests/test_blob_store.py`:
 
@@ -2609,7 +2609,7 @@ def test_the_twin_can_fail_lose_and_go_down() -> None:
 Run: `uv run pytest packages/jobs/tests/test_blob_store.py packages/jobs/tests/test_job_queue.py -v`
 Expected: collection errors, `No module named 'guitarvis_jobs.blobs'` / `'guitarvis_jobs.queue'`.
 
-- [ ] **Step 2: Implement `blobs.py` (protocol and twin)**
+- [x] **Step 2: Implement `blobs.py` (protocol and twin)**
 
 ```python
 """Object storage for uploads, stems and cached stage output.
@@ -2694,7 +2694,7 @@ if TYPE_CHECKING:  # Static conformance: the typed assignment is what mypy check
     _conforms: BlobStore = InMemoryBlobStore()
 ```
 
-- [ ] **Step 3: Implement `queue.py` (protocol and twin)**
+- [x] **Step 3: Implement `queue.py` (protocol and twin)**
 
 ```python
 """The queue. Postgres is the record (ADR 0007); Redis carries job ids only.
@@ -2765,12 +2765,12 @@ if TYPE_CHECKING:  # Static conformance: the typed assignment is what mypy check
     _conforms: JobQueue = InMemoryJobQueue()
 ```
 
-- [ ] **Step 4: Run the suites**
+- [x] **Step 4: Run the suites**
 
 Run: `uv run pytest packages/jobs -v && uv run mypy packages/jobs/src packages/jobs/tests`
 Expected: all PASS; mypy `Success`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -2804,7 +2804,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `guitarvis_jobs.migrate.MIGRATIONS: Path`, `alembic_config(database_url) -> Config`, `upgrade(database_url) -> None`, `main() -> int`.
   - `guitarvis_jobs.testing.REQUIRE_SERVICES_ENV = "GUITARVIS_REQUIRE_SERVICES"`, `TEST_DATABASE`, `TEST_REDIS_DB`, `TEST_BUCKET`, `integration_settings() -> Settings`, `require(service: str) -> None` (services: `"postgres"`; Task 7 adds `"redis"` and `"storage"`), and the context manager `postgres_store(clock: Clock = utc_now) -> Iterator[PostgresJobStore]`, which yields an empty, migrated test database.
 
-- [ ] **Step 1: Add the services**
+- [x] **Step 1: Add the services**
 
 `compose.yaml`:
 
@@ -2890,7 +2890,7 @@ migrate: ## Bring the database schema up to date
 Run: `make services`
 Expected: three containers `Healthy`, and the command returns. If a port is already taken (a local Postgres on 5432, say), stop that service, or change the left-hand side of the port mapping and the matching `GUITARVIS_*` URL.
 
-- [ ] **Step 2: Add the database dependencies**
+- [x] **Step 2: Add the database dependencies**
 
 In `packages/jobs/pyproject.toml`, set:
 
@@ -2906,7 +2906,7 @@ dependencies = [
 Run: `uv lock && uv sync`
 Expected: SQLAlchemy 2.1, psycopg 3.3 and Alembic 1.20 (or newer) are installed.
 
-- [ ] **Step 3: Write the failing tests**
+- [x] **Step 3: Write the failing tests**
 
 In `packages/jobs/tests/test_job_store.py`, add `from guitarvis_jobs.testing import postgres_store` (beside the existing `guitarvis_jobs.testing` import) and `from concurrent.futures import ThreadPoolExecutor`. Replace the `store` fixture with:
 
@@ -2967,7 +2967,7 @@ def test_migration_files_have_importable_names() -> None:
 Run: `uv run pytest packages/jobs/tests/test_job_store.py packages/jobs/tests/test_migrations.py -v`
 Expected: collection errors, `cannot import name 'postgres_store'` and `No module named 'guitarvis_jobs.migrate'`.
 
-- [ ] **Step 4: Implement `postgres.py`**
+- [x] **Step 4: Implement `postgres.py`**
 
 ```python
 """The jobs table in Postgres, through SQLAlchemy Core and psycopg 3.
@@ -3243,7 +3243,7 @@ if TYPE_CHECKING:  # Static conformance: the typed assignment is what mypy check
     _conforms: JobStore = PostgresJobStore(sa.create_engine("postgresql://"))
 ```
 
-- [ ] **Step 5: Add the migration**
+- [x] **Step 5: Add the migration**
 
 `packages/jobs/src/guitarvis_jobs/migrations/env.py`:
 
@@ -3384,7 +3384,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 6: Add the integration helpers to `testing.py`**
+- [x] **Step 6: Add the integration helpers to `testing.py`**
 
 Replace the imports at the top of `packages/jobs/src/guitarvis_jobs/testing.py` with:
 
@@ -3495,7 +3495,7 @@ def _truncate(store: PostgresJobStore) -> None:
         connection.execute(sa.text("TRUNCATE jobs"))
 ```
 
-- [ ] **Step 7: Run the suites against real Postgres**
+- [x] **Step 7: Run the suites against real Postgres**
 
 Run: `uv run pytest packages/jobs -v`
 Expected: every `test_job_store.py` test runs twice (`[memory]` and `[postgres]`) and passes, and the three migration tests pass.
@@ -3509,7 +3509,7 @@ Expected: `database up to date: postgresql+psycopg://guitarvis:***@localhost:543
 Run: `uv run mypy packages/jobs/src packages/jobs/tests`
 Expected: `Success`.
 
-- [ ] **Step 8: Amend the spec to name RustFS**
+- [x] **Step 8: Amend the spec to name RustFS**
 
 In `docs/specs/005-api-job-queue/spec.md`:
 
@@ -3529,7 +3529,7 @@ In `docs/specs/001-guitarvis-design/spec.md:74`, `MinIO locally` → `RustFS loc
 Run: `grep -n -i minio docs/specs/005-api-job-queue/spec.md docs/specs/001-guitarvis-design/spec.md`
 Expected: only the new *Amended* line.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -3568,7 +3568,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `guitarvis_jobs.queue.RQJobQueue(connection: Redis, *, job_timeout_sec: int)` implementing `JobQueue`, with `.connection` and `RQJobQueue.from_settings(settings)`. Each enqueue carries `retry=Retry(max=2, interval=[10, 60])`, `job_timeout=job_timeout_sec` and the RQ job id equal to the GuitarVis id.
   - `guitarvis_jobs.testing`: `require` now also accepts `"redis"` and `"storage"`. New context managers: `redis_connection() -> Iterator[Redis]` (db 15, flushed before and after) and `s3_blob_store() -> Iterator[S3BlobStore]` (the `guitarvis-test` bucket, emptied before and after).
 
-- [ ] **Step 1: Add the storage and queue dependencies**
+- [x] **Step 1: Add the storage and queue dependencies**
 
 In `packages/jobs/pyproject.toml`, set:
 
@@ -3604,7 +3604,7 @@ ignore_missing_imports = True
 
 Run: `uv lock && uv sync`
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 In `packages/jobs/tests/test_blob_store.py`, add these imports:
 
@@ -3752,7 +3752,7 @@ def test_a_missing_service_skips_otherwise(monkeypatch: pytest.MonkeyPatch) -> N
 Run: `uv run pytest packages/jobs -v`
 Expected: collection errors (`cannot import name 'S3BlobStore'`, `'RQJobQueue'`, `'redis_connection'`), and the CI gate test fails at `workflow.index("docker compose up -d --wait")` with `ValueError: substring not found`.
 
-- [ ] **Step 3: Implement `S3BlobStore`**
+- [x] **Step 3: Implement `S3BlobStore`**
 
 In `packages/jobs/src/guitarvis_jobs/blobs.py`, extend the imports:
 
@@ -3891,7 +3891,7 @@ def _is_missing(exc: Any) -> bool:
 
 Add `_s3: BlobStore = S3BlobStore(None, None, "bucket")` inside the existing `if TYPE_CHECKING:` block.
 
-- [ ] **Step 4: Implement `RQJobQueue`**
+- [x] **Step 4: Implement `RQJobQueue`**
 
 In `packages/jobs/src/guitarvis_jobs/queue.py`, extend the imports:
 
@@ -3943,7 +3943,7 @@ class RQJobQueue:
 
 Add `_rq: JobQueue = RQJobQueue(Redis(), job_timeout_sec=1)` inside the existing `if TYPE_CHECKING:` block.
 
-- [ ] **Step 5: Teach `testing.py` about Redis and storage**
+- [x] **Step 5: Teach `testing.py` about Redis and storage**
 
 Add to the imports of `packages/jobs/src/guitarvis_jobs/testing.py`:
 
@@ -4017,7 +4017,7 @@ def _empty_bucket(settings: Settings) -> None:
             client.delete_object(Bucket=settings.s3_bucket, Key=item["Key"])
 ```
 
-- [ ] **Step 6: `make migrate` creates the bucket**
+- [x] **Step 6: `make migrate` creates the bucket**
 
 In `packages/jobs/src/guitarvis_jobs/migrate.py`, add `from guitarvis_jobs.blobs import S3BlobStore` and replace `main` with:
 
@@ -4032,7 +4032,7 @@ def main() -> int:
     return 0
 ```
 
-- [ ] **Step 7: Run the services in CI**
+- [x] **Step 7: Run the services in CI**
 
 Replace `.github/workflows/ci.yml` with:
 
@@ -4098,7 +4098,7 @@ jobs:
         run: make check
 ```
 
-- [ ] **Step 8: Run everything with the services up**
+- [x] **Step 8: Run everything with the services up**
 
 Run: `make services && GUITARVIS_REQUIRE_SERVICES=1 uv run pytest packages/jobs -v`
 Expected: all PASS, nothing skipped. The blob tests run `[memory]` and `[s3]`; the queue tests run `[memory]` and `[rq]`.
@@ -4109,7 +4109,7 @@ Expected: `database up to date: …` and then `bucket ready: guitarvis at http:/
 Run: `make check`
 Expected: exit 0.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -4142,11 +4142,11 @@ Three decorators wrap the real stages and implement each stage's own Protocol, s
   - `CacheKeys(content_hash: str, version: int = CACHE_VERSION)` with properties `prefix` (`cache/v{N}/{hash}`), `stem` (`…/separation/stem.wav`), `separation` (`…/separation/result.json`), `transcription` (`…/transcription.json`) and `structure` (`…/structure.json`).
   - The decorators: `CachedSeparator(inner: Separator, blobs: BlobStore, keys: CacheKeys, work_dir: Path)`, `CachedTranscriber(inner: Transcriber, blobs: BlobStore, keys: CacheKeys)` and `CachedAnalyzer(inner: StructureAnalyzer, blobs: BlobStore, keys: CacheKeys)`. A separation hit restores the stem to `work_dir / "cached-separation" / "stem.wav"`.
 
-- [ ] **Step 1: Depend on the shared package**
+- [x] **Step 1: Depend on the shared package**
 
 In `apps/worker/pyproject.toml`, change `dependencies = ["guitarvis-core"]` to `dependencies = ["guitarvis-core", "guitarvis-jobs"]`. Run: `uv lock && uv sync`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `apps/worker/tests/test_caching.py`:
 
@@ -4464,7 +4464,7 @@ def test_a_failed_analysis_stores_nothing(tmp_path: Path) -> None:
 Run: `uv run pytest apps/worker/tests/test_caching.py -v`
 Expected: collection error, `No module named 'guitarvis_worker.caching'`.
 
-- [ ] **Step 3: Implement `caching.py`**
+- [x] **Step 3: Implement `caching.py`**
 
 ```python
 """Per-stage caching, so a retried job resumes after the last stage that finished.
@@ -4687,12 +4687,12 @@ if TYPE_CHECKING:  # Static conformance: the typed assignments are what mypy che
     )
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `uv run pytest apps/worker/tests/test_caching.py -v && uv run mypy apps/worker/src apps/worker/tests`
 Expected: 15 PASS; mypy `Success`.
 
-- [ ] **Step 5: Record the caching rule in the stage skill**
+- [x] **Step 5: Record the caching rule in the stage skill**
 
 In `.claude/skills/pipeline-stage/SKILL.md`, replace the paragraph starting `**Stages are idempotent and intermediates are cached by content hash.**` with:
 
@@ -4708,7 +4708,7 @@ is a miss, never a stage failure; only the separation stem must be stored,
 because the api serves it.
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -4744,7 +4744,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `run_job(job_id: str) -> None` (RQ's entry point), `open_deps(settings: Settings)` (a context manager yielding `WorkerDeps`) and `serve(settings: Settings, *, burst: bool = False) -> None`.
   - CLI `guitarvis-worker serve [--device DEV] [--burst]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `apps/worker/tests/test_runner.py`:
 
@@ -5097,7 +5097,7 @@ def test_serve_runs_the_queue_worker_with_the_device(
 Run: `uv run pytest apps/worker/tests/test_runner.py apps/worker/tests/test_cli.py -v`
 Expected: collection error, `cannot import name 'runner'`.
 
-- [ ] **Step 2: Implement `runner.py`**
+- [x] **Step 2: Implement `runner.py`**
 
 ```python
 """The queue's entry point: one job, end to end, against the shared stores.
@@ -5315,7 +5315,7 @@ def serve(settings: Settings, *, burst: bool = False) -> None:
     Worker([QUEUE_NAME], connection=connection).work(with_scheduler=True, burst=burst)
 ```
 
-- [ ] **Step 3: Add `serve` to the CLI**
+- [x] **Step 3: Add `serve` to the CLI**
 
 In `apps/worker/src/guitarvis_worker/cli.py`, add `import os`, `from guitarvis_jobs.settings import Settings` and `from guitarvis_worker import runner`. In `_build_parser`, before `return parser`, add:
 
@@ -5355,12 +5355,12 @@ worker: ## Run jobs from the queue (ARGS="--device cuda"; needs `uv sync --extra
 	$(UV) run guitarvis-worker serve $(ARGS)
 ```
 
-- [ ] **Step 4: Run the worker suite**
+- [x] **Step 4: Run the worker suite**
 
 Run: `uv run pytest apps/worker -v && uv run mypy apps/worker/src apps/worker/tests`
 Expected: all PASS; mypy `Success`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -5399,7 +5399,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `guitarvis_api.app.create_app(services: Services | None = None) -> FastAPI` and the module-level `app`.
   - Test helper `api_fixture.make_api(*, probe=…, store=None, blobs=None, raise_server_exceptions=True, **settings) -> Api`. `Api` has `.client`, `.store`, `.blobs`, `.queue`, `.clock`, `.settings`, `.services`, `.job(id)` and `.client_from(ip)`. Requests come from `CLIENT_IP = "203.0.113.7"`.
 
-- [ ] **Step 1: Dependencies and the `api` target**
+- [x] **Step 1: Dependencies and the `api` target**
 
 `apps/api/pyproject.toml`:
 
@@ -5423,7 +5423,7 @@ api: ## Serve the api on localhost:8000, reloading on change
 
 Run: `uv lock && uv sync`
 
-- [ ] **Step 2: Write the test helper and the failing tests**
+- [x] **Step 2: Write the test helper and the failing tests**
 
 `apps/api/tests/api_fixture.py`:
 
@@ -5872,7 +5872,7 @@ def test_the_database_and_storage_do_not_answer() -> None:
 Run: `uv run pytest apps/api -v`
 Expected: collection errors (`No module named 'guitarvis_api.services'` and similar).
 
-- [ ] **Step 3: Implement `services.py`**
+- [x] **Step 3: Implement `services.py`**
 
 ```python
 """What a request handler needs, bundled so tests can hand in the twins."""
@@ -5909,7 +5909,7 @@ def build_services(settings: Settings) -> Services:
     )
 ```
 
-- [ ] **Step 4: Implement `errors.py`**
+- [x] **Step 4: Implement `errors.py`**
 
 ```python
 """One error vocabulary for every client.
@@ -6006,7 +6006,7 @@ def install_error_handlers(app: FastAPI) -> None:
         )
 ```
 
-- [ ] **Step 5: Implement `schemas.py`**
+- [x] **Step 5: Implement `schemas.py`**
 
 ```python
 """The job as clients see it."""
@@ -6061,7 +6061,7 @@ class JobView(BaseModel):
         )
 ```
 
-- [ ] **Step 6: Implement `reconcile.py`**
+- [x] **Step 6: Implement `reconcile.py`**
 
 ```python
 """Repair, on read, the two ways Postgres and Redis can disagree (ADR 0007).
@@ -6121,7 +6121,7 @@ def _is_lost(job: Job, services: Services) -> bool:
         return False
 ```
 
-- [ ] **Step 7: Implement `routes.py` (everything but the upload)**
+- [x] **Step 7: Implement `routes.py` (everything but the upload)**
 
 ```python
 """Every route. Plain `def`: the work is blocking I/O, which FastAPI runs in
@@ -6228,7 +6228,7 @@ def health(request: Request) -> JSONResponse:
     return JSONResponse({**body, "services": answers}, status_code=503)
 ```
 
-- [ ] **Step 8: Rewrite `app.py`**
+- [x] **Step 8: Rewrite `app.py`**
 
 ```python
 """The FastAPI application.
@@ -6277,7 +6277,7 @@ def create_app(services: Services | None = None) -> FastAPI:
 app = create_app()
 ```
 
-- [ ] **Step 9: Run the api suite**
+- [x] **Step 9: Run the api suite**
 
 Run: `uv run pytest apps/api -v`
 Expected: all PASS, including both `test_boundaries.py` tests: importing the app still loads nothing from the ML stack.
@@ -6285,7 +6285,7 @@ Expected: all PASS, including both `test_boundaries.py` tests: importing the app
 Run: `uv run mypy apps/api/src apps/api/tests`
 Expected: `Success`.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -6321,11 +6321,11 @@ The upload route, cheapest check first: size, then ffprobe, then dedupe, then th
   - Constants: `MAX_TITLE_CHARS = 200`, `MULTIPART_ALLOWANCE = 64 * 1024`.
   - Route `POST /jobs`. Its answers: 202 with `Location` for a new job; 200 for an existing live job; 413 `too_large`; 422 `unsupported_format` (unreadable, empty or missing file) or `too_long`; 429 `too_many_jobs`; 503 `internal` (ffprobe missing, or the queue refused).
 
-- [ ] **Step 1: Add the multipart dependency**
+- [x] **Step 1: Add the multipart dependency**
 
 In `apps/api/pyproject.toml`, add `"python-multipart>=0.0.18",` to `dependencies` (FastAPI requires it for `UploadFile`). Run: `uv lock && uv sync`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `apps/api/tests/test_upload.py`:
 
@@ -6659,7 +6659,7 @@ def test_a_windows_path_filename_is_reduced_to_its_basename() -> None:
 Run: `uv run pytest apps/api/tests/test_upload.py -v`
 Expected: collection error, `No module named 'guitarvis_api.uploads'`.
 
-- [ ] **Step 3: Implement `uploads.py`**
+- [x] **Step 3: Implement `uploads.py`**
 
 ```python
 """Receiving an upload: the size limit, the hash, the title and the key.
@@ -6803,7 +6803,7 @@ def upload_key(content_hash: str, filename: str | None) -> str:
     return f"uploads/{content_hash}{extension_of(filename)}"
 ```
 
-- [ ] **Step 4: Add the route**
+- [x] **Step 4: Add the route**
 
 In `apps/api/src/guitarvis_api/routes.py`, extend the imports:
 
@@ -6921,7 +6921,7 @@ def _live_job(services: Services, content_hash: str) -> Job | None:
     return None if job.status is JobStatus.FAILED else job
 ```
 
-- [ ] **Step 5: Install the middleware**
+- [x] **Step 5: Install the middleware**
 
 In `apps/api/src/guitarvis_api/app.py`, add `from guitarvis_api.uploads import UploadSizeLimit`, and in `create_app` add this line directly after `install_error_handlers(app)`:
 
@@ -6929,7 +6929,7 @@ In `apps/api/src/guitarvis_api/app.py`, add `from guitarvis_api.uploads import U
     app.add_middleware(UploadSizeLimit)
 ```
 
-- [ ] **Step 6: Run the api suite**
+- [x] **Step 6: Run the api suite**
 
 Run: `uv run pytest apps/api -v`
 Expected: all PASS. `test_the_real_probe_refuses_bytes_that_are_not_audio` runs because ffmpeg is installed.
@@ -6937,7 +6937,7 @@ Expected: all PASS. `test_the_real_probe_refuses_bytes_that_are_not_audio` runs 
 Run: `uv run mypy apps/api/src apps/api/tests`
 Expected: `Success`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -6967,7 +6967,7 @@ The boundary test gains `guitarvis_worker`. Then one test runs the real thing: `
 - Consumes: everything above.
 - Produces: `guitarvis_jobs.testing.settings_env(settings) -> dict[str, str]`, the `GUITARVIS_*` variables that `Settings.from_env` reads back as `settings`.
 
-- [ ] **Step 1: Forbid the worker in the api**
+- [x] **Step 1: Forbid the worker in the api**
 
 In `apps/api/tests/test_boundaries.py`, replace `FORBIDDEN_ROOTS = {...}` with:
 
@@ -7003,7 +7003,7 @@ forbidden.
 Prove the guard bites: add `import guitarvis_worker  # noqa: F401` to the top of `apps/api/src/guitarvis_api/routes.py` and run `uv run pytest apps/api/tests/test_boundaries.py -v`.
 Expected: both tests FAIL, naming `guitarvis_worker`. Remove the line again and re-run. Expected: both PASS.
 
-- [ ] **Step 2: Write `settings_env` and its test**
+- [x] **Step 2: Write `settings_env` and its test**
 
 Append to `packages/jobs/tests/test_settings.py`:
 
@@ -7041,7 +7041,7 @@ def settings_env(settings: Settings) -> dict[str, str]:
 Run: `uv run pytest packages/jobs/tests/test_settings.py -v`
 Expected: all PASS.
 
-- [ ] **Step 3: Write the end-to-end test**
+- [x] **Step 3: Write the end-to-end test**
 
 `apps/worker/tests/test_end_to_end.py`:
 
@@ -7190,7 +7190,7 @@ def test_upload_process_and_fetch(
     assert guitar.status_code == 307
 ```
 
-- [ ] **Step 4: Run it against the services**
+- [x] **Step 4: Run it against the services**
 
 Run: `make services && GUITARVIS_REQUIRE_SERVICES=1 uv run pytest apps/worker/tests/test_end_to_end.py -v`
 Expected: PASS. If the job is not `succeeded`, the assertion prints the job body. RQ's `FailedJobRegistry` on Redis db 15 holds the traceback until the fixture flushes it, so rerun with `-s` to see the worker's log.
@@ -7198,12 +7198,12 @@ Expected: PASS. If the job is not `succeeded`, the assertion prints the job body
 Run: `docker compose stop redis && uv run pytest apps/worker/tests/test_end_to_end.py -q; make services`
 Expected: `1 skipped` ("redis is not reachable … Run `make services`").
 
-- [ ] **Step 5: Run everything, the way CI does**
+- [x] **Step 5: Run everything, the way CI does**
 
 Run: `GUITARVIS_REQUIRE_SERVICES=1 make check`
 Expected: exit 0, with nothing skipped except tests that are legitimately conditional (none on this machine, since ffmpeg is installed).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -7229,7 +7229,7 @@ No code. The ADR records the one structural decision; the docs give the new comm
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Write ADR 0007**
+- [x] **Step 1: Write ADR 0007**
 
 `docs/decisions/0007-postgres-is-the-record.md`:
 
@@ -7282,7 +7282,7 @@ In `docs/decisions/README.md`, add a row to the *Accepted* table:
 | [0007](0007-postgres-is-the-record.md) | Postgres is the record of a job; Redis carries only its id |
 ```
 
-- [ ] **Step 2: Update `CLAUDE.md`**
+- [x] **Step 2: Update `CLAUDE.md`**
 
 - Replace the *Commands* line with: `` `make install` · `make check` · `make test` · `make schema` · `make eval-data` · `make eval` · `make services` · `make migrate` · `make api` · `make worker` · `make help` ``
 - Invariant 3 becomes: `` `apps/api` must not import torch, demucs, basic_pitch, librosa, or numpy — nor `guitarvis_worker`, which it reaches only through the queue. ``
@@ -7301,7 +7301,7 @@ In `docs/decisions/README.md`, add a row to the *Accepted* table:
 - `make worker` runs the real stages, so it needs `uv sync --extra ml`.
 ```
 
-- [ ] **Step 3: Update `README.md`**
+- [x] **Step 3: Update `README.md`**
 
 Replace the *Status* paragraph with:
 
@@ -7338,7 +7338,7 @@ Uploading the same file again returns the same job. Uploads and stems stay in
 storage until you run `docker compose down -v`.
 ````
 
-- [ ] **Step 4: Update `CONTRIBUTING.md`**
+- [x] **Step 4: Update `CONTRIBUTING.md`**
 
 After the *Setup* requirements sentence, add: `` The integration tests and `make api`/`make worker` also need Docker, for `make services`. ``
 
@@ -7365,7 +7365,7 @@ Behind a reverse proxy, start uvicorn with `--forwarded-allow-ips` so the
 per-address job limit sees the user's address, not the proxy's.
 ```
 
-- [ ] **Step 5: Update `docs/CONVENTIONS.md`**
+- [x] **Step 5: Update `docs/CONVENTIONS.md`**
 
 Replace the Python bullet `` `apps/api` imports nothing from the ML stack. This is enforced by `apps/api/tests/test_boundaries.py`, not by good intentions. `` with:
 
@@ -7388,7 +7388,7 @@ Add rows to the *Mechanisms over notes* table:
 | CI cannot pass by skipping the integration suite | `packages/jobs/tests/test_services_gate_ci.py` |
 ```
 
-- [ ] **Step 6: Mark 003's findings resolved**
+- [x] **Step 6: Mark 003's findings resolved**
 
 In `docs/specs/003-pipeline-skeleton/review-notes.md`, append a line to each of these four findings:
 
@@ -7397,13 +7397,13 @@ In `docs/specs/003-pipeline-skeleton/review-notes.md`, append a line to each of 
 - *`DemucsSeparator(work_dir=None)` …*: `**Resolved in 005:** work_dir is a required keyword; the job runner passes its temporary directory.`
 - *The CLI's output write is guarded only by `OSError`*: `**Resolved in 005:** it catches any exception and reports it as internal.`
 
-- [ ] **Step 7: Optional — the real pipeline through the service**
+- [x] **Step 7: Optional — the real pipeline through the service**
 
 Only if the ML stack is available. The first run downloads model weights and takes minutes on CPU. Run `uv sync --extra ml`, then `make services && make migrate`, then `make api` and `make worker` in two terminals. Then `curl -F file=@<a short song> localhost:8000/jobs` and poll `GET /jobs/<id>`.
 Expected: `stage` goes `separation`, `transcription`, `structure`, `fretboard`; `percent` moves during separation; the document validates.
 If you run it, paste the polled `stage`/`percent` pairs into the PR description. If you do not run it, say so in the PR description rather than implying it was run. Then run `uv sync` to drop the extra again.
 
-- [ ] **Step 8: Verify and commit**
+- [x] **Step 8: Verify and commit**
 
 Run: `GUITARVIS_REQUIRE_SERVICES=1 make check`
 Expected: exit 0.
