@@ -305,3 +305,18 @@ def test_simultaneous_uploads_of_one_file_make_one_job(store: JobStore) -> None:
 
     assert sum(created for _, created in results) == 1
     assert len({job.id for job, _ in results}) == 1
+
+
+def test_many_creates_through_one_store_keep_deduping(store: JobStore) -> None:
+    # psycopg prepares a statement after five runs, and Postgres then tries a
+    # generic plan; a bound partial-index predicate made every 11th insert
+    # fail to match the index. One store, so one pooled connection, is how
+    # the api runs.
+    for n in range(25):
+        content_hash = f"{n:064x}"
+        job, created = store.create(sample_new_job(content_hash=content_hash))
+        again, created_again = store.create(sample_new_job(content_hash=content_hash))
+
+        assert created
+        assert not created_again
+        assert again.id == job.id

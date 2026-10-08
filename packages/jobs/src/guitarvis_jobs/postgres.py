@@ -21,6 +21,12 @@ from guitarvis_jobs.store import Clock, utc_now
 
 metadata = sa.MetaData()
 
+# The partial unique index's predicate, as literal SQL. ON CONFLICT names it
+# too, and must do so with a constant: a bound parameter matches the index
+# only while Postgres plans with its value, and once psycopg prepares the
+# statement Postgres may switch to a generic plan that cannot prove it.
+_LIVE_INDEX_PREDICATE = "status <> 'failed'"
+
 jobs = sa.Table(
     "jobs",
     metadata,
@@ -51,7 +57,7 @@ jobs = sa.Table(
         "jobs_content_hash_live",
         "content_hash",
         unique=True,
-        postgresql_where=sa.text("status <> 'failed'"),
+        postgresql_where=sa.text(_LIVE_INDEX_PREDICATE),
     ),
     sa.Index("jobs_client_ip_status", "client_ip", "status"),
 )
@@ -95,7 +101,8 @@ class PostgresJobStore:
                     updated_at=now,
                 )
                 .on_conflict_do_nothing(
-                    index_elements=[jobs.c.content_hash], index_where=_LIVE
+                    index_elements=[jobs.c.content_hash],
+                    index_where=sa.text(_LIVE_INDEX_PREDICATE),
                 )
                 .returning(*jobs.c)
             )
