@@ -12,6 +12,7 @@ from guitarvis_jobs.queue import (
     JobQueue,
     RQJobQueue,
 )
+from guitarvis_jobs.settings import Settings
 from guitarvis_jobs.testing import redis_connection
 from rq.job import Job as RQJob
 
@@ -82,3 +83,15 @@ def test_an_rq_job_carries_the_retry_policy_and_the_timeout() -> None:
         assert job.retries_left == MAX_RETRIES
         assert job.retry_intervals == list(RETRY_INTERVALS_SEC)
         assert job.timeout == 1800
+
+
+def test_the_api_side_connection_times_out_instead_of_hanging() -> None:
+    """A Redis that goes silent must raise, so reads can answer from Postgres.
+
+    Constructing a client does not connect, so this needs no live Redis.
+    """
+    queue = RQJobQueue.from_settings(Settings())
+
+    kwargs = queue.connection.connection_pool.connection_kwargs
+    assert kwargs["socket_connect_timeout"] == 5
+    assert kwargs["socket_timeout"] == 5

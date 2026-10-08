@@ -78,9 +78,12 @@ class RQJobQueue:
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "RQJobQueue":
-        # No socket timeout: a worker blocks on this connection for minutes
-        # while it waits for work, and RQ manages that wait itself.
-        connection = Redis.from_url(settings.redis_url, socket_connect_timeout=5)
+        # The api-side connection: a dead or silent Redis must raise quickly,
+        # so reads can answer from Postgres. The worker builds its own
+        # connection, which waits for work without a socket timeout.
+        connection = Redis.from_url(
+            settings.redis_url, socket_connect_timeout=5, socket_timeout=5
+        )
         return cls(connection, job_timeout_sec=settings.job_timeout_sec)
 
     def enqueue(self, job_id: str) -> None:
