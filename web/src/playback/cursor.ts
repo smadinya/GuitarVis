@@ -18,7 +18,7 @@ export interface Span {
 export class NoteCursor<T extends Span> {
   private readonly notes: readonly T[];
   private readonly longest: number;
-  private lo = 0; // the first note with t >= from - longest
+  private lo = 0; // the first note that could still sound at `from`
   private hi = 0; // the first note with t > to
   private from = Number.POSITIVE_INFINITY;
   private to = Number.NEGATIVE_INFINITY;
@@ -31,13 +31,16 @@ export class NoteCursor<T extends Span> {
 
   /** The notes whose [t, t + dur] overlaps [from, to], in onset order. */
   window(from: number, to: number): T[] {
-    const start = from - this.longest; // nothing earlier can still be sounding
+    // A note is out of reach once t + longest < from. That is the filter's own
+    // sum, `t + dur >= from`, with dur at its largest, so the bound can never
+    // drop a note the filter would keep. (`t < from - longest` rounds
+    // differently and can.)
     const following = from >= this.from && from <= this.to && to >= this.to;
     if (following) {
-      while (this.lo < this.notes.length && this.notes[this.lo].t < start) this.lo++;
+      while (this.lo < this.notes.length && this.notes[this.lo].t + this.longest < from) this.lo++;
       while (this.hi < this.notes.length && this.notes[this.hi].t <= to) this.hi++;
     } else {
-      this.lo = firstIndex(this.notes, (note) => note.t >= start);
+      this.lo = firstIndex(this.notes, (note) => note.t + this.longest >= from);
       this.hi = firstIndex(this.notes, (note) => note.t > to);
     }
     this.from = from;

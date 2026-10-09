@@ -67,6 +67,21 @@ describe("NoteCursor", () => {
     expect(ids(cursor.window(31, 32))).toEqual([]);
   });
 
+  it("returns a note that ends exactly at the window's start", () => {
+    // from - dur rounds above t here, so a bound written as `t < from - longest`
+    // would prune a note that `t + dur >= from` keeps.
+    const t = 28.190847716661406;
+    const dur = 4.060984901227755;
+    const from = t + dur;
+    const notes: Tagged[] = [{ id: 0, t, dur }];
+
+    expect(ids(new NoteCursor(notes).window(from, from + 1))).toEqual([0]);
+
+    const stepping = new NoteCursor(notes);
+    stepping.window(from - 2, from + 0.5);
+    expect(ids(stepping.window(from, from + 1))).toEqual([0]);
+  });
+
   it("answers an empty song", () => {
     expect(new NoteCursor<Tagged>([]).window(0, 10)).toEqual([]);
   });
