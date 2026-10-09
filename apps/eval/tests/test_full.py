@@ -244,7 +244,10 @@ def test_full_mode_prints_and_records_precision_by_confidence(
 
     printed = capsys.readouterr().out
     assert code == 0
-    assert "confidence" in printed and "precision" in printed
+    lines = printed.splitlines()
+    assert "  confidence     notes  matched  precision" in lines
+    assert "  0.9                1        1     100.0%" in lines  # the note's band
+    assert "  0.3                0        0          —" in lines  # an empty band
     # One note is far short of a 50-note band, so no threshold is supported.
     assert "HIDE (precision ≥ 0.5)" in printed
     assert "not supported" in printed
