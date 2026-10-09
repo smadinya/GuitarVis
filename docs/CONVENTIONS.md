@@ -11,8 +11,11 @@ Rules that outlive any one change. The reasoning lives in
   `fretboard` — and lenient elsewhere. Exploratory pipeline code should not be
   fought with type errors; the contract should.
 - **Failures carry a typed reason**, never a bare string. `FailureReason` in
-  `guitarvis_core.contracts` is the closed set, and the UI maps each member to
-  actionable text. Adding a reason means updating that mapping.
+  `guitarvis_core.contracts` and the api's `HttpReason` together are the closed
+  set the api can send (`Reason`, nine values). `web/src/api/messages.ts` maps
+  each of them, and the client's own `unreachable`, to actionable text. Adding
+  a reason means updating that mapping, and `tsc` refuses the build until you
+  do.
 - **A stage never imports another stage.** Stages take and return plain data;
   the worker orchestrates. If a stage needs to know what ran before it, the
   interface is wrong.
@@ -28,13 +31,21 @@ Rules that outlive any one change. The reasoning lives in
 
 - **One clock.** A `PlaybackEngine` owns the audio element and is the sole
   source of truth for current time.
-- **Views subscribe to `(tabDocument, currentTime)` and hold no playback
-  state.** They never communicate with sibling views. A fourth view should be a
-  new subscriber, not a refactor.
+- **Views draw from `engine.onFrame(t)` and read the `Song`**, never the raw
+  document. They hold no playback state and never talk to sibling views. A
+  new view is one more `onFrame` listener, not a refactor.
+- **The client and the api share an origin.** Client code uses relative
+  paths. `make web` proxies `/jobs` and `/health` to the api, and hosting must
+  keep both behind one origin, or add CORS deliberately. Client routes live
+  under `/songs/`, never `/jobs/`.
 - **Confidence rendering lives in one shared function**, used identically by
   all three views. The rule must not drift between them.
-- `web/src/types/tabDocument.ts` is generated. Never hand-edit it; run
-  `make schema`.
+- `web/src/types/tabDocument.ts` and `web/src/types/api.ts` are generated.
+  Never hand-edit them; run `make schema`.
+- **Confidence thresholds are measured.** `HIDE` and `FULL` in
+  `web/src/confidence.ts` come from
+  [calibration.md](specs/006-tab-view-sync/calibration.md). After a
+  transcriber change, run `make eval ARGS=--full` and revisit them.
 - Canvas for the tab strip, SVG for the 2D fretboard. A four-minute song has
   thousands of notes, and SVG nodes at that count stutter.
 
@@ -91,6 +102,7 @@ Where a rule matters, it is enforced by something that fails:
 | In-memory store twins behave like the real stores | shared contract suites in `packages/jobs/tests` |
 | The migration matches the table the code queries | `packages/jobs/tests/test_migrations.py` |
 | CI cannot pass by skipping the integration suite | `packages/jobs/tests/test_services_gate_ci.py` |
+| Every failure reason has UI text | `Record<Reason, …>` in `web/src/api/messages.ts`, over the generated `web/src/types/api.ts` |
 
 Adding a rule to this document without a mechanism is worth doing, but expect
 it to decay.

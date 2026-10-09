@@ -1,0 +1,175 @@
+{
+  "$defs": {
+    "ErrorBody": {
+      "description": "Every error the api answers with. `error_body` builds each one from\nthis model, so the generated client types describe exactly what is sent.",
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ErrorDetail"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "ErrorBody",
+      "type": "object"
+    },
+    "ErrorDetail": {
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FailureReason"
+            },
+            {
+              "$ref": "#/$defs/HttpReason"
+            }
+          ]
+        }
+      },
+      "required": [
+        "reason",
+        "message"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    },
+    "FailureReason": {
+      "description": "Why a job failed, in terms the UI can turn into actionable text.\n\nThe user needs to know whether to try a different file, a different song,\nor come back later.",
+      "enum": [
+        "unsupported_format",
+        "no_guitar_detected",
+        "too_long",
+        "fetch_failed",
+        "internal"
+      ],
+      "title": "FailureReason",
+      "type": "string"
+    },
+    "FailureView": {
+      "description": "Why a job failed. Only a FailureReason: the HttpReason values describe\na request, never a job.",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/$defs/FailureReason"
+        },
+        "stage": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "reason",
+        "message",
+        "stage"
+      ],
+      "title": "FailureView",
+      "type": "object"
+    },
+    "HttpReason": {
+      "enum": [
+        "too_large",
+        "too_many_jobs",
+        "not_found",
+        "not_ready"
+      ],
+      "title": "HttpReason",
+      "type": "string"
+    },
+    "JobStatus": {
+      "enum": [
+        "queued",
+        "running",
+        "succeeded",
+        "failed"
+      ],
+      "title": "JobStatus",
+      "type": "string"
+    },
+    "JobView": {
+      "description": "`failure` is set only when `status` is failed; `stage` only while running.",
+      "properties": {
+        "attempts": {
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "duration_sec": {
+          "type": "number"
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FailureView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "percent": {
+          "type": "integer"
+        },
+        "stage": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/JobStatus"
+        },
+        "title": {
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "stage",
+        "percent",
+        "attempts",
+        "title",
+        "duration_sec",
+        "failure",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "JobView",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/JobView"
+    },
+    {
+      "$ref": "#/$defs/ErrorBody"
+    }
+  ],
+  "title": "ApiResponse"
+}

@@ -124,6 +124,25 @@ def test_count_active_counts_queued_and_running_for_one_ip(store: JobStore) -> N
     assert store.count_active("192.0.2.1") == 0
 
 
+def test_active_jobs_are_the_counted_rows_oldest_first(
+    store: JobStore, clock: FakeClock
+) -> None:
+    queued, _ = store.create(sample_new_job())
+    clock.advance(seconds=1)
+    started = running(store, content_hash=HASH_B)
+    clock.advance(seconds=1)
+    done = running(store, content_hash="c" * 64)
+    store.succeed(done, document={}, stem_key="k")
+    store.create(sample_new_job(content_hash="d" * 64, client_ip="198.51.100.1"))
+
+    active = store.active_jobs("203.0.113.7")
+
+    assert [job.id for job in active] == [queued.id, started]
+    assert [job.status for job in active] == [JobStatus.QUEUED, JobStatus.RUNNING]
+    assert len(active) == store.count_active("203.0.113.7")
+    assert store.active_jobs("192.0.2.1") == []
+
+
 def test_create_refuses_a_new_job_at_the_limit(store: JobStore) -> None:
     store.create(sample_new_job(content_hash="1" * 64))
     store.create(sample_new_job(content_hash="2" * 64))

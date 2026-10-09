@@ -7,12 +7,14 @@ produces, so a client maps one vocabulary to text.
 
 import logging
 from enum import StrEnum
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from guitarvis_core.contracts import FailureReason
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE
+from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.formparsers import MultiPartException
 
@@ -27,6 +29,19 @@ class HttpReason(StrEnum):
 
 
 Reason = FailureReason | HttpReason
+
+
+class ErrorDetail(BaseModel):
+    reason: Reason
+    message: str
+
+
+class ErrorBody(BaseModel):
+    """Every error the api answers with. `error_body` builds each one from
+    this model, so the generated client types describe exactly what is sent."""
+
+    error: ErrorDetail
+
 
 UNREADABLE_UPLOAD_MESSAGE = "Send the audio as a multipart form field named `file`."
 
@@ -45,8 +60,10 @@ class ApiError(StarletteHTTPException):
         self.message = message
 
 
-def error_body(reason: Reason, message: str) -> dict[str, dict[str, str]]:
-    return {"error": {"reason": reason.value, "message": message}}
+def error_body(reason: Reason, message: str) -> dict[str, Any]:
+    return ErrorBody(error=ErrorDetail(reason=reason, message=message)).model_dump(
+        mode="json"
+    )
 
 
 def _internal_error(request: Request, exc: BaseException) -> JSONResponse:

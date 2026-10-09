@@ -70,6 +70,8 @@ def create_job(file: UploadFile, request: Request, response: Response) -> JobVie
         # storage. Uploads that race past it are refused by `create`.
         active = services.store.count_active(client_ip)
         if active >= settings.max_active_jobs_per_ip:
+            active = _active_after_repair(services, client_ip)
+        if active >= settings.max_active_jobs_per_ip:
             raise _too_many_jobs(active)
 
         key = upload_key(upload.content_hash, file.filename)
@@ -112,6 +114,19 @@ def create_job(file: UploadFile, request: Request, response: Response) -> JobVie
 
     response.headers["Location"] = f"/jobs/{job.id}"
     return JobView.of(job)
+
+
+def _active_after_repair(services: Services, client_ip: str) -> int:
+    """The count again, once the rows it counted have been reconciled.
+
+    A queued row whose RQ job is lost holds its slot until something reads
+    it, so a user could be refused with nothing processing. At the limit,
+    read them all, then count again. Still repair on read (ADR 0007), not a
+    reaper.
+    """
+    for job in services.store.active_jobs(client_ip):
+        reconcile(job, services)
+    return services.store.count_active(client_ip)
 
 
 def _too_many_jobs(active: int) -> ApiError:

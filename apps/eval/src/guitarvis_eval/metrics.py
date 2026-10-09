@@ -160,7 +160,7 @@ def chord_tally(
     correct = total = 0
     for frame in range(round(duration / hop)):
         t = frame * hop
-        expected = reduce_chord(_label_at(truth, t))
+        expected = reduce_chord(label_at(truth, t))
         if expected is None:
             continue
         actual = next((c.symbol for c in predicted if c.t <= t < c.t + c.dur), NO_CHORD)
@@ -169,5 +169,5 @@ def chord_tally(
     return Tally(correct, total)
 
 
-def _label_at(chords: Sequence[TruthChord], t: float) -> str:
+def label_at(chords: Sequence[TruthChord], t: float) -> str:
     return next((c.label for c in chords if c.start <= t < c.end), NO_CHORD)

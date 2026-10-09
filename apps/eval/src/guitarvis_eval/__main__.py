@@ -11,6 +11,14 @@ from pathlib import Path
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
 
 from guitarvis_eval.baseline import LowestFretMapper
+from guitarvis_eval.calibration import (
+    FULL_PRECISION,
+    HIDE_PRECISION,
+    MIN_BAND_CHORD_FRAMES,
+    MIN_BAND_NOTES,
+    ConfidenceBands,
+    threshold,
+)
 from guitarvis_eval.dataset import (
     DatasetMissing,
     data_dir,
@@ -131,6 +139,10 @@ def main(argv: list[str] | None = None) -> int:
         out_dir=args.out,
     )
     _print_table(summary)
+    if args.full:
+        bands = [s.confidence for s in scores if s.confidence is not None]
+        chords = [s.chord_confidence for s in scores if s.chord_confidence]
+        _print_thresholds(sum(bands, ConfidenceBands()), sum(chords, ConfidenceBands()))
     print(f"wrote {written}", file=sys.stderr)
     return 0
 
@@ -151,6 +163,46 @@ def _print_table(summary: dict[str, object]) -> None:
             tally = totals.get(key)
             if isinstance(tally, dict):
                 print(f"  {label:<26} {_percent(tally['rate'])}")
+        _print_bands(
+            totals.get("precision_by_confidence"), ("confidence", "notes", "matched")
+        )
+        _print_bands(
+            totals.get("chord_precision_by_confidence"),
+            ("chord conf", "frames", "correct"),
+        )
+
+
+def _print_bands(bands: object, header: tuple[str, str, str]) -> None:
+    if not isinstance(bands, dict):
+        return
+    band, counted, right = header
+    print(f"  {band:<12}{counted:>8}{right:>9}{'precision':>11}")
+    for lower, band in bands.items():
+        assert isinstance(band, dict)
+        print(
+            f"  {lower:<12}{band['estimated']:>8}{band['matched']:>9}"
+            f"{_percent(band['precision']):>11}"
+        )
+
+
+def _print_thresholds(notes: ConfidenceBands, chords: ConfidenceBands) -> None:
+    """The calibration rule from spec 006, over every excerpt: for notes, and
+    for the chords, whose confidence is a different measure."""
+    rows = (
+        ("HIDE", notes, HIDE_PRECISION, MIN_BAND_NOTES),
+        ("FULL", notes, FULL_PRECISION, MIN_BAND_NOTES),
+        ("CHORD_HIDE", chords, HIDE_PRECISION, MIN_BAND_CHORD_FRAMES),
+        ("CHORD_FULL", chords, FULL_PRECISION, MIN_BAND_CHORD_FRAMES),
+    )
+    print(
+        f"confidence thresholds (bands of {MIN_BAND_NOTES}+ notes, "
+        f"or {MIN_BAND_CHORD_FRAMES}+ chord frames)"
+    )
+    for name, bands, precision, minimum in rows:
+        value = threshold(bands, precision, minimum)
+        shown = "not supported" if value is None else f"{value:.1f}"
+        label = f"{name} (precision ≥ {precision:.1f})"
+        print(f"  {label:<30} {shown}")
 
 
 def _percent(value: object) -> str:

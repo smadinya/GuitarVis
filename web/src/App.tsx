@@ -1,16 +1,29 @@
 /**
- * The client shell.
- *
- * The three synced views arrive in later specs. When they do, each one
- * subscribes to (tabDocument, currentTime) and holds no playback state of its
- * own: a PlaybackEngine owns the audio element and is the sole source of truth
- * for current time.
+ * The client: an upload page, and a song page whose views all subscribe to
+ * one PlaybackEngine and hold no playback state of their own.
  */
+import { UploadAnother } from "./pages/Failure";
+import { SongPage } from "./pages/SongPage";
+import { UploadPage } from "./pages/UploadPage";
+import { followLink, useRoute } from "./routing";
+
 export function App() {
+  const route = useRoute();
   return (
-    <main>
-      <h1>GuitarVis</h1>
-      <p>Pipeline first. Views land in a later spec.</p>
-    </main>
+    <>
+      <header className="masthead">
+        <a href="/" onClick={followLink}>
+          GuitarVis
+        </a>
+      </header>
+      {route.page === "upload" && <UploadPage />}
+      {route.page === "song" && <SongPage key={route.jobId} jobId={route.jobId} />}
+      {route.page === "missing" && (
+        <main>
+          <p>There is no page here.</p>
+          <UploadAnother label="Upload a song" />
+        </main>
+      )}
+    </>
   );
 }

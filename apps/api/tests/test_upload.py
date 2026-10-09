@@ -163,6 +163,32 @@ def test_too_many_active_jobs_from_one_address() -> None:
     assert len(api.queue.enqueued) == 3
 
 
+def test_a_lost_job_at_the_limit_is_repaired_rather_than_refused() -> None:
+    api = make_api(max_active_jobs_per_ip=2)
+    lost = post(api.client, b"one").json()["id"]
+    assert post(api.client, b"two").status_code == 202
+    api.queue.lose(lost)
+    api.clock.advance(seconds=61)
+
+    third = post(api.client, b"three")
+
+    assert third.status_code == 202
+    assert api.job(lost).status is JobStatus.FAILED
+    assert api.job(lost).failure_reason is FailureReason.INTERNAL
+
+
+def test_jobs_the_queue_still_holds_keep_their_slots() -> None:
+    api = make_api(max_active_jobs_per_ip=2)
+    assert post(api.client, b"one").status_code == 202
+    assert post(api.client, b"two").status_code == 202
+    api.clock.advance(seconds=61)
+
+    third = post(api.client, b"three")
+
+    assert third.status_code == 429
+    assert "2 songs" in third.json()["error"]["message"]
+
+
 def test_uploads_that_race_past_the_count_are_refused_when_created(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

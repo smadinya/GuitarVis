@@ -1,0 +1,121 @@
+/**
+ * The confidence rule, shared by every view so that it cannot drift between
+ * them. Phase 5's fretboards import this module unchanged.
+ *
+ * The thresholds are measured, not chosen by eye. Where they came from, and
+ * what they do to real songs, is recorded in
+ * docs/specs/006-tab-view-sync/calibration.md. Notes and chords have their
+ * own: a note's confidence is the transcriber's, a chord's is how closely
+ * the audio matches a triad template, and the same number means different
+ * things in each.
+ */
+import type { Note } from "./types/tabDocument";
+
+/** Below HIDE, a note is more often wrong than right (calibration.md). */
+export const HIDE = 0.5;
+/** At or above FULL, a note is right at least 80% of the time (calibration.md). */
+export const FULL = 0.6;
+/** Below CHORD_HIDE, a chord symbol is more often wrong than right (calibration.md). */
+export const CHORD_HIDE = 0.7;
+/** At or above CHORD_FULL, a chord symbol is right at least 80% of the time (calibration.md). */
+export const CHORD_FULL = 0.8;
+/** The opacity of anything at or below its `hide` threshold. */
+export const FADED = 0.35;
+/** A passage is hidden when at least this many weak notes run together... */
+export const MIN_RUN = 3;
+/** ...with no gap between neighbouring onsets longer than this. */
+export const MAX_GAP_SEC = 1;
+
+export interface Thresholds {
+  /** At or below this, FADED. Chords are faded, never hidden. */
+  hide: number;
+  /** At or above this, full strength. */
+  full: number;
+}
+
+/** For notes. */
+export const THRESHOLDS: Thresholds = { hide: HIDE, full: FULL };
+/** For chord symbols. */
+export const CHORD_THRESHOLDS: Thresholds = { hide: CHORD_HIDE, full: CHORD_FULL };
+
+/** A time span of the song, in seconds. */
+export interface Passage {
+  from: number;
+  to: number;
+}
+
+/**
+ * The opacity to draw a note or chord at: FADED at or below `hide`, 1 at or
+ * above `full`, linear in between. Equal thresholds make it a step.
+ */
+export function emphasis(
+  confidence: number,
+  { hide, full }: Thresholds = THRESHOLDS,
+): number {
+  if (confidence >= full) return 1;
+  if (confidence <= hide) return FADED;
+  return FADED + ((1 - FADED) * (confidence - hide)) / (full - hide);
+}
+
+/**
+ * The spans to hide: runs of at least MIN_RUN consecutive notes, in onset
+ * order across all strings, all below `hide`, with no gap between
+ * neighbouring onsets over MAX_GAP_SEC. Notes that share an onset are one
+ * moment: if any of them reaches `hide` the moment is clear, and it ends the
+ * run, whatever order the document lists them in. A lone weak note fades but
+ * leaves no hole.
+ *
+ * A run hides from its first onset to its latest end, but never past the next
+ * onset after it. So a long, faint sustain cannot hide the confident notes
+ * that follow, and every onset inside a passage belongs to its run. Spans that
+ * touch are merged. Run once per document.
+ */
+export function hiddenPassages(
+  notes: readonly Note[],
+  hide: number = HIDE,
+): Passage[] {
+  const passages: Passage[] = [];
+  let run: Note[] = [];
+
+  const close = (next: number) => {
+    if (run.length >= MIN_RUN) {
+      const from = run[0].t;
+      const to = Math.min(Math.max(...run.map((note) => note.t + note.dur)), next);
+      const last = passages.at(-1);
+      if (last !== undefined && from <= last.to) last.to = Math.max(last.to, to);
+      else passages.push({ from, to });
+    }
+    run = [];
+  };
+
+  for (const moment of byMoment(notes)) {
+    const t = moment[0].t;
+    if (moment.some((note) => note.confidence >= hide)) {
+      close(t);
+      continue;
+    }
+    const previous = run.at(-1);
+    if (previous !== undefined && t - previous.t > MAX_GAP_SEC) close(t);
+    run.push(...moment);
+  }
+  close(Number.POSITIVE_INFINITY);
+  return passages;
+}
+
+/** Whether a note with onset `t` falls in a hidden passage. A passage ends
+ * at the onset of the note that ended its run, which shows, so the end is
+ * not included. */
+export function isHidden(passages: readonly Passage[], t: number): boolean {
+  return passages.some((p) => p.from <= t && t < p.to);
+}
+
+/** The notes grouped by onset, in onset order. */
+function byMoment(notes: readonly Note[]): Note[][] {
+  const moments: Note[][] = [];
+  for (const note of [...notes].sort((a, b) => a.t - b.t)) {
+    const current = moments.at(-1);
+    if (current !== undefined && current[0].t === note.t) current.push(note);
+    else moments.push([note]);
+  }
+  return moments;
+}
