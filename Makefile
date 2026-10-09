@@ -45,7 +45,7 @@ PY_SOURCES := packages/core/src packages/jobs/src apps/api/src apps/worker/src a
               packages/core/tests packages/jobs/tests apps/api/tests apps/worker/tests apps/eval/tests
 
 .PHONY: help install lint format typecheck test test-py test-web \
-        schema schema-check check eval eval-data services migrate api worker clean
+        schema schema-check check eval eval-data services migrate api worker web clean
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -132,6 +132,9 @@ api: ## Serve the api on localhost:8000, reloading on change
 
 worker: ## Run jobs from the queue (ARGS="--device cuda"; needs `uv sync --extra ml`)
 	$(UV) run guitarvis-worker serve $(ARGS)
+
+web: ## Serve the web client on localhost:5173, proxying the api on :8000
+	$(NPM) run dev
 
 clean: ## Remove caches and build output
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .venv web/node_modules web/dist
