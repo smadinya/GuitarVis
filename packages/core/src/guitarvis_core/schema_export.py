@@ -17,7 +17,7 @@ from guitarvis_core.tabdoc import TabDocument
 DEFAULT_OUTPUT = Path("schema/tab-document.schema.json")
 
 
-def _strip_property_titles(node: Any) -> None:
+def strip_property_titles(node: Any) -> None:
     """Remove Pydantic's auto-generated per-field titles, in place.
 
     Pydantic titles every *field* (Note.string -> "String", Note.t -> "T"),
@@ -48,10 +48,10 @@ def _strip_property_titles(node: Any) -> None:
 
     for value in node.values():
         if isinstance(value, dict):
-            _strip_property_titles(value)
+            strip_property_titles(value)
         elif isinstance(value, list):
             for item in value:
-                _strip_property_titles(item)
+                strip_property_titles(item)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -59,7 +59,7 @@ def main(argv: list[str] | None = None) -> int:
     output = Path(args[0]) if args else DEFAULT_OUTPUT
 
     schema = TabDocument.model_json_schema()
-    _strip_property_titles(schema)
+    strip_property_titles(schema)
     schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
     schema["title"] = "TabDocument"
 

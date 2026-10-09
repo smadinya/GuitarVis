@@ -6,9 +6,11 @@ from guitarvis_core.contracts import FailureReason
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE, Job, JobStatus
 from pydantic import BaseModel, field_serializer
 
+from guitarvis_api.errors import Reason
+
 
 class FailureView(BaseModel):
-    reason: str
+    reason: Reason
     message: str
     stage: str | None
 
@@ -38,7 +40,7 @@ class JobView(BaseModel):
         failure = None
         if job.status is JobStatus.FAILED:
             failure = FailureView(
-                reason=(job.failure_reason or FailureReason.INTERNAL).value,
+                reason=job.failure_reason or FailureReason.INTERNAL,
                 message=job.failure_message or INTERNAL_FAILURE_MESSAGE,
                 stage=job.failed_stage,
             )
@@ -54,3 +56,15 @@ class JobView(BaseModel):
             created_at=job.created_at,
             updated_at=job.updated_at,
         )
+
+
+class ErrorDetail(BaseModel):
+    reason: Reason
+    message: str
+
+
+class ErrorBody(BaseModel):
+    """Every error the api answers with. `errors.error_body` builds it; this
+    model describes it, for the generated client types and the tests."""
+
+    error: ErrorDetail
