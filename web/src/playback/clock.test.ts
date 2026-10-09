@@ -54,7 +54,7 @@ describe("MediaClock", () => {
     media.currentTime = 3;
     media.emit("waiting");
 
-    wait(1000);
+    wait(30); // inside the drift allowance, so only the freeze can hold it at 3
 
     expect(clock.now()).toBe(3);
     media.emit("playing");
