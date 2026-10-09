@@ -112,6 +112,17 @@ describe("Player", () => {
     expect(allowed).toBe(false); // default prevented: the button never takes focus
   });
 
+  it("sizes the tab strip's canvas to its container, whatever the stylesheet says", () => {
+    mount();
+
+    // The painter sets the bitmap's width from the CSS width. A canvas left
+    // at its intrinsic width would grow on every resize pass on a 2x display.
+    const strip = screen.getByLabelText("Tab");
+
+    expect(strip.style.width).toBe("100%");
+    expect(strip.style.display).toBe("block");
+  });
+
   it("shows the document's warnings", () => {
     mount({ warnings: ["Chord detection failed, so this tab has no chords."] });
     expect(screen.getByRole("complementary", { name: "Warnings" }).textContent).toContain(

@@ -119,5 +119,16 @@ export function TabStrip({ song, engine }: { song: Song; engine: PlaybackEngine 
     };
   }, [song, engine, height]);
 
-  return <canvas ref={canvasRef} className="tab-strip" style={{ height }} aria-label="Tab" />;
+  // The bitmap's width is set from the CSS width, so the CSS width must not
+  // depend on the bitmap's: with the canvas's intrinsic sizing, each resize
+  // pass would multiply it by the display's pixel ratio. Hence width here,
+  // not in the stylesheet.
+  return (
+    <canvas
+      ref={canvasRef}
+      className="tab-strip"
+      style={{ display: "block", width: "100%", height }}
+      aria-label="Tab"
+    />
+  );
 }
