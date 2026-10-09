@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FADED } from "../confidence";
+import { CHORD_FULL, FADED } from "../confidence";
 import { NoteCursor } from "../playback/cursor";
 import { buildSong, type Song } from "../song";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
@@ -134,6 +134,20 @@ describe("note states", () => {
     const [faded] = frets(layout(weak, 0, VIEW, NO_LOOP));
 
     expect(faded.alpha).toBe(FADED);
+  });
+});
+
+describe("chords", () => {
+  const at = (confidence: number) =>
+    buildSong(doc({ chords: [{ t: 1, dur: 1, symbol: "Am", confidence }] }));
+  const am = (confidence: number) =>
+    texts(layout(at(confidence), 0, VIEW, NO_LOOP)).find((op) => op.text === "Am");
+
+  it("fades by the chord thresholds, which are not the notes'", () => {
+    // 0.65 would be a fully confident note, but a chord there is right about
+    // one time in four.
+    expect(am(0.65)?.alpha).toBe(FADED);
+    expect(am(CHORD_FULL)?.alpha).toBe(1);
   });
 });
 

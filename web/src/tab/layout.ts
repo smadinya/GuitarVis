@@ -6,7 +6,7 @@
  * Position is linear in song seconds (ADR 0002): a bad beat grid moves the
  * bar lines and nothing else.
  */
-import { emphasis, isHidden, type Passage } from "../confidence";
+import { CHORD_THRESHOLDS, emphasis, isHidden, type Passage } from "../confidence";
 import { inWindow } from "../playback/cursor";
 import type { LoopPoints } from "../playback/engine";
 import type { Song } from "../song";
@@ -178,7 +178,8 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
       const large = hidden.some((p) => overlaps(chord.t, chord.t + chord.dur, p));
       const left = labelX(x(chord.t), x(chord.t + chord.dur), chord.symbol);
       const font = large ? "chordLarge" : "chord";
-      ops.push(text(left, rows.chordY, chord.symbol, "text", font, "left", emphasis(chord.confidence)));
+      const alpha = emphasis(chord.confidence, CHORD_THRESHOLDS);
+      ops.push(text(left, rows.chordY, chord.symbol, "text", font, "left", alpha));
     }
   }
 

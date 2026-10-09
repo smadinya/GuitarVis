@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CHORD_FULL,
+  CHORD_HIDE,
   FADED,
   FULL,
   HIDE,
@@ -50,6 +52,7 @@ describe("emphasis", () => {
 
   it("ships thresholds in order, within [0, 1]", () => {
     expect(0 <= HIDE && HIDE <= FULL && FULL <= 1).toBe(true);
+    expect(0 <= CHORD_HIDE && CHORD_HIDE <= CHORD_FULL && CHORD_FULL <= 1).toBe(true);
   });
 });
 

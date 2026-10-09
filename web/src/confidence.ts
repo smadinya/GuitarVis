@@ -2,9 +2,12 @@
  * The confidence rule, shared by every view so that it cannot drift between
  * them. Phase 5's fretboards import this module unchanged.
  *
- * HIDE and FULL are measured, not chosen by eye. Where they came from, and
+ * The thresholds are measured, not chosen by eye. Where they came from, and
  * what they do to real songs, is recorded in
- * docs/specs/006-tab-view-sync/calibration.md.
+ * docs/specs/006-tab-view-sync/calibration.md. Notes and chords have their
+ * own: a note's confidence is the transcriber's, a chord's is how closely
+ * the audio matches a triad template, and the same number means different
+ * things in each.
  */
 import type { Note } from "./types/tabDocument";
 
@@ -12,7 +15,11 @@ import type { Note } from "./types/tabDocument";
 export const HIDE = 0.5;
 /** At or above FULL, a note is right at least 80% of the time (calibration.md). */
 export const FULL = 0.6;
-/** The opacity of anything at or below HIDE. */
+/** Below CHORD_HIDE, a chord symbol is more often wrong than right (calibration.md). */
+export const CHORD_HIDE = 0.7;
+/** At or above CHORD_FULL, a chord symbol is right at least 80% of the time (calibration.md). */
+export const CHORD_FULL = 0.8;
+/** The opacity of anything at or below its `hide` threshold. */
 export const FADED = 0.35;
 /** A passage is hidden when at least this many weak notes run together... */
 export const MIN_RUN = 3;
@@ -20,11 +27,16 @@ export const MIN_RUN = 3;
 export const MAX_GAP_SEC = 1;
 
 export interface Thresholds {
+  /** At or below this, FADED. Chords are faded, never hidden. */
   hide: number;
+  /** At or above this, full strength. */
   full: number;
 }
 
+/** For notes. */
 export const THRESHOLDS: Thresholds = { hide: HIDE, full: FULL };
+/** For chord symbols. */
+export const CHORD_THRESHOLDS: Thresholds = { hide: CHORD_HIDE, full: CHORD_FULL };
 
 /** A time span of the song, in seconds. */
 export interface Passage {
