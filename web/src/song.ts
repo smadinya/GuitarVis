@@ -14,6 +14,13 @@ export const SCHEMA_VERSION = 1;
 
 const STANDARD_TUNING = ["E2", "A2", "D3", "G3", "B3", "E4"];
 
+/** A hidden passage, and whether a chord sounds over any of it. One with no
+ * chord is labelled as unclear; over one with a chord, the chord is all
+ * there is to read. */
+export interface HiddenPassage extends Passage {
+  chorded: boolean;
+}
+
 export interface Song {
   title: string;
   /** source.duration_sec: the length until the audio reports its own. */
@@ -26,9 +33,12 @@ export interface Song {
   sections: readonly Section[];
   beats: readonly Beat[];
   warnings: readonly string[];
-  hidden: readonly Passage[];
-  /** The tab strip's cursor. Another view makes its own. */
+  /** Sorted, and never overlapping. */
+  hidden: readonly HiddenPassage[];
+  /** The tab strip's cursors. Another view makes its own. */
   cursor: NoteCursor<Note>;
+  chordCursor: NoteCursor<Chord>;
+  sectionCursor: NoteCursor<Section>;
 }
 
 /** Whether this client understands the document. A missing version is 1,
@@ -39,17 +49,24 @@ export function canRead(doc: TabDocument): boolean {
 
 export function buildSong(doc: TabDocument): Song {
   const notes = byOnset(doc.notes ?? []);
+  const chords = byOnset(doc.chords ?? []);
+  const sections = byOnset(doc.sections ?? []);
   return {
     title: doc.source.title,
     duration: doc.source.duration_sec,
     tuning: doc.instrument.tuning ?? STANDARD_TUNING,
     notes,
-    chords: byOnset(doc.chords ?? []),
-    sections: byOnset(doc.sections ?? []),
+    chords,
+    sections,
     beats: byOnset(doc.timing.beats ?? []),
     warnings: doc.warnings ?? [],
-    hidden: hiddenPassages(notes),
+    hidden: hiddenPassages(notes).map((passage) => ({
+      ...passage,
+      chorded: chords.some((c) => c.t < passage.to && c.t + c.dur > passage.from),
+    })),
     cursor: new NoteCursor(notes),
+    chordCursor: new NoteCursor(chords),
+    sectionCursor: new NoteCursor(sections),
   };
 }
 

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { FADED } from "../confidence";
-import { buildSong } from "../song";
+import { NoteCursor } from "../playback/cursor";
+import { buildSong, type Song } from "../song";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
-import type { Chord, Note, TabDocument } from "../types/tabDocument";
+import type { Beat, Chord, Note, Section, TabDocument } from "../types/tabDocument";
 import {
   EMPTY_MESSAGE,
   GLYPH_W,
@@ -244,6 +245,17 @@ describe("hidden passages", () => {
     expect(ops.some((op) => op.kind === "rect" && op.paint === "hidden")).toBe(true);
   });
 
+  it("shows the confident note that ends a band, however long the band's last note sounds", () => {
+    const song = buildSong(
+      doc({ notes: [weak(1), weak(1.3), note(1.6, { confidence: 0.05, dur: 3 }), note(2, { fret: 5 })] }),
+    );
+
+    const ops = layout(song, 1, VIEW, NO_LOOP);
+
+    expect(song.hidden).toHaveLength(1);
+    expect(frets(ops).map((op) => op.text)).toEqual(["5"]);
+  });
+
   it("labels a band with no chord over it", () => {
     const song = buildSong(doc({ notes: [weak(1), weak(1.3), weak(1.6)] }));
 
@@ -286,10 +298,70 @@ describe("the loop", () => {
     expect(lines(ops, "loop")).toHaveLength(2);
   });
 
+  it("tints the fret numbers inside it, rather than having their knockouts cut holes in it", () => {
+    const song = buildSong(doc({ notes: [note(1.5, { fret: 7 })] }));
+
+    const ops = layout(song, 0, VIEW, { a: 1, b: 2 });
+
+    const band = ops.findIndex((op) => op.kind === "rect" && op.paint === "loop");
+    const knockout = ops.findIndex((op) => op.kind === "rect" && op.paint === "background");
+    const seven = ops.findIndex((op) => op.kind === "text" && op.text === "7");
+    expect(band).toBeGreaterThan(knockout);
+    expect(band).toBeGreaterThan(seven);
+  });
+
   it("marks A alone before B is set", () => {
     const ops = layout(buildSong(doc()), 0, VIEW, { a: 1, b: null });
 
     expect(ops.some((op) => op.kind === "rect" && op.paint === "loop")).toBe(false);
     expect(lines(ops, "loop")).toHaveLength(1);
+  });
+});
+
+describe("work per frame", () => {
+  /** An array that counts reads of its elements. */
+  function counted<T>(items: T[]): { items: T[]; reads: () => number } {
+    let reads = 0;
+    const proxy = new Proxy(items, {
+      get(target, key, receiver) {
+        if (typeof key === "string" && /^\d+$/.test(key)) reads++;
+        return Reflect.get(target, key, receiver);
+      },
+    });
+    return { items: proxy, reads: () => reads };
+  }
+
+  it("reads only the beats, chords, sections and passages near the screen", () => {
+    const hour = 3600;
+    const beats = counted<Beat>(
+      Array.from({ length: hour * 2 }, (_, i) => ({ t: i / 2, bar: 1 + Math.floor(i / 4), beat: 1 + (i % 4) })),
+    );
+    const chords = counted<Chord>(
+      Array.from({ length: hour / 2 }, (_, i) => ({ t: i * 2, dur: 2, symbol: "Am", confidence: 0.9 })),
+    );
+    const sections = counted<Section>(
+      Array.from({ length: hour / 20 }, (_, i) => ({ t: i * 20, dur: 20, label: "verse" })),
+    );
+    const hidden = counted(
+      Array.from({ length: hour / 10 }, (_, i) => ({ from: i * 10, to: i * 10 + 3, chorded: true })),
+    );
+    const song: Song = {
+      ...buildSong(doc()),
+      beats: beats.items,
+      chords: chords.items,
+      sections: sections.items,
+      hidden: hidden.items,
+      chordCursor: new NoteCursor(chords.items),
+      sectionCursor: new NoteCursor(sections.items),
+    };
+    const before = [beats, chords, sections, hidden].map((list) => list.reads());
+
+    const ops = layout(song, hour / 2, VIEW, NO_LOOP);
+
+    const reads = [beats, chords, sections, hidden].map((list, i) => list.reads() - before[i]);
+    for (const count of reads) expect(count).toBeLessThan(60);
+    expect(lines(ops, "bar").length).toBeGreaterThan(0);
+    expect(texts(ops).map((op) => op.text)).toContain("Am");
+    expect(texts(ops).map((op) => op.text)).toContain("verse");
   });
 });

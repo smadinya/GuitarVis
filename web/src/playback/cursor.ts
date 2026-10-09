@@ -55,6 +55,27 @@ export class NoteCursor<T extends Span> {
   }
 }
 
+/**
+ * The items whose [start, end] overlaps [from, to], for items sorted so that
+ * both their starts and their ends rise: beats, whose start is their end, or
+ * spans that never overlap. Stateless, so any view may share the list: a
+ * binary search, then only the items returned.
+ */
+export function inWindow<T>(
+  items: readonly T[],
+  from: number,
+  to: number,
+  start: (item: T) => number,
+  end: (item: T) => number = start,
+): T[] {
+  const found: T[] = [];
+  for (let i = firstIndex(items, (item) => end(item) >= from); i < items.length; i++) {
+    if (start(items[i]) > to) break;
+    found.push(items[i]);
+  }
+  return found;
+}
+
 /** The first index whose note passes `test`, which must be monotonic. */
 function firstIndex<T>(items: readonly T[], test: (item: T) => boolean): number {
   let lo = 0;

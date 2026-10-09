@@ -6,6 +6,7 @@ import {
   HIDE,
   emphasis,
   hiddenPassages,
+  isHidden,
   type Thresholds,
 } from "./confidence";
 import type { Note } from "./types/tabDocument";
@@ -91,19 +92,92 @@ describe("hiddenPassages", () => {
     ]);
   });
 
-  it("merges runs whose spans overlap", () => {
+  it("ends a passage at the next note, however long its last weak note sounds", () => {
+    const notes = [
+      note(0, WEAK), note(0.2, WEAK), note(0.4, WEAK, 3),
+      note(0.6, STRONG), note(0.85, STRONG), note(1.1, STRONG),
+    ];
+
+    expect(hiddenPassages(notes, 0.4)).toEqual([{ from: 0, to: 0.6 }]);
+  });
+
+  it("keeps a strong note between two runs, however long the first run sounds", () => {
     const notes = [
       note(1, WEAK, 3), note(1.2, WEAK), note(1.4, WEAK),
       note(1.8, STRONG),
       note(2, WEAK), note(2.2, WEAK), note(2.4, WEAK),
     ];
 
-    expect(hiddenPassages(notes, 0.4)).toEqual([{ from: 1, to: 4 }]);
+    expect(hiddenPassages(notes, 0.4)).toEqual([
+      { from: 1, to: 1.8 },
+      { from: 2, to: 2.65 },
+    ]);
+  });
+
+  it("merges a passage into the next when its last note sounds into it", () => {
+    const notes = [
+      note(1, WEAK, 3), note(1.2, WEAK), note(1.4, WEAK),
+      note(2.6, WEAK), note(2.8, WEAK), note(3, WEAK), // over a second later: a new run
+    ];
+
+    expect(hiddenPassages(notes, 0.4)).toEqual([{ from: 1, to: 3.25 }]);
+  });
+
+  it("treats a chord as one moment, clear if any of its notes is strong, in any order", () => {
+    const orders = [
+      [note(0, WEAK, 0.25, 0), note(0, WEAK, 0.25, 1), note(0, STRONG, 0.25, 2)],
+      [note(0, STRONG, 0.25, 2), note(0, WEAK, 0.25, 0), note(0, WEAK, 0.25, 1)],
+      [note(0, WEAK, 0.25, 0), note(0, STRONG, 0.25, 2), note(0, WEAK, 0.25, 1)],
+    ];
+
+    for (const chord of orders) {
+      const notes = [note(-0.4, WEAK), note(-0.2, WEAK), ...chord, note(0.2, WEAK)];
+      expect(hiddenPassages(notes, 0.4)).toEqual([]);
+    }
+  });
+
+  it("counts every note of a weak chord", () => {
+    const chord = [note(1, WEAK, 0.25, 0), note(1, WEAK, 0.25, 1), note(1, WEAK, 0.25, 2)];
+
+    expect(hiddenPassages(chord, 0.4)).toEqual([{ from: 1, to: 1.25 }]);
+  });
+
+  it("never hides the onset of a note at or above hide", () => {
+    let seed = 1;
+    const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let trial = 0; trial < 200; trial++) {
+      const notes = Array.from({ length: 30 }, () =>
+        // Onsets on a coarse grid, so that chords happen.
+        note(Math.round(random() * 40) / 4, random(), random() * 4, Math.floor(random() * 6)),
+      );
+      const passages = hiddenPassages(notes, 0.4);
+
+      for (const shown of notes.filter((n) => n.confidence >= 0.4)) {
+        expect(isHidden(passages, shown.t), `trial ${trial}, note at ${shown.t}`).toBe(false);
+      }
+    }
   });
 
   it("treats a note exactly at hide as strong", () => {
     expect(hiddenPassages([note(1, 0.4), note(1.2, 0.4), note(1.4, 0.4)], 0.4)).toEqual(
       [],
     );
+  });
+});
+
+describe("isHidden", () => {
+  const passages = [
+    { from: 1, to: 2 },
+    { from: 5, to: 6 },
+  ];
+
+  it("covers a passage from its start up to its end, not including it", () => {
+    expect(isHidden(passages, 1)).toBe(true);
+    expect(isHidden(passages, 1.99)).toBe(true);
+    expect(isHidden(passages, 5.5)).toBe(true);
+    // The end is the onset of the note that ended the run, which shows.
+    expect(isHidden(passages, 2)).toBe(false);
+    expect(isHidden(passages, 0.99)).toBe(false);
+    expect(isHidden(passages, 3)).toBe(false);
   });
 });

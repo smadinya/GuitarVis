@@ -48,9 +48,15 @@ export function emphasis(
 /**
  * The spans to hide: runs of at least MIN_RUN consecutive notes, in onset
  * order across all strings, all below `hide`, with no gap between
- * neighbouring onsets over MAX_GAP_SEC. A run hides from its first onset to
- * its latest end. A lone weak note fades but leaves no hole. Spans that
- * overlap are merged. Run once per document.
+ * neighbouring onsets over MAX_GAP_SEC. Notes that share an onset are one
+ * moment: if any of them reaches `hide` the moment is clear, and it ends the
+ * run, whatever order the document lists them in. A lone weak note fades but
+ * leaves no hole.
+ *
+ * A run hides from its first onset to its latest end, but never past the next
+ * onset after it. So a long, faint sustain cannot hide the confident notes
+ * that follow, and every onset inside a passage belongs to its run. Spans that
+ * touch are merged. Run once per document.
  */
 export function hiddenPassages(
   notes: readonly Note[],
@@ -59,10 +65,10 @@ export function hiddenPassages(
   const passages: Passage[] = [];
   let run: Note[] = [];
 
-  const close = () => {
+  const close = (next: number) => {
     if (run.length >= MIN_RUN) {
       const from = run[0].t;
-      const to = Math.max(...run.map((note) => note.t + note.dur));
+      const to = Math.min(Math.max(...run.map((note) => note.t + note.dur)), next);
       const last = passages.at(-1);
       if (last !== undefined && from <= last.to) last.to = Math.max(last.to, to);
       else passages.push({ from, to });
@@ -70,15 +76,34 @@ export function hiddenPassages(
     run = [];
   };
 
-  for (const note of [...notes].sort((a, b) => a.t - b.t)) {
-    if (note.confidence >= hide) {
-      close();
+  for (const moment of byMoment(notes)) {
+    const t = moment[0].t;
+    if (moment.some((note) => note.confidence >= hide)) {
+      close(t);
       continue;
     }
     const previous = run.at(-1);
-    if (previous !== undefined && note.t - previous.t > MAX_GAP_SEC) close();
-    run.push(note);
+    if (previous !== undefined && t - previous.t > MAX_GAP_SEC) close(t);
+    run.push(...moment);
   }
-  close();
+  close(Number.POSITIVE_INFINITY);
   return passages;
+}
+
+/** Whether a note with onset `t` falls in a hidden passage. A passage ends
+ * at the onset of the note that ended its run, which shows, so the end is
+ * not included. */
+export function isHidden(passages: readonly Passage[], t: number): boolean {
+  return passages.some((p) => p.from <= t && t < p.to);
+}
+
+/** The notes grouped by onset, in onset order. */
+function byMoment(notes: readonly Note[]): Note[][] {
+  const moments: Note[][] = [];
+  for (const note of [...notes].sort((a, b) => a.t - b.t)) {
+    const current = moments.at(-1);
+    if (current !== undefined && current[0].t === note.t) current.push(note);
+    else moments.push([note]);
+  }
+  return moments;
 }

@@ -7,11 +7,12 @@
  *   node scripts/confidence-report.ts <tab document JSON>...
  *
  * Node runs the TypeScript directly (type stripping, Node 22.18 and later),
- * using the same functions the views use.
+ * using the same functions the views use, and tsc checks it with the rest of
+ * the client.
  */
 import { readFileSync } from "node:fs";
 
-import { FULL, HIDE, hiddenPassages } from "../src/confidence.ts";
+import { FULL, HIDE, hiddenPassages, isHidden } from "../src/confidence.ts";
 import type { Note } from "../src/types/tabDocument.ts";
 
 function share(count: number, total: number): string {
@@ -25,7 +26,7 @@ for (const path of process.argv.slice(2)) {
   const weak = notes.filter((note) => note.confidence <= HIDE).length;
   const partly = notes.filter((note) => note.confidence > HIDE && note.confidence < FULL).length;
   const passages = hiddenPassages(notes);
-  const hidden = notes.filter((note) => passages.some((p) => p.from <= note.t && note.t <= p.to));
+  const hidden = notes.filter((note) => isHidden(passages, note.t));
   console.log(
     [
       String(notes.length).padStart(5),

@@ -6,7 +6,8 @@
  * Position is linear in song seconds (ADR 0002): a bad beat grid moves the
  * bar lines and nothing else.
  */
-import { emphasis, type Passage } from "../confidence";
+import { emphasis, isHidden, type Passage } from "../confidence";
+import { inWindow } from "../playback/cursor";
 import type { LoopPoints } from "../playback/engine";
 import type { Song } from "../song";
 
@@ -123,9 +124,9 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
   const x = (t: number) => playheadX + (t - now) * PX_PER_SEC;
   const from = now - playheadX / PX_PER_SEC;
   const to = now + (width - playheadX) / PX_PER_SEC;
-  const onScreen = (start: number, end: number) => start <= to && end >= from;
-  const hidden = song.hidden.filter((p) => onScreen(p.from, p.to));
-  const isHidden = (t: number) => hidden.some((p) => p.from <= t && t <= p.to);
+  // Only what is near the screen is read, so a frame costs the same an hour
+  // into a song as at its start.
+  const hidden = inWindow(song.hidden, from, to, (p) => p.from, (p) => p.to);
   // A label stays readable at the gutter while its span runs under the left
   // edge, but leaves with the span's end, so the next label never lands on it.
   const labelX = (start: number, end: number, label: string) =>
@@ -134,29 +135,16 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
   const bandHeight = rows.bottom - rows.top + STRING_GAP;
   const ops: DrawOp[] = [];
 
-  // The loop, under everything else.
-  const { a, b } = loop;
-  if (a !== null && b !== null) {
-    const [lo, hi] = [Math.min(a, b), Math.max(a, b)];
-    ops.push(rect(x(lo), 0, (hi - lo) * PX_PER_SEC, height, "loop", 0.15));
-  }
-  for (const [name, at] of [["A", a], ["B", b]] as const) {
-    if (at === null) continue;
-    ops.push(line(x(at), 0, x(at), height, "loop", 2));
-    ops.push(text(x(at) + 4, PAD, name, "loop", "label"));
-  }
-
   for (const y of rows.stringY) ops.push(line(0, y, width, y, "string"));
 
-  for (const beat of song.beats) {
-    if (beat.beat !== 1 || !onScreen(beat.t, beat.t)) continue;
+  for (const beat of inWindow(song.beats, from, to, (b) => b.t)) {
+    if (beat.beat !== 1) continue;
     ops.push(line(x(beat.t), rows.top - 4, x(beat.t), rows.bottom + 4, "bar"));
   }
 
   for (const passage of hidden) {
     ops.push(rect(x(passage.from), bandTop, x(passage.to) - x(passage.from), bandHeight, "hidden", 0.85));
-    const chordOver = song.chords.some((c) => overlaps(c.t, c.t + c.dur, passage));
-    if (!chordOver) {
+    if (!passage.chorded) {
       // Centred on the part that is on screen, so it stays readable as a long
       // passage scrolls by.
       const visibleFrom = Math.max(x(passage.from), GUTTER);
@@ -170,7 +158,7 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
 
   for (const note of song.cursor.window(from, to)) {
     const y = rows.stringY[note.string];
-    if (y === undefined || isHidden(note.t)) continue;
+    if (y === undefined || isHidden(hidden, note.t)) continue;
     const end = note.t + note.dur;
     const sounding = note.t <= now && now <= end;
     const alpha = (end < now ? PAST_ALPHA : 1) * emphasis(note.confidence);
@@ -184,8 +172,7 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
   }
 
   if (rows.chordY !== null) {
-    for (const chord of song.chords) {
-      if (!onScreen(chord.t, chord.t + chord.dur)) continue;
+    for (const chord of song.chordCursor.window(from, to)) {
       // Over a hidden passage the chord is all there is to read, so it is
       // larger; its own confidence still sets its strength.
       const large = hidden.some((p) => overlaps(chord.t, chord.t + chord.dur, p));
@@ -196,8 +183,7 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
   }
 
   if (rows.sectionY !== null) {
-    for (const section of song.sections) {
-      if (!onScreen(section.t, section.t + section.dur)) continue;
+    for (const section of song.sectionCursor.window(from, to)) {
       const left = labelX(x(section.t), x(section.t + section.dur), section.label);
       ops.push(text(left, rows.sectionY, section.label, "muted", "label"));
     }
@@ -205,6 +191,19 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
 
   if (song.notes.length === 0) {
     ops.push(text(width / 2, (rows.top + rows.bottom) / 2, EMPTY_MESSAGE, "muted", "message", "center"));
+  }
+
+  // The loop goes over the tab, as a selection does. Under it, each fret
+  // number's knockout would cut an untinted box out of the band.
+  const { a, b } = loop;
+  if (a !== null && b !== null) {
+    const [lo, hi] = [Math.min(a, b), Math.max(a, b)];
+    ops.push(rect(x(lo), 0, (hi - lo) * PX_PER_SEC, height, "loop", 0.15));
+  }
+  for (const [name, at] of [["A", a], ["B", b]] as const) {
+    if (at === null) continue;
+    ops.push(line(x(at), 0, x(at), height, "loop", 2));
+    ops.push(text(x(at) + 4, PAD, name, "loop", "label"));
   }
 
   ops.push(rect(0, bandTop, GUTTER, bandHeight, "background"));
