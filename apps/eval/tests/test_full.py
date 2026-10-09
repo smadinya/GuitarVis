@@ -223,6 +223,31 @@ def test_score_full_tallies_the_transcriber_s_confidence(tmp_path: Path) -> None
     assert (score.confidence.estimated[3], score.confidence.matched[3]) == (1, 0)
 
 
+def test_score_full_tallies_the_analyzer_s_chord_confidence(tmp_path: Path) -> None:
+    pytest.importorskip("mir_eval")
+    excerpt = read_jams(
+        write_jams(tmp_path, "05_a_comp", performed=[(0.0, 1.0, "E:min")], duration=1.0)
+    )
+
+    score = score_full(
+        excerpt,
+        tmp_path / "05_a_comp_mic.wav",
+        transcriber=EchoTranscriber([]),
+        analyzer=FixedAnalyzer(
+            [
+                Chord(t=0.0, dur=0.5, symbol="Em", confidence=0.83),
+                Chord(t=0.5, dur=0.5, symbol="G", confidence=0.61),
+            ]
+        ),
+        mapper=ViterbiFretboardMapper(),
+    )
+
+    assert score.chord_confidence is not None
+    bands = score.chord_confidence
+    assert (bands.estimated[8], bands.matched[8]) == (5, 5)
+    assert (bands.estimated[6], bands.matched[6]) == (5, 0)
+
+
 def test_full_mode_prints_and_records_precision_by_confidence(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -232,11 +257,18 @@ def test_full_mode_prints_and_records_precision_by_confidence(
     from guitarvis_eval.__main__ import main
 
     echo = EchoTranscriber([NoteEvent(0.0, 0.5, 40, 0.95)])
+    em = Chord(t=0.0, dur=1.0, symbol="Em", confidence=0.72)
     monkeypatch.setattr(transcription, "BasicPitchTranscriber", lambda: echo)
     monkeypatch.setattr(
-        structure, "LibrosaStructureAnalyzer", lambda: FixedAnalyzer([])
+        structure, "LibrosaStructureAnalyzer", lambda: FixedAnalyzer([em])
     )
-    write_jams(tmp_path / "annotation", "05_a_comp", notes=[(0.0, 0.5, 40.0, 0)])
+    write_jams(
+        tmp_path / "annotation",
+        "05_a_comp",
+        notes=[(0.0, 0.5, 40.0, 0)],
+        performed=[(0.0, 1.0, "E:min")],
+        duration=1.0,
+    )
     (tmp_path / "audio_mono-mic").mkdir()
     (tmp_path / "audio_mono-mic" / "05_a_comp_mic.wav").write_bytes(b"")
 
@@ -248,13 +280,21 @@ def test_full_mode_prints_and_records_precision_by_confidence(
     assert "  confidence     notes  matched  precision" in lines
     assert "  0.9                1        1     100.0%" in lines  # the note's band
     assert "  0.3                0        0          —" in lines  # an empty band
+    assert "  chord conf    frames  correct  precision" in lines
+    assert "  0.7               10       10     100.0%" in lines  # the chord's band
     # One note is far short of a 50-note band, so no threshold is supported.
     assert "HIDE (precision ≥ 0.5)" in printed
+    assert "CHORD_FULL (precision ≥ 0.8)" in printed
     assert "not supported" in printed
     [written] = (tmp_path / "out").iterdir()
     summary = json.loads(written.read_text())["summary"]
     assert summary["all"]["precision_by_confidence"]["0.9"] == {
         "estimated": 1,
         "matched": 1,
+        "precision": 1.0,
+    }
+    assert summary["all"]["chord_precision_by_confidence"]["0.7"] == {
+        "estimated": 10,
+        "matched": 10,
         "precision": 1.0,
     }

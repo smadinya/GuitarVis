@@ -14,6 +14,7 @@ from guitarvis_eval.baseline import LowestFretMapper
 from guitarvis_eval.calibration import (
     FULL_PRECISION,
     HIDE_PRECISION,
+    MIN_BAND_CHORD_FRAMES,
     MIN_BAND_NOTES,
     ConfidenceBands,
     threshold,
@@ -140,7 +141,8 @@ def main(argv: list[str] | None = None) -> int:
     _print_table(summary)
     if args.full:
         bands = [s.confidence for s in scores if s.confidence is not None]
-        _print_thresholds(sum(bands, ConfidenceBands()))
+        chords = [s.chord_confidence for s in scores if s.chord_confidence]
+        _print_thresholds(sum(bands, ConfidenceBands()), sum(chords, ConfidenceBands()))
     print(f"wrote {written}", file=sys.stderr)
     return 0
 
@@ -161,24 +163,46 @@ def _print_table(summary: dict[str, object]) -> None:
             tally = totals.get(key)
             if isinstance(tally, dict):
                 print(f"  {label:<26} {_percent(tally['rate'])}")
-        bands = totals.get("precision_by_confidence")
-        if isinstance(bands, dict):
-            print(f"  {'confidence':<12}{'notes':>8}{'matched':>9}{'precision':>11}")
-            for lower, band in bands.items():
-                assert isinstance(band, dict)
-                print(
-                    f"  {lower:<12}{band['estimated']:>8}{band['matched']:>9}"
-                    f"{_percent(band['precision']):>11}"
-                )
+        _print_bands(
+            totals.get("precision_by_confidence"), ("confidence", "notes", "matched")
+        )
+        _print_bands(
+            totals.get("chord_precision_by_confidence"),
+            ("chord conf", "frames", "correct"),
+        )
 
 
-def _print_thresholds(bands: ConfidenceBands) -> None:
-    """The calibration rule from spec 006, over every excerpt."""
-    print(f"confidence thresholds (bands of {MIN_BAND_NOTES}+ notes)")
-    for name, precision in (("HIDE", HIDE_PRECISION), ("FULL", FULL_PRECISION)):
-        value = threshold(bands, precision)
+def _print_bands(bands: object, header: tuple[str, str, str]) -> None:
+    if not isinstance(bands, dict):
+        return
+    band, counted, right = header
+    print(f"  {band:<12}{counted:>8}{right:>9}{'precision':>11}")
+    for lower, band in bands.items():
+        assert isinstance(band, dict)
+        print(
+            f"  {lower:<12}{band['estimated']:>8}{band['matched']:>9}"
+            f"{_percent(band['precision']):>11}"
+        )
+
+
+def _print_thresholds(notes: ConfidenceBands, chords: ConfidenceBands) -> None:
+    """The calibration rule from spec 006, over every excerpt: for notes, and
+    for the chords, whose confidence is a different measure."""
+    rows = (
+        ("HIDE", notes, HIDE_PRECISION, MIN_BAND_NOTES),
+        ("FULL", notes, FULL_PRECISION, MIN_BAND_NOTES),
+        ("CHORD_HIDE", chords, HIDE_PRECISION, MIN_BAND_CHORD_FRAMES),
+        ("CHORD_FULL", chords, FULL_PRECISION, MIN_BAND_CHORD_FRAMES),
+    )
+    print(
+        f"confidence thresholds (bands of {MIN_BAND_NOTES}+ notes, "
+        f"or {MIN_BAND_CHORD_FRAMES}+ chord frames)"
+    )
+    for name, bands, precision, minimum in rows:
+        value = threshold(bands, precision, minimum)
         shown = "not supported" if value is None else f"{value:.1f}"
-        print(f"  {name} (precision ≥ {precision:.1f}){'':<8} {shown}")
+        label = f"{name} (precision ≥ {precision:.1f})"
+        print(f"  {label:<30} {shown}")
 
 
 def _percent(value: object) -> str:

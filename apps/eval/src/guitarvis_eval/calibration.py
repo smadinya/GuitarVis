@@ -1,18 +1,27 @@
-"""How often a note at each confidence is right, and the rule that turns
-that into the client's thresholds (spec 006, "Where the thresholds come
-from").
+"""How often a note or a chord at each confidence is right, and the rule
+that turns that into the client's thresholds (spec 006, "Where the
+thresholds come from").
 
-A transcribed note is "right" when match_notes pairs it with the truth.
-The bands are measured like every other number here, never gated.
+A transcribed note is "right" when match_notes pairs it with the truth. A
+chord is counted frame by frame, as chord_tally scores it: a frame that
+shows a chord is right when the chord is the truth's. The bands are
+measured like every other number here, never gated.
 """
 
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 
 from guitarvis_core.contracts import NoteEvent
+from guitarvis_core.tabdoc import Chord
+
+from guitarvis_eval.dataset import TruthChord
+from guitarvis_eval.metrics import CHORD_HOP_SEC, label_at, reduce_chord
 
 BANDS = 10  # each 0.1 wide
 MIN_BAND_NOTES = 50
+# Thirty seconds of chords. Frames of one held chord are not independent,
+# so a band needs many more of them than of notes to mean anything.
+MIN_BAND_CHORD_FRAMES = 300
 HIDE_PRECISION = 0.5  # below HIDE, a note is more often wrong than right
 FULL_PRECISION = 0.8
 
@@ -52,6 +61,32 @@ def confidence_bands(
         band = band_of(note.confidence)
         counts[band] += 1
         hits[band] += index in matched
+    return ConfidenceBands(tuple(counts), tuple(hits))
+
+
+def chord_bands(
+    truth: Sequence[TruthChord],
+    shown: Sequence[Chord],
+    duration: float,
+    hop: float = CHORD_HOP_SEC,
+) -> ConfidenceBands:
+    """Tally each frame that shows a chord by that chord's band, and whether
+    it is right. The frames are chord_tally's: a `hop` grid, over those whose
+    truth is in the analyzer's vocabulary. A frame that shows no chord has
+    nothing to fade, so it is not counted."""
+    counts = [0] * BANDS
+    hits = [0] * BANDS
+    for frame in range(round(duration / hop)):
+        t = frame * hop
+        expected = reduce_chord(label_at(truth, t))
+        if expected is None:
+            continue
+        chord = next((c for c in shown if c.t <= t < c.t + c.dur), None)
+        if chord is None:
+            continue
+        band = band_of(chord.confidence)
+        counts[band] += 1
+        hits[band] += chord.symbol == expected
     return ConfidenceBands(tuple(counts), tuple(hits))
 
 

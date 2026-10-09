@@ -3,13 +3,16 @@ audio, no mir_eval."""
 
 import pytest
 from guitarvis_core.contracts import NoteEvent
+from guitarvis_core.tabdoc import Chord
 from guitarvis_eval.calibration import (
     BANDS,
     ConfidenceBands,
     band_of,
+    chord_bands,
     confidence_bands,
     threshold,
 )
+from guitarvis_eval.dataset import TruthChord
 from guitarvis_eval.metrics import Tally
 from guitarvis_eval.runner import ExcerptScore, score_to_dict, summarize
 
@@ -41,6 +44,25 @@ def test_confidence_bands_tally_estimates_and_matches() -> None:
     assert tally.matched == (0, 0, 0, 1, 0, 0, 0, 0, 0, 1)
     assert tally.precision(3) == 0.5
     assert tally.precision(0) is None
+
+
+def test_chord_bands_tally_each_frame_that_shows_a_chord() -> None:
+    truth = [
+        TruthChord(0.0, 1.0, "A:min"),
+        TruthChord(1.0, 2.0, "C:maj"),
+        TruthChord(2.0, 3.0, "D:sus4"),  # out of vocabulary: not scored
+    ]
+    shown = [
+        Chord(t=0.0, dur=1.0, symbol="Am", confidence=0.92),  # right
+        Chord(t=1.0, dur=0.5, symbol="Em", confidence=0.55),  # wrong
+        Chord(t=2.0, dur=1.0, symbol="D", confidence=0.75),
+    ]
+
+    # 1.5 to 1.9 shows no chord: nothing on screen to fade, so not counted.
+    tally = chord_bands(truth, shown, duration=3.0)
+
+    assert tally.estimated == (0, 0, 0, 0, 0, 5, 0, 0, 0, 10)
+    assert tally.matched == (0, 0, 0, 0, 0, 0, 0, 0, 0, 10)
 
 
 def test_bands_add_up() -> None:
@@ -90,6 +112,7 @@ def test_the_summary_carries_bands_and_each_excerpt_does_not() -> None:
         style="comp",
         strings=Tally(),
         confidence=bands((0, 0), (0, 0), (0, 0), (4, 1)),
+        chord_confidence=bands(*[(0, 0)] * 7, (30, 27)),
     )
 
     summary = summarize([score])["all"]
@@ -100,4 +123,7 @@ def test_the_summary_carries_bands_and_each_excerpt_does_not() -> None:
     assert list(by_band) == [f"0.{n}" for n in range(10)]
     assert by_band["0.3"] == {"estimated": 4, "matched": 1, "precision": 0.25}
     assert by_band["0.0"] == {"estimated": 0, "matched": 0, "precision": None}
+    chords = summary["chord_precision_by_confidence"]
+    assert chords["0.7"] == {"estimated": 30, "matched": 27, "precision": 0.9}
     assert "precision_by_confidence" not in excerpt
+    assert "chord_precision_by_confidence" not in excerpt

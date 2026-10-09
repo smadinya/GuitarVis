@@ -16,7 +16,12 @@ from guitarvis_core.contracts import (
 )
 from guitarvis_core.tabdoc import STANDARD_TUNING
 
-from guitarvis_eval.calibration import BANDS, ConfidenceBands, confidence_bands
+from guitarvis_eval.calibration import (
+    BANDS,
+    ConfidenceBands,
+    chord_bands,
+    confidence_bands,
+)
 from guitarvis_eval.dataset import Excerpt
 from guitarvis_eval.metrics import (
     NoteCounts,
@@ -36,6 +41,7 @@ class ExcerptScore:
     notes: NoteCounts | None = None  # full mode only
     chords: Tally | None = None  # full mode only
     confidence: ConfidenceBands | None = None  # full mode only
+    chord_confidence: ConfidenceBands | None = None  # full mode only
 
 
 def score_oracle(
@@ -73,7 +79,8 @@ def score_full(
     anything, so it moves only when transcription does. String accuracy
     scores the notes the mapper placed, over those matching the truth.
     The confidence bands tally the transcriber's notes too, for the same
-    reason: they calibrate what the transcriber's confidence means.
+    reason: they calibrate what the transcriber's confidence means. The
+    chord bands do the same for the analyzer's.
     """
     events = transcriber.transcribe(audio)
     heard = match_notes(excerpt.notes, events)
@@ -92,6 +99,9 @@ def score_full(
         ),
         chords=chord_tally(excerpt.chords, structure.chords, excerpt.duration),
         confidence=confidence_bands(events, {e for _, e in heard}),
+        chord_confidence=chord_bands(
+            excerpt.chords, structure.chords, excerpt.duration
+        ),
     )
 
 
@@ -139,6 +149,11 @@ def _total(
     bands = [s.confidence for s in scores if s.confidence is not None]
     if with_bands and bands:
         out["precision_by_confidence"] = _bands(sum(bands, ConfidenceBands()))
+    chord_bands = [s.chord_confidence for s in scores if s.chord_confidence]
+    if with_bands and chord_bands:
+        out["chord_precision_by_confidence"] = _bands(
+            sum(chord_bands, ConfidenceBands())
+        )
     return out
 
 
