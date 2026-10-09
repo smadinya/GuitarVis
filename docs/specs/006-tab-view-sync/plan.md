@@ -109,7 +109,7 @@ Today `FailureView.reason` is a bare `str`, and nothing ties the reason vocabula
   - `guitarvis_core.schema_export.strip_property_titles(node: Any) -> None`, which is public now.
   - The generated TypeScript in `web/src/types/api.ts` exports `ApiResponse = JobView | ErrorBody`, `JobView`, `FailureView`, `ErrorBody`, `ErrorDetail`, `JobStatus`, `FailureReason` and `HttpReason`. `ErrorDetail["reason"]` is `FailureReason | HttpReason`, and Task 10 builds `Reason` from it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `apps/api/tests/test_api_schema.py`:
 
@@ -212,16 +212,16 @@ def test_a_failed_job_is_a_job_view_with_a_typed_reason() -> None:
     assert view.failure.reason is FailureReason.TOO_LONG
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest apps/api/tests/test_api_schema.py -v`
 Expected: collection error, `ModuleNotFoundError: No module named 'guitarvis_api.schema_export'`.
 
-- [ ] **Step 3: Make `strip_property_titles` public**
+- [x] **Step 3: Make `strip_property_titles` public**
 
 In `packages/core/src/guitarvis_core/schema_export.py`, rename `_strip_property_titles` to `strip_property_titles`. That is the definition and its three call sites, two recursive and one in `main`. The api's export reuses it in the next step. Nothing else in the repo calls it: `grep -rn _strip_property_titles packages apps` must print nothing afterwards.
 
-- [ ] **Step 4: Type the reason and model the error body**
+- [x] **Step 4: Type the reason and model the error body**
 
 In `apps/api/src/guitarvis_api/schemas.py`, add the import after the existing ones:
 
@@ -265,7 +265,7 @@ class ErrorBody(BaseModel):
 
 `errors.py` imports nothing from `schemas.py`, so this adds no cycle.
 
-- [ ] **Step 5: Write the export**
+- [x] **Step 5: Write the export**
 
 Create `apps/api/src/guitarvis_api/schema_export.py`:
 
@@ -327,7 +327,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 6: Generate both contracts from one script**
+- [x] **Step 6: Generate both contracts from one script**
 
 Replace `web/scripts/generate-types.mjs` with:
 
@@ -380,7 +380,7 @@ In `web/eslint.config.js`, line 5, ignore the new generated file too:
   { ignores: ["dist", "src/types/tabDocument.ts", "src/types/api.ts"] },
 ```
 
-- [ ] **Step 7: Widen `make schema` and `make schema-check`**
+- [x] **Step 7: Widen `make schema` and `make schema-check`**
 
 In `Makefile`, change the first line of the comment above `.NOTPARALLEL:` from `` # `schema-check` rewrites schema/ and web/src/types/tabDocument.ts as a side `` to:
 
@@ -423,7 +423,7 @@ schema-check: schema ## Fail if the committed contract artifacts are stale
 
 Recipe lines start with a tab.
 
-- [ ] **Step 8: Generate, and check what came out**
+- [x] **Step 8: Generate, and check what came out**
 
 Run: `make schema`
 Expected: `wrote src/types/tabDocument.ts` and `wrote src/types/api.ts`. Then `git status --porcelain` lists only the files this task touched, the two new artifacts, and the untracked `tab.json` that Task 4 deals with. `web/src/types/tabDocument.ts` and `schema/tab-document.schema.json` must not appear.
@@ -441,7 +441,7 @@ export type ApiResponse = JobView | ErrorBody;
 
 It must also contain `export type FailureReason = "unsupported_format" | "no_guitar_detected" | "too_long" | "fetch_failed" | "internal";`, `export type HttpReason = "too_large" | "too_many_jobs" | "not_found" | "not_ready";`, and `export interface ErrorDetail { message: string; reason: FailureReason | HttpReason; }`.
 
-- [ ] **Step 9: Run the tests to verify they pass**
+- [x] **Step 9: Run the tests to verify they pass**
 
 Run: `uv run pytest apps/api/tests packages/core/tests -q`
 Expected: all pass, including the five new tests and `packages/core/tests/test_schema_export.py`.
@@ -451,7 +451,7 @@ Expected: no errors. Nothing imports `api.ts` yet, but it must compile, and ESLi
 
 `make check` waits for the commit. Its `schema-check` reports the two new artifacts as stale until they are tracked.
 
-- [ ] **Step 10: Commit, then run the gate**
+- [x] **Step 10: Commit, then run the gate**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -488,7 +488,7 @@ This fixes a finding carried from 005. `count_active` counts `queued` rows whose
 - Consumes: `guitarvis_api.reconcile.reconcile(job, services) -> Job`; `guitarvis_jobs.models.ACTIVE_STATUSES`.
 - Produces: `JobStore.active_jobs(client_ip: str) -> list[Job]`, which returns queued and running jobs from that address, oldest first, as copies.
 
-- [ ] **Step 1: Write the failing contract test**
+- [x] **Step 1: Write the failing contract test**
 
 In `packages/jobs/tests/test_job_store.py`, insert this directly above `def test_create_refuses_a_new_job_at_the_limit`:
 
@@ -512,7 +512,7 @@ def test_active_jobs_are_the_counted_rows_oldest_first(
     assert store.active_jobs("192.0.2.1") == []
 ```
 
-- [ ] **Step 2: Write the failing route tests**
+- [x] **Step 2: Write the failing route tests**
 
 In `apps/api/tests/test_upload.py`, insert these directly above `def test_uploads_that_race_past_the_count_are_refused_when_created(`:
 
@@ -543,7 +543,7 @@ def test_jobs_the_queue_still_holds_keep_their_slots() -> None:
     assert "2 songs" in third.json()["error"]["message"]
 ```
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `uv run pytest packages/jobs/tests/test_job_store.py -k active_jobs -v`
 Expected: FAIL with `AttributeError: 'InMemoryJobStore' object has no attribute 'active_jobs'`.
@@ -551,7 +551,7 @@ Expected: FAIL with `AttributeError: 'InMemoryJobStore' object has no attribute 
 Run: `uv run pytest apps/api/tests/test_upload.py -k "lost_job_at_the_limit or still_holds" -v`
 Expected: `test_a_lost_job_at_the_limit_is_repaired_rather_than_refused` fails with `assert 429 == 202`. The "still holds" test already passes: it guards against a fix that over-reaches.
 
-- [ ] **Step 4: Add `active_jobs` to the contract and the twin**
+- [x] **Step 4: Add `active_jobs` to the contract and the twin**
 
 In `packages/jobs/src/guitarvis_jobs/store.py`, add this to the `JobStore` Protocol, right after `count_active`:
 
@@ -577,7 +577,7 @@ Add this to `InMemoryJobStore`, right after its `count_active`:
         return [replace(row, document=copy.deepcopy(row.document)) for row in rows]
 ```
 
-- [ ] **Step 5: Add it to the Postgres store**
+- [x] **Step 5: Add it to the Postgres store**
 
 In `packages/jobs/src/guitarvis_jobs/postgres.py`, add this to `PostgresJobStore`, right after its `count_active`:
 
@@ -609,7 +609,7 @@ def _active_from(client_ip: str) -> sa.Select[Any]:
     )
 ```
 
-- [ ] **Step 6: Reconcile the counted rows before refusing**
+- [x] **Step 6: Reconcile the counted rows before refusing**
 
 In `apps/api/src/guitarvis_api/routes.py`, inside `create_job`, replace:
 
@@ -647,12 +647,12 @@ def _active_after_repair(services: Services, client_ip: str) -> int:
 
 `reconcile` is already imported in `routes.py`. When Redis is down, `reconcile` answers from Postgres and changes nothing, so the 429 stands. That matches what a poll does in the same state.
 
-- [ ] **Step 7: Run the tests to verify they pass**
+- [x] **Step 7: Run the tests to verify they pass**
 
 Run: `uv run pytest packages/jobs apps/api -q`
 Expected: all pass. With `make services` running, the contract test runs twice, against the twin and against Postgres. Check that with `-v -k active_jobs`, which should show both params passing rather than one skipped.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -690,7 +690,7 @@ The client's thresholds have to come from a measurement. `score_full` already pa
   - `ExcerptScore.confidence: ConfidenceBands | None`.
   - Each group in the summary gains `precision_by_confidence: {"0.0": {"estimated", "matched", "precision"}, …, "0.9": {…}}`. Per-excerpt dicts do not.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `apps/eval/tests/test_calibration.py`:
 
@@ -858,12 +858,12 @@ def test_full_mode_prints_and_records_precision_by_confidence(
     }
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest apps/eval/tests/test_calibration.py apps/eval/tests/test_full.py -q`
 Expected: a collection error, `ModuleNotFoundError: No module named 'guitarvis_eval.calibration'`. The two `test_full.py` tests need `mir_eval` and skip without the `eval-full` extra, as the existing full-mode tests do.
 
-- [ ] **Step 3: Write the calibration module**
+- [x] **Step 3: Write the calibration module**
 
 Create `apps/eval/src/guitarvis_eval/calibration.py`:
 
@@ -949,7 +949,7 @@ def threshold(
     return lowest / BANDS
 ```
 
-- [ ] **Step 4: Tally bands in `score_full`, and summarise them**
+- [x] **Step 4: Tally bands in `score_full`, and summarise them**
 
 In `apps/eval/src/guitarvis_eval/runner.py`:
 
@@ -1025,7 +1025,7 @@ def _bands(bands: ConfidenceBands) -> dict[str, object]:
     }
 ```
 
-- [ ] **Step 5: Print the bands and the thresholds**
+- [x] **Step 5: Print the bands and the thresholds**
 
 In `apps/eval/src/guitarvis_eval/__main__.py`, add the import after `from guitarvis_eval.baseline import LowestFretMapper`:
 
@@ -1074,7 +1074,7 @@ def _print_thresholds(bands: ConfidenceBands) -> None:
         print(f"  {name} (precision ≥ {precision:.1f}){'':<8} {shown}")
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `uv run pytest apps/eval/tests -q`
 Expected: all pass. The two new `test_full.py` tests skip without `mir_eval`.
@@ -1084,7 +1084,7 @@ If the `eval-full` extra is installed (`uv run python -c "import mir_eval"` succ
 Run: `uv run mypy apps/eval/src apps/eval/tests`
 Expected: `Success`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 uv run ruff format . && uv run ruff check --fix .
@@ -1115,7 +1115,7 @@ No code. Run full-mode evaluation on the test split, commit the results file, an
 - Consumes: Task 3's `make eval ARGS=--full` output.
 - Produces: two numbers, `HIDE` and `FULL`, in calibration.md's *Chosen values* table. Task 5 copies them.
 
-- [ ] **Step 1: Start from a clean tree**
+- [x] **Step 1: Start from a clean tree**
 
 A results file measured with uncommitted changes gets a `-dirty` name and must not be committed. `git_state` counts untracked files as uncommitted.
 
@@ -1131,7 +1131,7 @@ git status --porcelain   # now prints nothing
 
 Anything else listed has to be committed or moved aside too.
 
-- [ ] **Step 2: Install full mode and its data**
+- [x] **Step 2: Install full mode and its data**
 
 ```bash
 uv sync --extra eval-full
@@ -1140,7 +1140,7 @@ make eval-data ARGS=--audio
 
 Expected: `uv sync` reports the ML stack and `mir_eval`. `eval-full` includes the worker's `ml` extra, so `make worker` keeps working. `make eval-data` downloads the GuitarSet mic audio, about 650 MB, into `~/.cache/guitarvis/guitarset` and skips anything already there.
 
-- [ ] **Step 3: Run the evaluation**
+- [x] **Step 3: Run the evaluation**
 
 ```bash
 make eval ARGS=--full 2>&1 | tee tmp/calibration-run.txt
@@ -1156,13 +1156,13 @@ confidence thresholds (bands of 50+ notes)
 
 The last line is `wrote …/eval/results/<date>-<sha>-full-test.json`. The name must not end in `-dirty`. If it does, go back to Step 1, delete the dirty file, and run again.
 
-- [ ] **Step 4: Decide the values**
+- [x] **Step 4: Decide the values**
 
 If both thresholds printed a number, those numbers are the chosen values.
 
 If either printed `not supported`, the measurement cannot support a threshold by the spec's rule. That is the case the spec reserves for a decision made "with that evidence in hand and the reasoning written down". **Stop and take the `all` band table to your human partner.** The choice is theirs. Record it, and their reasoning, in Step 5.
 
-- [ ] **Step 5: Write `calibration.md`**
+- [x] **Step 5: Write `calibration.md`**
 
 Create `docs/specs/006-tab-view-sync/calibration.md`. Fill each `…` from `tmp/calibration-run.txt` and the results file's name. The band table is the `all` group's ten rows, as printed.
 
@@ -1211,7 +1211,7 @@ section measures that gap on real output.
 
 If Step 4 needed your human partner's decision, add a paragraph under *Chosen values* that says what was chosen and why.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add eval/results/*-full-test.json docs/specs/006-tab-view-sync/calibration.md
@@ -1248,7 +1248,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `emphasis(confidence: number, thresholds?: Thresholds): number`;
   - `hiddenPassages(notes: readonly Note[], hide?: number): Passage[]`, sorted, with overlapping spans merged.
 
-- [ ] **Step 1: Commit the real song as a fixture**
+- [x] **Step 1: Commit the real song as a fixture**
 
 The file is the api's output for the first real song: 32 notes, a median confidence of 0.45, chords and beats, and no sections. Task 4 moved it to `tmp/first-song.tabdoc.json`. If Task 4 has not run, it is still `tab.json` at the repo root.
 
@@ -1291,7 +1291,7 @@ describe("the first-song fixture", () => {
 Run: `npm --prefix web test -- src/test/fixtures.test.ts`
 Expected: PASS, 1 test. `tsc` passing is half the point here: it proves the real output matches the generated `TabDocument`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 The behaviour tests pass explicit thresholds, so they do not depend on the calibrated values. One test checks only that the shipped values are ordered and in range.
 
@@ -1409,12 +1409,12 @@ describe("hiddenPassages", () => {
 });
 ```
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/confidence.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './confidence'`.
 
-- [ ] **Step 4: Write `confidence.ts`, with the calibrated values**
+- [x] **Step 4: Write `confidence.ts`, with the calibrated values**
 
 Create `web/src/confidence.ts` as below, with one change. **Set `HIDE` and `FULL` to the *Chosen* values in calibration.md.** The `0.4` and `0.7` below stand in for them: they are what the plan was checked with, not a measurement.
 
@@ -1514,12 +1514,12 @@ grep -n -E "^\| .(HIDE|FULL). \|" docs/specs/006-tab-view-sync/calibration.md
 
 Expected: the values in the first command's two lines equal the *Chosen* column in the second command's two.
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/confidence.test.ts src/test/fixtures.test.ts`
 Expected: PASS, 13 tests.
 
-- [ ] **Step 6: Measure the thresholds on real songs**
+- [x] **Step 6: Measure the thresholds on real songs**
 
 Create `web/scripts/confidence-report.ts`:
 
@@ -1589,7 +1589,7 @@ uses the same `hiddenPassages` the views use):
 …
 ````
 
-- [ ] **Step 7: Lint, and commit**
+- [x] **Step 7: Lint, and commit**
 
 Run: `npm --prefix web run lint`
 Expected: no problems. ESLint covers `scripts/` too.
@@ -1626,7 +1626,7 @@ Every view asks the same question each frame: which notes overlap this window of
   - `SCHEMA_VERSION = 1` and `canRead(doc: TabDocument): boolean`.
   - `buildSong(doc: TabDocument): Song`, where `Song` is `{ title, duration, tuning, notes, chords, sections, beats, warnings, hidden, cursor }`. Every track is sorted by onset. `tuning` falls back to standard. `cursor` is a `NoteCursor<Note>` over `notes`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/playback/cursor.test.ts`. Most cases compare the cursor with a brute-force filter over the same notes:
 
@@ -1774,12 +1774,12 @@ describe("canRead", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/playback/cursor.test.ts src/song.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './cursor'` and `Cannot find module './song'`.
 
-- [ ] **Step 3: Write the cursor**
+- [x] **Step 3: Write the cursor**
 
 Create `web/src/playback/cursor.ts`:
 
@@ -1851,7 +1851,7 @@ function firstIndex<T>(items: readonly T[], test: (item: T) => boolean): number 
 }
 ```
 
-- [ ] **Step 4: Write the Song**
+- [x] **Step 4: Write the Song**
 
 Create `web/src/song.ts`:
 
@@ -1916,12 +1916,12 @@ function byOnset<T extends { t: number }>(items: readonly T[]): T[] {
 }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/playback/cursor.test.ts src/song.test.ts`
 Expected: PASS, 11 tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add web/src/playback/cursor.ts web/src/playback/cursor.test.ts web/src/song.ts web/src/song.test.ts
@@ -1954,7 +1954,7 @@ Song time, smooth enough to draw from. `MediaClock` extrapolates between coarse 
   - `class FakeMedia implements MediaLike`. Setting `src` mimics the load algorithm: paused, time 0, duration NaN, and `playbackRate` reset to the default. It also has `emit(type)`, `loadMetadata(duration?)`, `advance(seconds)`, `end()`, `loads: string[]`, `refusePlay: Error | null`, `webkitPreservesPitch` and `listenerCount()`.
   - `class FakeFrames`, with `request`, `cancel`, `pending` and `flush()`.
 
-- [ ] **Step 1: Write the test doubles**
+- [x] **Step 1: Write the test doubles**
 
 Create `web/src/test/fakeMedia.ts`:
 
@@ -2088,7 +2088,7 @@ export class FakeFrames {
 }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `web/src/playback/clock.test.ts`:
 
@@ -2219,12 +2219,12 @@ describe("MediaClock", () => {
 });
 ```
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/playback/clock.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module '../playback/clock'` from `fakeMedia.ts`, and `'./clock'` from the test.
 
-- [ ] **Step 4: Write the clock**
+- [x] **Step 4: Write the clock**
 
 Create `web/src/playback/clock.ts`:
 
@@ -2344,12 +2344,12 @@ export class MediaClock implements Clock {
 }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/playback/clock.test.ts`
 Expected: PASS, 9 tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add web/src/playback/clock.ts web/src/playback/clock.test.ts web/src/test/fakeMedia.ts
@@ -2387,7 +2387,7 @@ The one owner of the audio, and the one source of the current time. The engine o
     - `redraw()`, `play()`, `pause()`, `toggle()`, `seek(t)` and `seekBy(seconds)`;
     - `setRate(rate)`, `setSource(source)`, `setLoopPoint("a" | "b"): boolean`, `clearLoop()` and `dispose()`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/playback/engine.test.ts`:
 
@@ -2743,12 +2743,12 @@ describe("the end, and frames", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/playback/engine.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './engine'`.
 
-- [ ] **Step 3: Write the engine**
+- [x] **Step 3: Write the engine**
 
 Create `web/src/playback/engine.ts`:
 
@@ -3108,12 +3108,12 @@ Four details carry the design, and they are easy to undo by accident:
 - `src` is always the api path, never the presigned URL, so setting it again fetches a fresh redirect.
 - `tick` runs from `timeupdate` as well as from frames, because a background tab stops animation frames but not `timeupdate`.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/playback`
 Expected: PASS, 41 tests across the clock, the cursor and the engine.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/playback/engine.ts web/src/playback/engine.test.ts
@@ -3145,7 +3145,7 @@ Everything worth testing about the strip, as a pure function: a song, a time, a 
   - `interface Viewport { width; height }` and `interface Rows { sectionY; chordY; stringY; top; bottom; height }`.
   - `rowsOf(song): Rows`, `stringLabels(tuning): string[]`, and `layout(song, now, viewport, loop): DrawOp[]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/tab/layout.test.ts`:
 
@@ -3390,12 +3390,12 @@ describe("the loop", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/tab/layout.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './layout'`.
 
-- [ ] **Step 3: Write the layout**
+- [x] **Step 3: Write the layout**
 
 Create `web/src/tab/layout.ts`:
 
@@ -3638,12 +3638,12 @@ function text(
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/tab/layout.test.ts`
 Expected: PASS, 19 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/tab/layout.ts web/src/tab/layout.test.ts
@@ -3681,7 +3681,7 @@ Every call returns a typed result or rejects with an `ApiError` that carries a `
   - `errorFrom(status, body): ApiError`.
 - Produces, from the test helpers: `FakeXhr` and `lastXhr()`; `JOB_ID`, `jobView(fields?)` and `errorBody(reason, message?)`.
 
-- [ ] **Step 1: Write the test helpers**
+- [x] **Step 1: Write the test helpers**
 
 Create `web/src/test/fakeXhr.ts`:
 
@@ -3771,7 +3771,7 @@ export function errorBody(reason: string, message = "From the api."): unknown {
 }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `web/src/api/client.test.ts`:
 
@@ -3952,12 +3952,12 @@ describe("MESSAGES", () => {
 });
 ```
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/api/client.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './client'` and `'./messages'`.
 
-- [ ] **Step 4: Write the messages**
+- [x] **Step 4: Write the messages**
 
 Create `web/src/api/messages.ts`:
 
@@ -4030,7 +4030,7 @@ export function isReason(value: unknown): value is Reason {
 }
 ```
 
-- [ ] **Step 5: Write the client**
+- [x] **Step 5: Write the client**
 
 Create `web/src/api/client.ts`:
 
@@ -4177,17 +4177,17 @@ function errorDetail(body: string): { reason: string; message: string } | null {
 }
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/api/client.test.ts`
 Expected: PASS, 21 tests.
 
-- [ ] **Step 7: Check that the map is enforced**
+- [x] **Step 7: Check that the map is enforced**
 
 Temporarily delete the `not_ready` entry from `MESSAGES`, then run `npm --prefix web run typecheck`.
 Expected: `error TS2741: Property 'not_ready' is missing`. Restore the entry and rerun: no errors.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add web/src/api web/src/test/fakeXhr.ts web/src/test/jobs.ts
@@ -4220,7 +4220,7 @@ There are two routes and no router library. The upload page takes a dropped or p
   - `<Failure reason detail? />` and `<UploadAnother label? />`.
   - `<UploadPage upload? />`, where `upload` defaults to `createJob`.
 
-- [ ] **Step 1: Add the DOM test dependencies**
+- [x] **Step 1: Add the DOM test dependencies**
 
 ```bash
 npm --prefix web install --save-dev jsdom@^29.1.1 @testing-library/react@^16.3.3 @testing-library/dom@^10.4.2
@@ -4228,7 +4228,7 @@ npm --prefix web install --save-dev jsdom@^29.1.1 @testing-library/react@^16.3.3
 
 Expected: `package.json` gains the three entries under `devDependencies`, and `package-lock.json` changes. Not jsdom 30: it needs Node 22.22. Vitest's `globals: true` (already set in `vite.config.ts`) lets Testing Library clean up after each test by itself.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `web/src/routing.test.ts`:
 
@@ -4352,12 +4352,12 @@ describe("UploadPage", () => {
 });
 ```
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/routing.test.ts src/pages/UploadPage.test.tsx`
 Expected: FAIL. `tsc` reports `Cannot find module './routing'` and `'./UploadPage'`.
 
-- [ ] **Step 4: Write the routing**
+- [x] **Step 4: Write the routing**
 
 Create `web/src/routing.ts`:
 
@@ -4417,7 +4417,7 @@ function subscribe(onChange: () => void): () => void {
 }
 ```
 
-- [ ] **Step 5: Write the failure text and the upload page**
+- [x] **Step 5: Write the failure text and the upload page**
 
 Create `web/src/pages/Failure.tsx`:
 
@@ -4529,12 +4529,12 @@ export function UploadPage({ upload = createJob }: UploadPageProps) {
 }
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/routing.test.ts src/pages/UploadPage.test.tsx`
 Expected: PASS, 8 tests, with no `act(...)` warnings in the output.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add web/package.json web/package-lock.json web/src/routing.ts web/src/routing.test.ts \
@@ -4566,7 +4566,7 @@ The player creates one `PlaybackEngine` per song and mounts the views and contro
   - `<Warnings warnings />`, `useTransportKeys(engine)`, and `<TabStrip song engine />`.
   - The CSS custom properties `--tab-<paint>` that TabStrip reads, which Task 13's `styles.css` defines.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/player/Player.test.tsx`:
 
@@ -4719,12 +4719,12 @@ describe("clock", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/player/Player.test.tsx`
 Expected: FAIL. `tsc` reports `Cannot find module './Controls'` and `'./Player'`.
 
-- [ ] **Step 3: Write the warnings banner and the keys**
+- [x] **Step 3: Write the warnings banner and the keys**
 
 Create `web/src/player/Warnings.tsx`:
 
@@ -4798,7 +4798,7 @@ function activates(target: EventTarget | null): boolean {
 }
 ```
 
-- [ ] **Step 4: Write the controls**
+- [x] **Step 4: Write the controls**
 
 Create `web/src/player/Controls.tsx`. Every control button prevents the default on mouse down, so a click never leaves focus on it. That is Review Focus 1.
 
@@ -4921,7 +4921,7 @@ export function clock(seconds: number): string {
 }
 ```
 
-- [ ] **Step 5: Write the tab strip's painter**
+- [x] **Step 5: Write the tab strip's painter**
 
 Create `web/src/tab/TabStrip.tsx`:
 
@@ -5048,7 +5048,7 @@ export function TabStrip({ song, engine }: { song: Song; engine: PlaybackEngine 
 }
 ```
 
-- [ ] **Step 6: Write the player**
+- [x] **Step 6: Write the player**
 
 Create `web/src/player/Player.tsx`:
 
@@ -5094,12 +5094,12 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
 }
 ```
 
-- [ ] **Step 7: Run the tests to verify they pass**
+- [x] **Step 7: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/player/Player.test.tsx`
 Expected: PASS, 12 tests. There must be no "Not implemented: HTMLCanvasElement.prototype.getContext" noise, because the tests stub `getContext`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add web/src/player web/src/tab/TabStrip.tsx
@@ -5132,7 +5132,7 @@ The song page polls the job until it is terminal. Along the way it shows the sta
   - `interface SongApi { getJob; getDocument }` and `<SongPage jobId api? createMedia? />`.
   - `<App />`, and `make web`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/pages/SongPage.test.tsx`:
 
@@ -5366,12 +5366,12 @@ describe("App", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/pages/SongPage.test.tsx src/App.test.tsx`
 Expected: FAIL. `tsc` reports `Cannot find module './SongPage'` and `'./progress'`.
 
-- [ ] **Step 3: Write the progress text and the song page**
+- [x] **Step 3: Write the progress text and the song page**
 
 Create `web/src/pages/progress.ts`:
 
@@ -5607,7 +5607,7 @@ function Finished({
 }
 ```
 
-- [ ] **Step 4: Route to both pages**
+- [x] **Step 4: Route to both pages**
 
 Replace `web/src/App.tsx` with:
 
@@ -5643,7 +5643,7 @@ export function App() {
 }
 ```
 
-- [ ] **Step 5: Style it**
+- [x] **Step 5: Style it**
 
 Create `web/src/styles.css`. Colours are tokens, with a dark set, and the canvas reads the `--tab-*` ones:
 
@@ -5817,7 +5817,7 @@ TypeScript 6 refuses a side-effect import it has no declaration for. Create `web
 /// <reference types="vite/client" />
 ```
 
-- [ ] **Step 6: Proxy the api, and add `make web`**
+- [x] **Step 6: Proxy the api, and add `make web`**
 
 Replace `web/vite.config.ts` with:
 
@@ -5858,7 +5858,7 @@ web: ## Serve the web client on localhost:5173, proxying the api on :8000
 	$(NPM) run dev
 ```
 
-- [ ] **Step 7: Run the tests to verify they pass**
+- [x] **Step 7: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/pages/SongPage.test.tsx src/App.test.tsx`
 Expected: PASS, 10 tests.
@@ -5869,7 +5869,7 @@ Expected: 14 test files and 132 tests pass, ESLint reports nothing, and `vite bu
 Run: `make check`
 Expected: exit 0.
 
-- [ ] **Step 8: Look at it running**
+- [x] **Step 8: Look at it running**
 
 With `make services`, `make api` and `make worker` running, run `make web` in another terminal. Then:
 
@@ -5880,7 +5880,7 @@ curl -s localhost:5173/health                                  # the api's answe
 
 Open `http://localhost:5173/` in a browser, upload a short song, and watch the stages move. If the local api already holds a finished job, open `http://localhost:5173/songs/<its id>`. The first real song's id is in its `source.audio_url`. Press Space, and check that the strip scrolls with the audio. This is a look, not the acceptance run, which is Task 15. Note anything that surprises you for that task.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add web/src/pages/progress.ts web/src/pages/SongPage.tsx web/src/pages/SongPage.test.tsx \
@@ -5909,7 +5909,7 @@ No code. ADR 0008 resolves open decision 7, provided Task 15's listening test pa
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Write ADR 0008**
+- [x] **Step 1: Write ADR 0008**
 
 Create `docs/decisions/0008-native-time-stretch.md`:
 
@@ -5956,7 +5956,7 @@ behind the same `PlaybackEngine`, so no view changes (see the spec's
 storage bucket, and costs about 170 MB of decoded audio per four-minute song.
 ```
 
-- [ ] **Step 2: Update the decisions index and the design spec**
+- [x] **Step 2: Update the decisions index and the design spec**
 
 In `docs/decisions/README.md`, add to the *Accepted* table:
 
@@ -5976,7 +5976,7 @@ In `docs/specs/001-guitarvis-design/spec.md`, under open decision 7 (the paragra
 
 In `README.md`'s *Documentation* list, change "including the thirteen decisions still open" to "including the decisions still open".
 
-- [ ] **Step 3: Update `docs/CONVENTIONS.md`**
+- [x] **Step 3: Update `docs/CONVENTIONS.md`**
 
 Replace the Python bullet that begins **Failures carry a typed reason** with:
 
@@ -6016,7 +6016,7 @@ Add a row to the *Mechanisms over notes* table:
 | Every failure reason has UI text | `Record<Reason, …>` in `web/src/api/messages.ts`, over the generated `web/src/types/api.ts` |
 ```
 
-- [ ] **Step 4: Update `CLAUDE.md`**
+- [x] **Step 4: Update `CLAUDE.md`**
 
 In *Commands*, insert `` `make web` · `` after `` `make worker` · ``.
 
@@ -6046,7 +6046,7 @@ Then append:
   (`docs/specs/006-tab-view-sync/calibration.md`), not tuned by eye.
 ```
 
-- [ ] **Step 5: Update `README.md` and `CONTRIBUTING.md`**
+- [x] **Step 5: Update `README.md` and `CONTRIBUTING.md`**
 
 In `README.md`, replace the *Status* paragraph with:
 
@@ -6078,14 +6078,14 @@ In `CONTRIBUTING.md`'s *Commands* table, add after the `make worker` row:
 
 In the same table, change the `make schema` row to read `Regenerate the JSON Schemas and the web types`.
 
-- [ ] **Step 6: Mark 005's findings**
+- [x] **Step 6: Mark 005's findings**
 
 In `docs/specs/005-api-job-queue/review-notes.md`:
 
 - At the end of the bullet that begins **Lost jobs can lock an IP out.**, add: `**Resolved in 006:** at the limit, POST /jobs reconciles every row it counted (JobStore.active_jobs) and counts again.`
 - At the end of the bullet that begins **A row can say running while RQ's retry waits.**, add: `**Handled in 006:** the song page never decides a job has hung; it keeps polling, and shows what the api reports.`
 
-- [ ] **Step 7: Verify and commit**
+- [x] **Step 7: Verify and commit**
 
 Run: `make check`
 Expected: exit 0.
@@ -6116,7 +6116,7 @@ Some checks cannot be automated honestly: syncing by ear, stretch quality per br
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Write the record to fill in**
+- [x] **Step 1: Write the record to fill in**
 
 Create `docs/specs/006-tab-view-sync/acceptance.md`:
 
