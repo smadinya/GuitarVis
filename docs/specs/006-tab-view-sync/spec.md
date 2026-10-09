@@ -137,14 +137,23 @@ to `(tabDocument, currentTime)`. Here that becomes:
 - While playing, it extrapolates between media updates with
   `performance.now()` and the rate. Media time is coarse in some browsers,
   and a strip that steps visibly reads as out of sync even when it is not.
-- It re-anchors on every event the element reports: `timeupdate`, `seeked`,
-  `ratechange`, `play`, `pause`, `waiting`, `playing`.
-- It snaps to media time when the extrapolation drifts more than 50 ms from
-  it.
-- It never returns a time earlier than the last one it returned, except after
-  a seek.
-- While paused or buffering it returns media time exactly, so a stall freezes
-  the strip rather than letting it run ahead of what is heard.
+- It re-anchors on every event that breaks playback: `seeked`, `ratechange`,
+  `play`, `pause`, `waiting`, `playing`.
+- `timeupdate` is only a reading, as is a change in `currentTime` between
+  events. A reading may be up to 250 ms old, the longest gap the HTML spec
+  allows between `timeupdate`s, but is never ahead of where playback is. So a
+  reading ahead of the extrapolation corrects it, and one behind it snaps the
+  clock only when the two differ by more than 50 ms. Comparing against a
+  reading that has not changed would snap a coarse clock every 50 ms and
+  stall the strip until the next one.
+- It runs at most 300 ms past the last reading: 250 ms plus the 50 ms
+  allowance. Past that, the element has stalled without saying so, and the
+  strip waits for it.
+- While playing, it never returns a time earlier than the last one it
+  returned, except after a seek.
+- While paused or buffering it returns media time exactly, even if that is
+  behind the last time it returned, so a stall freezes the strip at what is
+  heard rather than where extrapolation had got to.
 
 **Speed.** `setRate(r)` accepts 0.5, 0.75 and 1:
 
@@ -170,7 +179,18 @@ minutes, and a practice session outlasts that:
 - On a media network error, the engine sets `src` again. The api answers with
   a fresh redirect, and the engine seeks back and resumes.
 - After three consecutive failures it stops and reports that the audio
-  connection was lost, with a reload action.
+  connection was lost, with a reload action. It holds the position, including
+  a seek made while retrying, for the source the user chooses next.
+- A recovery counts, and the failures stop counting, once two seconds have
+  been played since it. Seeks and loop jumps do not count as playback. So an
+  error that comes back at the same place, as in a truncated file, ends in the
+  error state, while a short A/B loop that never gets two seconds past the
+  error still recovers each time.
+
+**Disposal.** The engine sets `preload = "metadata"` before its first `src`,
+and on dispose it removes `src` and calls `load()`. Pausing alone leaves an
+element downloading, and leaving a song page would otherwise keep fetching
+its mix.
 
 **The A/B loop.**
 - `[A]` and `[B]` set the loop points at the current time; `[×]` clears them.
@@ -208,7 +228,9 @@ once by onset:
 
 Per-frame work is proportional to the notes on screen, not to the song's
 length. The parent spec's "notes sounding now" and "notes within the 2 s
-look-ahead" are both calls to `window`.
+look-ahead" are both calls to `window`. Chords and sections have cursors of
+their own, and beats and hidden passages, which never overlap, are found by
+binary search, so nothing in a frame grows with the song.
 
 ### The tab strip
 
@@ -238,8 +260,11 @@ look-ahead" are both calls to `window`.
   the line does not strike through it, and a faint tail to `t + dur`. Each note
   is in one of three states — past (dimmed), sounding (accent colour, bold) or
   upcoming (plain) — and its opacity is then scaled by `emphasis(confidence)`.
-- **Chords** are drawn with the same `emphasis`.
-- **The A/B loop** is a shaded band with its two markers.
+- **Chords** are drawn with the same `emphasis`, at the chord thresholds (see
+  *Confidence*).
+- **The A/B loop** is a shaded band with its two markers. It is drawn over the
+  tab, as a selection is: under it, each fret number's knockout would cut an
+  untinted box out of the band.
 - **Hidden passages** are a tinted band with no fret numbers inside it. Chord
   symbols over the band are drawn larger, since they are all that passage
   shows, but their own confidence still sets their opacity. With no chord
@@ -261,12 +286,22 @@ it unchanged.
 
 - **`emphasis(c)`** returns an opacity: 0.35 at or below `HIDE`, 1.0 at or
   above `FULL`, and linear in between. If calibration makes the two equal,
-  it is a step.
+  it is a step. Chords use `CHORD_HIDE` and `CHORD_FULL` instead. A chord's
+  confidence is how closely the audio matches a triad template, not the
+  transcriber's, and the same number means something different.
 - **`hiddenPassages(notes)`** finds runs of at least three consecutive notes,
   all below `HIDE`, where no gap between neighbouring onsets exceeds 1 s.
-  Consecutive means consecutive in onset order, across all strings. Each run
-  hides `[first.t, max(t + dur)]`. A lone weak note fades but does not punch a
-  hole in the tab. The function runs once per document.
+  Consecutive means consecutive in onset order, across all strings. Notes that
+  share an onset are one moment: if any of them reaches `HIDE`, the moment is
+  clear and ends the run, whatever order the document lists them in. Each run
+  hides from its first onset to its latest end, but never past the next onset
+  after it. Otherwise one faint, long sustain could hide seconds of confident
+  notes. So every onset inside a passage belongs to its run. A lone weak note
+  fades but does not punch a hole in the tab. The function runs once per
+  document.
+- **`isHidden(passages, t)`** is the one test of whether a note is hidden, for
+  the views and for the calibration report. A passage covers `[from, to)`:
+  its end is the onset of the note that ended the run, and that note shows.
 
 **Where the thresholds come from.** Real output is low-confidence. The first
 real song through the api had a median note confidence of 0.45 and a maximum of
@@ -283,6 +318,11 @@ So the thresholds are measured.
   above it, among bands with at least 50 notes, has precision ≥ 0.5. Below
   `HIDE`, a note is more often wrong than right.
 - **`FULL`** is found by the same rule with precision ≥ 0.8.
+- **`CHORD_HIDE`** and **`CHORD_FULL`** come from the same rule, applied to
+  `chord_precision_by_confidence`. It counts each 0.1 s frame that shows a
+  chord, on the frames `chord_tally` scores, by that chord's confidence, and
+  whether the chord is the truth's. Frames of one held chord are not
+  independent, so a band needs 300 frames (30 s of chords) to count.
 - If the measurement cannot support thresholds by this rule — say no band
   reaches 0.5 — `calibration.md` says so, and the values are chosen with that
   evidence in hand and the reasoning written down.
@@ -307,6 +347,8 @@ mixes. The constants in `confidence.ts` cite `calibration.md`.
   therefore lands on the existing song, which may already be playable.
 - 413, 422, 429, 503 and the client-only `unreachable` show their mapped
   headline and action on the page.
+- Leaving the page mid-upload aborts the request. An upload that finishes
+  anyway never pulls the user back to its song.
 
 **Song page.**
 
@@ -349,10 +391,12 @@ decision is a narrower version of it: generate types for the response models
 from a JSON Schema, through the pipeline that already generates
 `tabDocument.ts`.
 
-- `apps/api/src/guitarvis_api/schemas.py` types `FailureView.reason` as the
-  `Reason` enum (`FailureReason | HttpReason`, nine values). A new `ErrorBody`
-  model describes `{"error": {"reason", "message"}}`, the shape the handlers
-  already emit. The bytes on the wire do not change.
+- `apps/api/src/guitarvis_api/schemas.py` types `FailureView.reason` as
+  `FailureReason`. The four `HttpReason` values describe a request, never a
+  job. Error bodies carry any of the nine (`Reason`). A new `ErrorBody`
+  model, in `errors.py`, describes `{"error": {"reason", "message"}}`, the
+  shape the handlers already emit, and `error_body` builds every one from it.
+  The bytes on the wire do not change.
 - A new `guitarvis_api.schema_export` writes `schema/api.schema.json`, holding
   `JobView` and `ErrorBody`.
 - `make schema` turns it into `web/src/types/api.ts` with the same
@@ -398,6 +442,9 @@ dependencies.
   durations, a note longer than the window, no notes.
 - **Clock,** with a fake `MediaLike` and a fake `now()`:
   - extrapolation, and the snap on drift;
+  - steady movement on readings 250 ms apart, and the 300 ms limit on a
+    silent stall;
+  - media time exactly once paused or waiting;
   - the freeze while `waiting`;
   - no backward time except after a seek;
   - a rate change mid-play.
@@ -515,8 +562,8 @@ lost, and polling surfaces its decision.
   writes all four, and `schema-check` guards all four. CONVENTIONS' mechanism
   table gains "every failure reason has UI text →
   `Record<Reason, …>` + generated `api.ts`".
-- **`FailureView.reason` changes in the OpenAPI schema,** from a string to an
-  enum. The JSON it describes is identical.
+- **`FailureView.reason` changes in the OpenAPI schema,** from a string to the
+  `FailureReason` enum. The JSON it describes is identical.
 - **`JobStore` grows a method.** Both implementations and the contract suite
   change, as the protocol requires.
 - **Same origin is now an assumption.** Hosting must put the api and `web/`
@@ -552,6 +599,9 @@ lost, and polling surfaces its decision.
   specified. Error recovery covers both cases. If a browser stalls instead of
   erroring when a URL expires, recovery will not fire, and the end-to-end run
   needs to watch past the 15-minute mark.
-- **Clock precision.** Firefox can coarsen media time for privacy. The
-  extrapolation and the 50 ms snap absorb that. A browser that reports time
-  far coarser than 50 ms would show small corrections as jitter.
+- **Clock precision.** Firefox can coarsen media time for privacy, and some
+  browsers update it only at `timeupdate`. Extrapolation carries the strip
+  between readings up to 250 ms apart. A browser that reports time coarser
+  than that would hold the strip briefly at each gap. The other side of the
+  same allowance: an element that stalls without firing `waiting` runs the
+  strip up to 300 ms ahead of the audio before it holds.
