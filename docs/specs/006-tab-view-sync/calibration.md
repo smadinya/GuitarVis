@@ -32,6 +32,10 @@ exact pitch. These are the `all` group's numbers.
 
 `web/src/confidence.ts` holds the chosen values and cites this file.
 
+`HIDE` = 0.5 is close to a coin-flip boundary: the 0.4–0.5 band missed the
+0.5 precision rule at 49.5% on 1261 notes, so notes just below `HIDE` are
+almost as often right as wrong.
+
 ## How far to trust this
 
 GuitarSet is clean solo guitar, and full mode skips separation, so these

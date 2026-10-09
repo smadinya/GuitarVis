@@ -11,9 +11,11 @@ Rules that outlive any one change. The reasoning lives in
   `fretboard` — and lenient elsewhere. Exploratory pipeline code should not be
   fought with type errors; the contract should.
 - **Failures carry a typed reason**, never a bare string. `FailureReason` in
-  `guitarvis_core.contracts` is the closed set, and `web/src/api/messages.ts`
-  maps each member to actionable text. Adding a reason means updating that
-  mapping, and `tsc` refuses the build until you do.
+  `guitarvis_core.contracts` and the api's `HttpReason` together are the closed
+  set the api can send (`Reason`, nine values). `web/src/api/messages.ts` maps
+  each of them, and the client's own `unreachable`, to actionable text. Adding
+  a reason means updating that mapping, and `tsc` refuses the build until you
+  do.
 - **A stage never imports another stage.** Stages take and return plain data;
   the worker orchestrates. If a stage needs to know what ran before it, the
   interface is wrong.
