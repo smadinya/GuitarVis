@@ -16,6 +16,7 @@ New decisions take the next number and start from [`template.md`](template.md).
 | [0005](0005-uv-workspace-monorepo.md) | A uv workspace monorepo with a shared core package |
 | [0006](0006-onnx-transcription-backend.md) | Stage 2 transcribes through ONNX Runtime, not TensorFlow |
 | [0007](0007-postgres-is-the-record.md) | Postgres is the record of a job; Redis carries only its id |
+| [0008](0008-native-time-stretch.md) | Slow-down uses the browser's own time-stretching, on one media element |
 
 ## Still open
 
@@ -32,7 +33,6 @@ one means writing the next ADR.
 | Capo detection | Assume no capo; schema slot exists |
 | Polyphony ceiling in dense strums | Undecided; needs real output to judge |
 | Multiple simultaneous guitar parts | Treated as one part; splitting is out of scope |
-| Pitch-preserved slow-down | Undecided; the largest client-side risk |
 | 3D guitar asset: procedural or sourced glTF | Procedural |
 | Simultaneous 2D and 3D views | One at a time |
 | Mobile and responsive scope | Desktop viewport only; bears on the planned iOS app |
