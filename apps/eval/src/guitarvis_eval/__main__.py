@@ -11,6 +11,13 @@ from pathlib import Path
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
 
 from guitarvis_eval.baseline import LowestFretMapper
+from guitarvis_eval.calibration import (
+    FULL_PRECISION,
+    HIDE_PRECISION,
+    MIN_BAND_NOTES,
+    ConfidenceBands,
+    threshold,
+)
 from guitarvis_eval.dataset import (
     DatasetMissing,
     data_dir,
@@ -131,6 +138,9 @@ def main(argv: list[str] | None = None) -> int:
         out_dir=args.out,
     )
     _print_table(summary)
+    if args.full:
+        bands = [s.confidence for s in scores if s.confidence is not None]
+        _print_thresholds(sum(bands, ConfidenceBands()))
     print(f"wrote {written}", file=sys.stderr)
     return 0
 
@@ -151,6 +161,24 @@ def _print_table(summary: dict[str, object]) -> None:
             tally = totals.get(key)
             if isinstance(tally, dict):
                 print(f"  {label:<26} {_percent(tally['rate'])}")
+        bands = totals.get("precision_by_confidence")
+        if isinstance(bands, dict):
+            print(f"  {'confidence':<12}{'notes':>8}{'matched':>9}{'precision':>11}")
+            for lower, band in bands.items():
+                assert isinstance(band, dict)
+                print(
+                    f"  {lower:<12}{band['estimated']:>8}{band['matched']:>9}"
+                    f"{_percent(band['precision']):>11}"
+                )
+
+
+def _print_thresholds(bands: ConfidenceBands) -> None:
+    """The calibration rule from spec 006, over every excerpt."""
+    print(f"confidence thresholds (bands of {MIN_BAND_NOTES}+ notes)")
+    for name, precision in (("HIDE", HIDE_PRECISION), ("FULL", FULL_PRECISION)):
+        value = threshold(bands, precision)
+        shown = "not supported" if value is None else f"{value:.1f}"
+        print(f"  {name} (precision ≥ {precision:.1f}){'':<8} {shown}")
 
 
 def _percent(value: object) -> str:
