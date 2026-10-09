@@ -42,18 +42,20 @@ export class FakeClock implements Clock {
   }
 }
 
-/** How far extrapolation may drift from media time before it snaps back. */
+/** How far extrapolation may drift from a new media reading before it snaps to it. */
 export const MAX_DRIFT_SEC = 0.05;
+/**
+ * How far extrapolation may run past the last media reading. Some browsers
+ * update media time only as often as timeupdate fires, which the HTML spec
+ * lets fall 250 ms apart, so the strip must be free to run that far on its
+ * own. Past it, the element has stalled without saying so, and the strip
+ * waits for it.
+ */
+export const MAX_LEAD_SEC = 0.25 + MAX_DRIFT_SEC;
 
-const ANCHORING_EVENTS = [
-  "timeupdate",
-  "seeked",
-  "ratechange",
-  "play",
-  "pause",
-  "waiting",
-  "playing",
-] as const;
+/** Events that mark a break in playback: the clock starts again from the
+ * element's time. timeupdate is not one of them: it is only a reading. */
+const ANCHORING_EVENTS = ["seeked", "ratechange", "play", "pause", "waiting", "playing"] as const;
 
 export class MediaClock implements Clock {
   private readonly media: MediaLike;
@@ -61,6 +63,7 @@ export class MediaClock implements Clock {
   private readonly listeners: Array<[string, () => void]>;
   private anchorTime = 0; // media seconds at the anchor
   private anchorAt = 0; // perf() milliseconds at the anchor
+  private reading = 0; // the media time last read
   private waiting = false;
   private last = 0;
   private mayGoBack = true;
@@ -69,22 +72,25 @@ export class MediaClock implements Clock {
   constructor(media: MediaLike, perf: () => number = () => performance.now()) {
     this.media = media;
     this.perf = perf;
-    this.listeners = ANCHORING_EVENTS.map((type) => [type, () => this.observe(type)]);
+    this.listeners = [
+      ...ANCHORING_EVENTS.map((type): [string, () => void] => [type, () => this.observe(type)]),
+      ["timeupdate", () => this.read()],
+    ];
     for (const [type, listener] of this.listeners) media.addEventListener(type, listener);
     this.anchor();
   }
 
   now(): number {
-    const media = this.media.currentTime;
-    let t = media;
-    if (!this.media.paused && !this.waiting) {
-      const elapsed = (this.perf() - this.anchorAt) / 1000;
-      t = this.anchorTime + elapsed * this.media.playbackRate;
-      if (Math.abs(t - media) > MAX_DRIFT_SEC) {
-        this.anchor();
-        t = media;
-      }
+    if (this.media.paused || this.waiting) {
+      // Exactly what is heard, so a pause or a stall leaves the strip where
+      // the audio stopped, not where extrapolation had got to.
+      const t = this.media.currentTime;
+      this.mayGoBack = false;
+      this.last = t;
+      return t;
     }
+    this.read();
+    let t = Math.min(this.extrapolate(), this.reading + MAX_LEAD_SEC);
     // Small corrections never run the strip backwards. A seek may.
     if (t < this.last && !this.mayGoBack) t = this.last;
     this.mayGoBack = false;
@@ -109,8 +115,28 @@ export class MediaClock implements Clock {
     this.anchor();
   }
 
+  /**
+   * Take a new media reading, if there is one. A reading can be up to 250 ms
+   * old, and is never ahead of where playback really is. So one ahead of the
+   * extrapolation corrects it, and one behind it does so only past the drift
+   * allowance. An unchanged reading says nothing.
+   */
+  private read(): void {
+    const media = this.media.currentTime;
+    if (media === this.reading) return;
+    this.reading = media;
+    const error = media - this.extrapolate();
+    if (error > 0 || error < -MAX_DRIFT_SEC) this.anchor();
+  }
+
+  private extrapolate(): number {
+    const elapsed = (this.perf() - this.anchorAt) / 1000;
+    return this.anchorTime + elapsed * this.media.playbackRate;
+  }
+
   private anchor(): void {
     this.anchorTime = this.media.currentTime;
     this.anchorAt = this.perf();
+    this.reading = this.anchorTime;
   }
 }
