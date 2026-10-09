@@ -57,6 +57,11 @@ class JobStore(Protocol):
         """Jobs from this address that are queued or running."""
         ...
 
+    def active_jobs(self, client_ip: str) -> list[Job]:
+        """The jobs count_active counts, oldest first, so a caller at the
+        limit can repair the ones the queue lost before refusing."""
+        ...
+
     def mark_running(self, job_id: str) -> Job | None:
         """Start an attempt: running, attempts + 1, stage and percent reset.
 
@@ -157,6 +162,13 @@ class InMemoryJobStore:
         with self._lock:
             return self._count_active(client_ip)
 
+    def active_jobs(self, client_ip: str) -> list[Job]:
+        with self._lock:
+            rows = self._active_rows(client_ip)
+        rows.sort(key=lambda row: row.created_at)
+        # Copies, as a database read would be.
+        return [replace(row, document=copy.deepcopy(row.document)) for row in rows]
+
     def mark_running(self, job_id: str) -> Job | None:
         return self._transition(
             job_id,
@@ -230,13 +242,18 @@ class InMemoryJobStore:
     def ping(self) -> None:
         return None
 
-    def _count_active(self, client_ip: str) -> int:
-        """Caller holds the lock."""
-        return sum(
-            1
+    def _active_rows(self, client_ip: str) -> list[Job]:
+        """Caller holds the lock. The one filter count_active and active_jobs
+        share, so they cannot disagree about which rows are active."""
+        return [
+            row
             for row in self._rows.values()
             if row.client_ip == client_ip and row.status in ACTIVE_STATUSES
-        )
+        ]
+
+    def _count_active(self, client_ip: str) -> int:
+        """Caller holds the lock."""
+        return len(self._active_rows(client_ip))
 
     def _find_live(self, content_hash: str) -> Job | None:
         """Caller holds the lock."""
