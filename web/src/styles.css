@@ -107,11 +107,13 @@ main {
   color: var(--muted);
 }
 
+/* No border or padding: they would take from the content box the canvas
+   draws into. The frame sits outside it. */
 .tab-strip {
   display: block;
   width: 100%;
-  border: 1px solid var(--border);
   border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--border);
 }
 
 .controls {

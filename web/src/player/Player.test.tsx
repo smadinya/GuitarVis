@@ -123,6 +123,17 @@ describe("Player", () => {
     expect(strip.style.display).toBe("block");
   });
 
+  it("makes the canvas's CSS height the bitmap's height, so no frame is resampled", () => {
+    mount();
+
+    // `* { box-sizing: border-box }` would make the inline height include any
+    // border, leaving the content box shorter than the bitmap.
+    const strip = screen.getByLabelText("Tab");
+
+    expect(strip.style.boxSizing).toBe("content-box");
+    expect(strip.style.height).toMatch(/^\d+px$/);
+  });
+
   it("shows the document's warnings", () => {
     mount({ warnings: ["Chord detection failed, so this tab has no chords."] });
     expect(screen.getByRole("complementary", { name: "Warnings" }).textContent).toContain(

@@ -122,12 +122,16 @@ export function TabStrip({ song, engine }: { song: Song; engine: PlaybackEngine 
   // The bitmap's width is set from the CSS width, so the CSS width must not
   // depend on the bitmap's: with the canvas's intrinsic sizing, each resize
   // pass would multiply it by the display's pixel ratio. Hence width here,
-  // not in the stylesheet.
+  // not in the stylesheet. The bitmap's height is `height` device-independent
+  // pixels, so `height` must be the content box's: content-box, because the
+  // global border-box would count a border or padding in it and resample every
+  // frame. For the same reason .tab-strip draws its frame with a box-shadow,
+  // not a border, which would also overflow the 100% width here.
   return (
     <canvas
       ref={canvasRef}
       className="tab-strip"
-      style={{ display: "block", width: "100%", height }}
+      style={{ display: "block", boxSizing: "content-box", width: "100%", height }}
       aria-label="Tab"
     />
   );
