@@ -109,6 +109,27 @@ describe("UploadPage", () => {
     expect(screen.getByText(MESSAGES.unreachable.headline)).toBeTruthy();
   });
 
+  it("stays wherever the user went if they leave before the upload finishes", async () => {
+    let answer: (upload: Upload) => void = () => {};
+    let signal: AbortSignal | undefined;
+    const { unmount } = render(
+      <UploadPage
+        upload={(_file, _onProgress, given) => {
+          signal = given;
+          return new Promise<Upload>((resolve) => (answer = resolve));
+        }}
+      />,
+    );
+    choose(song());
+
+    unmount();
+    window.history.pushState(null, "", "/songs/the-one-they-were-playing");
+    await act(async () => answer({ job: jobView(), created: true }));
+
+    expect(window.location.pathname).toBe("/songs/the-one-they-were-playing");
+    expect(signal?.aborted).toBe(true);
+  });
+
   it("keeps a file dropped just outside the drop zone from opening in the browser", () => {
     const { unmount } = render(<UploadPage upload={() => new Promise(() => {})} />);
 

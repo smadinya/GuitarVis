@@ -45,6 +45,14 @@ export class FakeXhr {
   fail(): void {
     this.onerror?.();
   }
+
+  aborted = false;
+
+  /** As a browser does: the request stops, and onabort fires. */
+  abort(): void {
+    this.aborted = true;
+    this.onabort?.();
+  }
 }
 
 /** The FakeXhr the code under test created, which must exist. */

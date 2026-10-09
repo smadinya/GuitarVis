@@ -199,6 +199,26 @@ describe("createJob", () => {
     expect(await rejection(upload)).toMatchObject({ status: null, reason: "unreachable" });
   });
 
+  it("stops the upload when told to", async () => {
+    const controller = new AbortController();
+    const upload = createJob(song(), undefined, controller.signal);
+
+    controller.abort();
+
+    expect(lastXhr().aborted).toBe(true);
+    expect(await rejection(upload)).toMatchObject({ reason: "unreachable" });
+  });
+
+  it("does not start an upload it was told to stop before it began", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    expect(await rejection(createJob(song(), undefined, controller.signal))).toMatchObject({
+      reason: "unreachable",
+    });
+    expect(FakeXhr.last).toBeNull();
+  });
+
   it("refuses a file over the limit without sending it", async () => {
     const big = song();
     Object.defineProperty(big, "size", { value: MAX_UPLOAD_BYTES + 1 });

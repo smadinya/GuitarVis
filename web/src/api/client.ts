@@ -49,12 +49,15 @@ export async function getDocument(
 
 /**
  * POST /jobs. Through XMLHttpRequest, not fetch: only XHR reports upload
- * progress, and a WAV can be tens of megabytes.
+ * progress, and a WAV can be tens of megabytes. Aborting `signal` stops the
+ * upload, which then rejects as unreachable.
  */
 export function createJob(
   file: File,
   onProgress: (fraction: number) => void = () => {},
+  signal?: AbortSignal,
 ): Promise<Upload> {
+  if (signal?.aborted) return Promise.reject(noAnswer());
   if (file.size > MAX_UPLOAD_BYTES) {
     // Sent anyway, the api would refuse it early and close the connection,
     // and some browsers report that as a network error, not as a 413.
@@ -81,6 +84,7 @@ export function createJob(
         reject(new ApiError(xhr.status, "unreachable", "The answer was not JSON."));
       }
     };
+    signal?.addEventListener("abort", () => xhr.abort(), { once: true });
     const form = new FormData();
     form.append("file", file, file.name);
     xhr.send(form);

@@ -1,4 +1,4 @@
-import { useEffect, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 
 import { ApiError, createJob } from "../api/client";
 import type { Reason } from "../api/messages";
@@ -20,18 +20,32 @@ export function UploadPage({ upload = createJob }: UploadPageProps) {
   const [state, setState] = useState<Upload>({ kind: "idle" });
   const [dragging, setDragging] = useState(false);
   const sending = state.kind === "sending";
+  const inFlight = useRef<AbortController | null>(null);
+
+  // A user who leaves mid-upload has gone somewhere else: stop the upload,
+  // and never pull them back to the song when it would have finished.
+  useEffect(() => () => inFlight.current?.abort(), []);
 
   const send = (file: File) => {
     if (sending) return;
+    const controller = new AbortController();
+    inFlight.current = controller;
+    const live = () => !controller.signal.aborted;
     setState({ kind: "sending", name: file.name, fraction: 0 });
-    upload(file, (fraction) => setState({ kind: "sending", name: file.name, fraction }))
-      .then(({ job }) => navigate(songPath(job.id)))
-      .catch((error: unknown) =>
+    const onProgress = (fraction: number) => {
+      if (live()) setState({ kind: "sending", name: file.name, fraction });
+    };
+    upload(file, onProgress, controller.signal)
+      .then(({ job }) => {
+        if (live()) navigate(songPath(job.id));
+      })
+      .catch((error: unknown) => {
+        if (!live()) return;
         setState({
           kind: "refused",
           reason: error instanceof ApiError ? error.reason : "unreachable",
-        }),
-      );
+        });
+      });
   };
 
   // A file dropped just outside the drop zone would otherwise be opened by the
