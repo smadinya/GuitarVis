@@ -282,6 +282,9 @@ export class PlaybackEngine {
     this.previous = pending.at;
     if (pending.resume) this.media.play().catch(() => this.syncPlaying());
     this.syncPlaying();
+    // The frame loop stops while a source loads. Do not rely on the element's
+    // waiting and playing events to start it again.
+    this.redraw();
   }
 
   private onEnded(): void {

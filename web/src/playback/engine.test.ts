@@ -138,6 +138,19 @@ describe("the mix and guitar toggle", () => {
     expect(media.currentTime).toBe(10);
   });
 
+  it("goes on drawing frames once the other file has loaded", () => {
+    const { media, engine, frames } = playingAt(40);
+    engine.setSource("guitar");
+    frames.flush(); // a frame runs while the file loads, and does not ask for another
+    frames.flush();
+    expect(frames.pending).toBe(0);
+
+    media.loadMetadata(200);
+
+    expect(engine.getState().playing).toBe(true);
+    expect(frames.pending).toBe(1);
+  });
+
   it("does not throw when the browser refuses to resume", async () => {
     const { media, engine } = playingAt(40);
     engine.setSource("guitar");
