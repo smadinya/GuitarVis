@@ -21,6 +21,9 @@ const PAD = 8;
 const ROW = 20;
 const STRING_GAP = 18;
 const GUTTER = 22; // the string labels' column, drawn over the scrolling notes
+/** Estimated width of one character of text, in CSS pixels. */
+export const GLYPH_W = 7;
+const LABEL_INSET = 2; // between a chord or section label and the edge it follows
 const PAST_ALPHA = 0.45;
 
 /** Colours by role. TabStrip maps each to a --tab-* custom property. */
@@ -123,6 +126,10 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
   const onScreen = (start: number, end: number) => start <= to && end >= from;
   const hidden = song.hidden.filter((p) => onScreen(p.from, p.to));
   const isHidden = (t: number) => hidden.some((p) => p.from <= t && t <= p.to);
+  // A label stays readable at the gutter while its span runs under the left
+  // edge, but leaves with the span's end, so the next label never lands on it.
+  const labelX = (start: number, end: number, label: string) =>
+    Math.max(start, Math.min(GUTTER, end - label.length * GLYPH_W - LABEL_INSET)) + LABEL_INSET;
   const bandTop = rows.top - STRING_GAP / 2;
   const bandHeight = rows.bottom - rows.top + STRING_GAP;
   const ops: DrawOp[] = [];
@@ -150,8 +157,14 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
     ops.push(rect(x(passage.from), bandTop, x(passage.to) - x(passage.from), bandHeight, "hidden", 0.85));
     const chordOver = song.chords.some((c) => overlaps(c.t, c.t + c.dur, passage));
     if (!chordOver) {
-      const middle = (x(passage.from) + x(passage.to)) / 2;
-      ops.push(text(middle, (rows.top + rows.bottom) / 2, UNCLEAR_LABEL, "muted", "label", "center"));
+      // Centred on the part that is on screen, so it stays readable as a long
+      // passage scrolls by.
+      const visibleFrom = Math.max(x(passage.from), GUTTER);
+      const visibleTo = Math.min(x(passage.to), width);
+      if (visibleTo > visibleFrom) {
+        const middle = (visibleFrom + visibleTo) / 2;
+        ops.push(text(middle, (rows.top + rows.bottom) / 2, UNCLEAR_LABEL, "muted", "label", "center"));
+      }
     }
   }
 
@@ -162,7 +175,7 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
     const sounding = note.t <= now && now <= end;
     const alpha = (end < now ? PAST_ALPHA : 1) * emphasis(note.confidence);
     const fret = String(note.fret);
-    const knockout = fret.length * 7 + 4; // so the string does not strike through it
+    const knockout = fret.length * GLYPH_W + 4; // so the string does not strike through it
     ops.push(line(x(note.t), y, x(end), y, sounding ? "accent" : "muted", 3, 0.3 * alpha));
     ops.push(rect(x(note.t) - knockout / 2, y - 7, knockout, 14, "background"));
     ops.push(
@@ -176,7 +189,7 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
       // Over a hidden passage the chord is all there is to read, so it is
       // larger; its own confidence still sets its strength.
       const large = hidden.some((p) => overlaps(chord.t, chord.t + chord.dur, p));
-      const left = Math.max(x(chord.t), GUTTER) + 2;
+      const left = labelX(x(chord.t), x(chord.t + chord.dur), chord.symbol);
       const font = large ? "chordLarge" : "chord";
       ops.push(text(left, rows.chordY, chord.symbol, "text", font, "left", emphasis(chord.confidence)));
     }
@@ -185,7 +198,7 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
   if (rows.sectionY !== null) {
     for (const section of song.sections) {
       if (!onScreen(section.t, section.t + section.dur)) continue;
-      const left = Math.max(x(section.t), GUTTER) + 2;
+      const left = labelX(x(section.t), x(section.t + section.dur), section.label);
       ops.push(text(left, rows.sectionY, section.label, "muted", "label"));
     }
   }
