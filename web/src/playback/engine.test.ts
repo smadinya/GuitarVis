@@ -61,6 +61,43 @@ describe("loading", () => {
   });
 });
 
+describe("the first load", () => {
+  it("draws the sought time before the media has any", () => {
+    const { media, engine, frames, seen } = setup();
+    frames.flush();
+
+    engine.seek(30);
+    frames.flush();
+
+    expect(seen.at(-1)).toBe(30);
+    media.loadMetadata(200);
+    expect(media.currentTime).toBe(30);
+  });
+
+  it("plays when metadata arrives if play was pressed before it", () => {
+    const { media, engine } = setup();
+
+    engine.play();
+
+    expect(engine.getState().playing).toBe(true);
+    expect(media.paused).toBe(true); // nothing to play yet
+    media.loadMetadata(200);
+    expect(media.paused).toBe(false);
+    expect(engine.getState().playing).toBe(true);
+  });
+
+  it("stays paused when pause follows play before metadata arrives", () => {
+    const { media, engine } = setup();
+
+    engine.play();
+    engine.pause();
+    media.loadMetadata(200);
+
+    expect(media.paused).toBe(true);
+    expect(engine.getState().playing).toBe(false);
+  });
+});
+
 describe("speed", () => {
   it("sets the rate and the default rate together, and keeps pitch", () => {
     const { media, engine } = setup();
@@ -136,6 +173,73 @@ describe("the mix and guitar toggle", () => {
     media.loadMetadata(200);
 
     expect(media.currentTime).toBe(10);
+  });
+
+  it("draws the sought time, not the new file's zero, while it loads", () => {
+    const { engine, frames, seen, play } = playingAt(40);
+    play(2);
+
+    engine.setSource("guitar");
+    engine.seek(10);
+    frames.flush();
+
+    expect(seen.at(-1)).toBe(10);
+    expect(engine.getState().time).toBe(10);
+  });
+
+  it("keeps the strip still through the events the element fires during the swap", () => {
+    const { media, engine, frames, seen, play } = playingAt(40);
+    play(2);
+
+    engine.setSource("guitar");
+    media.emit("seeked"); // the element's time is 0 here, and the clock may now go backwards
+    media.emit("timeupdate");
+    frames.flush();
+
+    expect(media.currentTime).toBe(0);
+    expect(seen.at(-1)).toBe(42);
+    expect(engine.getState().time).toBe(42);
+  });
+
+  it("keeps a seek made during one load through a toggle back", () => {
+    const { media, engine, play } = playingAt(40);
+    play(2);
+
+    engine.setSource("guitar");
+    engine.seek(10);
+    engine.setSource("mix");
+    media.loadMetadata(200);
+
+    expect(media.src).toBe(MIX);
+    expect(media.currentTime).toBe(10);
+    expect(media.paused).toBe(false);
+  });
+
+  it("keeps a seek made during a load through a media error", () => {
+    const { media, engine, play } = playingAt(40);
+    play(2);
+
+    engine.setSource("guitar");
+    engine.seek(10);
+    media.emit("error");
+    media.loadMetadata(200);
+
+    expect(media.loads.at(-1)).toBe(GUITAR);
+    expect(media.currentTime).toBe(10);
+    expect(media.paused).toBe(false);
+  });
+
+  it("stays paused when pause is pressed while the other file loads", () => {
+    const { media, engine, play } = playingAt(40);
+    play(2);
+
+    engine.setSource("guitar");
+    engine.pause();
+    media.loadMetadata(200);
+
+    expect(media.currentTime).toBe(42);
+    expect(media.paused).toBe(true);
+    expect(engine.getState().playing).toBe(false);
   });
 
   it("goes on drawing frames once the other file has loaded", () => {
@@ -316,7 +420,8 @@ describe("the end, and frames", () => {
   });
 
   it("draws one frame after a seek while paused", () => {
-    const { engine, frames, seen } = setup();
+    const { media, engine, frames, seen } = setup();
+    media.loadMetadata(200);
     frames.flush();
 
     engine.seek(30);
