@@ -120,6 +120,12 @@ describe("a failed job's reason", () => {
     expect(job.failure?.reason).toBe("internal");
   });
 
+  it("reads as internal when it is one only a request can have", async () => {
+    const job = await getJob(JOB_ID, answering(200, failedWith("not_found")));
+
+    expect(job.failure?.reason).toBe("internal");
+  });
+
   it("is left alone when this build knows it", async () => {
     const job = await getJob(JOB_ID, answering(200, failedWith("no_guitar_detected")));
 

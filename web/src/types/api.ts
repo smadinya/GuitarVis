@@ -11,8 +11,8 @@ export type ApiResponse = JobView | ErrorBody;
  * or come back later.
  */
 export type FailureReason = "unsupported_format" | "no_guitar_detected" | "too_long" | "fetch_failed" | "internal";
-export type HttpReason = "too_large" | "too_many_jobs" | "not_found" | "not_ready";
 export type JobStatus = "queued" | "running" | "succeeded" | "failed";
+export type HttpReason = "too_large" | "too_many_jobs" | "not_found" | "not_ready";
 
 /**
  * `failure` is set only when `status` is failed; `stage` only while running.
@@ -29,14 +29,18 @@ export interface JobView {
   title: string;
   updated_at: string;
 }
+/**
+ * Why a job failed. Only a FailureReason: the HttpReason values describe
+ * a request, never a job.
+ */
 export interface FailureView {
   message: string;
-  reason: FailureReason | HttpReason;
+  reason: FailureReason;
   stage: string | null;
 }
 /**
- * Every error the api answers with. `errors.error_body` builds it; this
- * model describes it, for the generated client types and the tests.
+ * Every error the api answers with. `error_body` builds each one from
+ * this model, so the generated client types describe exactly what is sent.
  */
 export interface ErrorBody {
   error: ErrorDetail;

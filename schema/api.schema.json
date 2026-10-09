@@ -1,7 +1,7 @@
 {
   "$defs": {
     "ErrorBody": {
-      "description": "Every error the api answers with. `errors.error_body` builds it; this\nmodel describes it, for the generated client types and the tests.",
+      "description": "Every error the api answers with. `error_body` builds each one from\nthis model, so the generated client types describe exactly what is sent.",
       "properties": {
         "error": {
           "$ref": "#/$defs/ErrorDetail"
@@ -49,19 +49,13 @@
       "type": "string"
     },
     "FailureView": {
+      "description": "Why a job failed. Only a FailureReason: the HttpReason values describe\na request, never a job.",
       "properties": {
         "message": {
           "type": "string"
         },
         "reason": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/FailureReason"
-            },
-            {
-              "$ref": "#/$defs/HttpReason"
-            }
-          ]
+          "$ref": "#/$defs/FailureReason"
         },
         "stage": {
           "anyOf": [

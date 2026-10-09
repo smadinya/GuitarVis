@@ -7,7 +7,7 @@
  */
 import type { FailureView, JobView } from "../types/api";
 import type { TabDocument } from "../types/tabDocument";
-import { isReason, type Reason, type ServerReason } from "./messages";
+import { isFailureReason, isReason, type Reason } from "./messages";
 
 /** Mirrors the api's default GUITARVIS_MAX_UPLOAD_MB, so a file far too big
  * is refused before it is sent. The api's own limit still decides. */
@@ -121,18 +121,14 @@ type WireJob = Omit<JobView, "failure"> & {
  * The job, with a failure reason this build has no text for read as
  * internal and the server's message kept, as errorFrom does for an error
  * body. Without this an unknown reason would index MESSAGES and find nothing.
+ * A reason only a request can have (not_found, say), or the client's own
+ * unreachable, is as unknown on a job as any other word.
  */
 function knownReasons(job: WireJob): JobView {
   const { failure } = job;
   if (!failure) return { ...job, failure: null };
-  const reason = isServerReason(failure.reason) ? failure.reason : "internal";
+  const reason = isFailureReason(failure.reason) ? failure.reason : "internal";
   return { ...job, failure: { ...failure, reason } };
-}
-
-/** "unreachable" is the client's own reason: no server sends it, so a job
- * that claims it is as unknown as any other word. */
-function isServerReason(value: string): value is ServerReason {
-  return isReason(value) && value !== "unreachable";
 }
 
 async function getJson(path: string, fetcher: Fetch): Promise<unknown> {

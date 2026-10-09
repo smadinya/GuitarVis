@@ -6,7 +6,7 @@
  * new reason has text. That is the mechanism behind CONVENTIONS' "adding a
  * reason means updating the UI mapping".
  */
-import type { ErrorDetail } from "../types/api";
+import type { ErrorDetail, FailureReason } from "../types/api";
 
 /** Every reason the api can send. */
 export type ServerReason = ErrorDetail["reason"];
@@ -18,7 +18,8 @@ export interface Message {
   action: string;
 }
 
-export const MESSAGES: Record<Reason, Message> = {
+/** The reasons a job itself can fail with. */
+const JOB_MESSAGES: Record<FailureReason, Message> = {
   unsupported_format: {
     headline: "We couldn't read that file as audio.",
     action: "Try an MP3, WAV, FLAC or M4A file.",
@@ -39,6 +40,10 @@ export const MESSAGES: Record<Reason, Message> = {
     headline: "Something went wrong on our side.",
     action: "Try again in a few minutes.",
   },
+};
+
+export const MESSAGES: Record<Reason, Message> = {
+  ...JOB_MESSAGES,
   too_large: {
     headline: "That file is too large.",
     action: "Upload a smaller file. A compressed format such as MP3 helps.",
@@ -63,4 +68,9 @@ export const MESSAGES: Record<Reason, Message> = {
 
 export function isReason(value: unknown): value is Reason {
   return typeof value === "string" && Object.hasOwn(MESSAGES, value);
+}
+
+/** Whether a failed job's reason is one this build knows. */
+export function isFailureReason(value: unknown): value is FailureReason {
+  return typeof value === "string" && Object.hasOwn(JOB_MESSAGES, value);
 }

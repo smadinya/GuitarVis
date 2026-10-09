@@ -6,9 +6,9 @@ import sys
 from pathlib import Path
 
 from api_fixture import make_api
-from guitarvis_api.errors import HttpReason
+from guitarvis_api.errors import ErrorBody, HttpReason
 from guitarvis_api.schema_export import api_schema
-from guitarvis_api.schemas import ErrorBody, JobView
+from guitarvis_api.schemas import JobView
 from guitarvis_core.contracts import FailureReason
 from guitarvis_jobs.models import JobStatus
 from guitarvis_jobs.store import InMemoryJobStore
@@ -46,6 +46,13 @@ def test_the_schema_names_all_nine_reasons() -> None:
 
     assert named == {r.value for r in FailureReason} | {r.value for r in HttpReason}
     assert len(named) == 9
+
+
+def test_a_failed_job_can_carry_only_a_failure_reason() -> None:
+    """The four HttpReason values describe a request, never a job."""
+    reason = api_schema()["$defs"]["FailureView"]["properties"]["reason"]
+
+    assert reason == {"$ref": "#/$defs/FailureReason"}
 
 
 def test_the_errors_the_routes_send_are_error_bodies() -> None:

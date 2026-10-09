@@ -17,7 +17,8 @@ from typing import Any
 from guitarvis_core.schema_export import strip_property_titles
 from pydantic.json_schema import models_json_schema
 
-from guitarvis_api.schemas import ErrorBody, JobView
+from guitarvis_api.errors import ErrorBody
+from guitarvis_api.schemas import JobView
 
 DEFAULT_OUTPUT = Path("schema/api.schema.json")
 
