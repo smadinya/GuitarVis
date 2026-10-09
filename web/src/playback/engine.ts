@@ -17,6 +17,10 @@ export const SEEK_STEP_SEC = 5;
 export const MIN_LOOP_SEC = 0.5;
 /** Consecutive media errors before the engine stops retrying. */
 export const MAX_FAILURES = 3;
+/** Playback must get this far past where the engine last recovered before the
+ * failures stop counting. An error that comes back at the same place never
+ * gets that far, so it ends in the error state rather than reloading forever. */
+const RECOVERED_AFTER_SEC = 2;
 /** The time readout in the state moves in steps of about this (about 4 Hz). */
 const READOUT_SEC = 0.25;
 
@@ -76,6 +80,10 @@ export class PlaybackEngine {
   /** A source being loaded: where to seek once it has metadata, and whether to play. */
   private pending: Pending | null = null;
   private failures = 0;
+  /** Where the last recovery resumed. */
+  private resumedAt = 0;
+  /** Whether the song was playing when the engine gave up. */
+  private resumeAfterError = false;
   /** The time at the last loop check. */
   private previous = 0;
   private disposed = false;
@@ -101,10 +109,7 @@ export class PlaybackEngine {
 
     this.listen("loadedmetadata", () => this.onMetadata());
     this.listen("durationchange", () => this.syncDuration());
-    this.listen("canplay", () => {
-      this.failures = 0;
-      this.update({ buffering: false });
-    });
+    this.listen("canplay", () => this.update({ buffering: false }));
     this.listen("waiting", () => this.update({ buffering: true }));
     this.listen("playing", () => this.update({ buffering: false }));
     this.listen("play", () => this.syncPlaying());
@@ -112,7 +117,10 @@ export class PlaybackEngine {
     this.listen("ended", () => this.onEnded());
     // Animation frames stop in a background tab; timeupdate does not, so the
     // loop holds there too.
-    this.listen("timeupdate", () => this.tick());
+    this.listen("timeupdate", () => {
+      this.noteProgress();
+      this.tick();
+    });
     this.listen("error", () => this.onError());
 
     this.applyRate(1);
@@ -193,12 +201,15 @@ export class PlaybackEngine {
   }
 
   /** Switch between the mix and the guitar stem, keeping time, play state
-   * and rate. Costs a short gap while the other file loads. */
+   * and rate. Costs a short gap while the other file loads. It is also the
+   * way out of the error state: the mix is the upload as it came, which some
+   * browsers cannot decode, while the stem always plays. */
   setSource(source: Source): void {
-    if (source === this.state.source || this.state.error !== null) return;
-    const resume = this.state.playing;
+    if (source === this.state.source) return;
+    const resume = this.state.error !== null ? this.resumeAfterError : this.state.playing;
     const at = this.time();
-    this.update({ source });
+    this.failures = 0;
+    this.update({ source, error: null });
     this.load(at, resume);
   }
 
@@ -298,18 +309,33 @@ export class PlaybackEngine {
     this.syncPlaying();
   }
 
-  /** A network error, most likely an expired presigned URL: ask the api again. */
+  /** A media error, most likely an expired presigned URL: ask the api again. */
   private onError(): void {
     const at = this.time();
     const resume = this.state.playing;
     this.failures += 1;
     if (this.failures >= MAX_FAILURES) {
       this.pending = null;
+      this.resumeAfterError = resume;
       this.media.pause();
       this.update({ error: "connection_lost", playing: false, buffering: false });
       return;
     }
+    this.resumedAt = at;
     this.load(at, resume);
+  }
+
+  /** A recovery counts once playback has really moved on from where it
+   * resumed. canplay alone proves nothing: a file that is cut off at some
+   * point loads fine and fails again at the same place. */
+  private noteProgress(): void {
+    if (
+      this.failures > 0 &&
+      this.pending === null &&
+      this.media.currentTime >= this.resumedAt + RECOVERED_AFTER_SEC
+    ) {
+      this.failures = 0;
+    }
   }
 
   private applyRate(rate: Rate): void {

@@ -136,15 +136,47 @@ describe("Player", () => {
     expect(screen.queryByRole("complementary", { name: "Warnings" })).toBeNull();
   });
 
-  it("says when the audio connection is lost", () => {
+  it("says when the audio cannot be played, and offers the other track and a reload", () => {
     const media = mount();
 
     act(() => {
       for (let i = 0; i < 3; i++) media.emit("error");
     });
 
-    expect(screen.getByRole("alert").textContent).toContain("lost the connection");
+    const alert = screen.getByRole("alert").textContent;
+    expect(alert).toContain("We couldn't play this audio.");
+    expect(alert).toContain("Try Guitar only, or reload the page.");
     expect(screen.getByRole("button", { name: "Reload" })).toBeTruthy();
+  });
+
+  it("suggests the mix when the guitar is what failed", () => {
+    const media = mount();
+    fireEvent.click(screen.getByRole("button", { name: "Guitar only" }));
+    act(() => media.loadMetadata(13.871));
+
+    act(() => {
+      for (let i = 0; i < 3; i++) media.emit("error");
+    });
+
+    expect(screen.getByRole("alert").textContent).toContain("Try Full mix, or reload the page.");
+  });
+
+  it("keeps the audio toggle usable in the error state, and clears the alert with it", () => {
+    const media = mount();
+    act(() => {
+      for (let i = 0; i < 3; i++) media.emit("error");
+    });
+    expect(screen.getByRole("alert")).toBeTruthy();
+
+    const guitar = screen.getByRole("button", { name: "Guitar only" });
+    expect((guitar as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(guitar);
+
+    expect(media.src).toBe(`/jobs/${JOB_ID}/audio/guitar`);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("button", { name: "Guitar only" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
   });
 });
 

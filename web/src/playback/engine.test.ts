@@ -297,10 +297,113 @@ describe("expired audio URLs", () => {
 
     for (let i = 0; i < MAX_FAILURES * 2; i++) {
       media.emit("error");
-      media.loadMetadata(200); // recovered: canplay resets the count
+      media.loadMetadata(200);
+      media.advance(10); // recovered: playback went on past where it resumed
     }
 
     expect(engine.getState().error).toBeNull();
+    expect(media.loads).toHaveLength(MAX_FAILURES * 2 + 1);
+  });
+
+  it("recovers from a single error long after the last one", () => {
+    const { media, engine } = playingAt(100);
+
+    media.emit("error");
+    media.loadMetadata(200);
+    media.advance(900); // a 15-minute session on the fresh URL
+    media.emit("error"); // the next URL expires
+    media.loadMetadata(200);
+
+    expect(engine.getState().error).toBeNull();
+    expect(media.loads).toEqual([MIX, MIX, MIX]);
+    expect(media.currentTime).toBe(1000);
+  });
+
+  it("gives up on an error that comes back at the same place, however often it loads", () => {
+    const { media, engine } = playingAt(100);
+
+    // A truncated file: it loads fine, and fails again where it failed before.
+    for (let i = 0; i < MAX_FAILURES - 1; i++) {
+      media.emit("error");
+      media.loadMetadata(200); // canplay fires, and does not count as recovery
+      media.advance(0.25); // one timeupdate, hardly any playback
+    }
+    media.emit("error");
+
+    expect(engine.getState().error).toBe("connection_lost");
+    expect(media.loads).toHaveLength(MAX_FAILURES); // the first load, then two retries
+    engine.play();
+    expect(media.paused).toBe(true);
+  });
+});
+
+describe("a file that will not play", () => {
+  /** Three errors on the mix, as for a format the browser cannot decode. */
+  function failedMix(at: number) {
+    const fixture = playingAt(at);
+    for (let i = 0; i < MAX_FAILURES; i++) fixture.media.emit("error");
+    expect(fixture.engine.getState().error).toBe("connection_lost");
+    return fixture;
+  }
+
+  it("can be left by choosing the other track", () => {
+    const { media, engine } = failedMix(100);
+
+    engine.setSource("guitar");
+    media.loadMetadata(200);
+
+    expect(media.loads.at(-1)).toBe(GUITAR);
+    expect(engine.getState()).toMatchObject({ source: "guitar", error: null });
+    expect(media.currentTime).toBe(100);
+  });
+
+  it("plays the other track if the song was playing when the mix failed", () => {
+    const { media, engine } = failedMix(100);
+    expect(engine.getState().playing).toBe(false);
+
+    engine.setSource("guitar");
+    media.loadMetadata(200);
+
+    expect(engine.getState().playing).toBe(true);
+    expect(media.paused).toBe(false);
+  });
+
+  it("leaves a song that was paused paused", () => {
+    const { media, engine } = setup();
+    media.loadMetadata(200);
+    engine.seek(40);
+    for (let i = 0; i < MAX_FAILURES; i++) media.emit("error");
+
+    engine.setSource("guitar");
+    media.loadMetadata(200);
+
+    expect(media.currentTime).toBe(40);
+    expect(media.paused).toBe(true);
+    expect(engine.getState().playing).toBe(false);
+  });
+
+  it("gives the other track a fresh count of failures", () => {
+    const { media, engine } = failedMix(100);
+    engine.setSource("guitar");
+
+    media.emit("error");
+    media.emit("error");
+
+    expect(engine.getState().error).toBeNull();
+    media.emit("error");
+    expect(engine.getState().error).toBe("connection_lost");
+  });
+
+  it("holds the strip at the failing position until another track is chosen", () => {
+    const { media, engine, frames, seen, play } = playingAt(100);
+    play(3);
+    for (let i = 0; i < MAX_FAILURES; i++) media.emit("error");
+
+    frames.flush();
+
+    expect(media.currentTime).toBe(0); // the failed load reset the element
+    expect(seen.at(-1)).toBe(103);
+    expect(engine.getState().playing).toBe(false);
   });
 });
 

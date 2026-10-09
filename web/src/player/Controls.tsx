@@ -13,6 +13,11 @@ const SOURCES: Array<[Source, string]> = [
   ["guitar", "Guitar only"],
 ];
 
+/** The label of the track the player is not on. */
+function otherSource(source: Source): string {
+  return SOURCES.find(([candidate]) => candidate !== source)?.[1] ?? "the other track";
+}
+
 /** A clicked button does not keep focus, so Space stays play/pause rather
  * than clicking the last button again. Keyboard focus still works. */
 function keepFocus(event: MouseEvent) {
@@ -99,7 +104,9 @@ export function Controls({ engine }: { engine: PlaybackEngine }) {
 
       {state.error === "connection_lost" && (
         <div role="alert">
-          <p>We lost the connection to the audio.</p>
+          <p>
+            We couldn't play this audio. Try {otherSource(state.source)}, or reload the page.
+          </p>
           <button type="button" onClick={() => window.location.reload()}>
             Reload
           </button>
