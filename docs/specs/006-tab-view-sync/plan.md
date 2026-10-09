@@ -974,7 +974,7 @@ Append two sentences to the `score_full` docstring, after "…over those matchin
 
 In `score_full`'s `return ExcerptScore(...)`, add after the `chords=` argument:
 
-```python
+```text
         confidence=confidence_bands(events, {e for _, e in heard}),
 ```
 
