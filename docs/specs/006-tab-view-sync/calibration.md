@@ -38,3 +38,29 @@ GuitarSet is clean solo guitar, and full mode skips separation, so these
 thresholds are optimistic for stems separated from full mixes. Real songs
 will show more faded and hidden notes than GuitarSet predicts. The next
 section measures that gap on real output.
+
+## On real songs
+
+What the chosen values do to real pipeline output, from
+`node web/scripts/confidence-report.ts` (`web/scripts/confidence-report.ts`
+uses the same `hiddenPassages` the views use). The first row is the committed
+fixture, the first song through the api. `song2` is an earlier CLI run from
+before fretboard assignment existed, so it has no notes:
+
+```text
+HIDE 0.5, FULL 0.6
+notes  at/below HIDE  partly faded  hidden  passages  document
+   32            66%            3%     50%         1  web/src/test/fixtures/first-song.tabdoc.json
+    0              —             —       —         0  tmp/song2.json
+   12            33%           17%     33%         1  tmp/song3.json
+```
+
+The GuitarSet table predicts that 23% of notes sit at or below 0.5 (2218 of
+9778) and 21% fall between 0.5 and 0.6. The first song fades 66% of its notes,
+nearly three times that, and hides half of them in one passage: its
+confidences cluster between 0.3 and 0.5 (median 0.45), with almost none in the
+partly-faded band. `song3` is nearer the prediction, but 12 notes and 44 in
+all make this an indication rather than a measurement. It points the way the
+section above warned: separated full mixes score lower than GuitarSet, so real
+songs show more faded and hidden notes than the table predicts. The values
+stay as measured.
