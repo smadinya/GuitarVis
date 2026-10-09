@@ -177,6 +177,25 @@ describe("SongPage", () => {
     expect(screen.queryByRole("button", { name: "Play" })).toBeNull();
   });
 
+  it("treats a document it cannot build as one that will not load", async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on("unhandledRejection", onUnhandled);
+    // No `source`: canRead passes, then buildSong throws reading source.title.
+    const broken = { ...FIRST_SONG, source: undefined } as unknown as TabDocument;
+    const { api } = scripted([jobView({ status: "succeeded" })], async () => broken);
+    render(<SongPage jobId={JOB_ID} api={api} createMedia={createMedia} />);
+
+    await settle();
+    await wait(0);
+    process.off("unhandledRejection", onUnhandled);
+
+    expect(text()).toContain("We couldn't load the tab.");
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(text()).not.toContain("Loading the tab");
+    expect(unhandled).toEqual([]);
+  });
+
   it("offers a retry when the document will not load", async () => {
     let fail = true;
     const { api } = scripted([jobView({ status: "succeeded" })], async () => {

@@ -78,7 +78,15 @@ function useSong(jobId: string, ready: boolean, api: SongApi): [Loaded, () => vo
     api.getDocument(jobId).then(
       (doc) => {
         if (cancelled) return;
-        setLoaded(canRead(doc) ? { kind: "ready", song: buildSong(doc) } : { kind: "newer" });
+        // A throw here is not caught by the rejection handler beside it, so a
+        // document buildSong cannot read is handled as one that would not load.
+        let next: Loaded;
+        try {
+          next = canRead(doc) ? { kind: "ready", song: buildSong(doc) } : { kind: "newer" };
+        } catch {
+          next = { kind: "failed" };
+        }
+        setLoaded(next);
       },
       () => {
         if (!cancelled) setLoaded({ kind: "failed" });
