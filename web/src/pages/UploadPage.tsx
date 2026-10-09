@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 
 import { ApiError, createJob } from "../api/client";
 import type { Reason } from "../api/messages";
@@ -34,6 +34,18 @@ export function UploadPage({ upload = createJob }: UploadPageProps) {
       );
   };
 
+  // A file dropped just outside the drop zone would otherwise be opened by the
+  // browser, and the app lost. Only the drop zone takes a drop.
+  useEffect(() => {
+    const refuse = (event: Event) => event.preventDefault();
+    window.addEventListener("dragover", refuse);
+    window.addEventListener("drop", refuse);
+    return () => {
+      window.removeEventListener("dragover", refuse);
+      window.removeEventListener("drop", refuse);
+    };
+  }, []);
+
   const onDrop = (event: DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
     setDragging(false);
@@ -68,8 +80,16 @@ export function UploadPage({ upload = createJob }: UploadPageProps) {
       </label>
       {state.kind === "sending" && (
         <p role="status">
-          Uploading {state.name} <progress value={state.fraction} max={1} />{" "}
-          {Math.round(state.fraction * 100)}%
+          {state.fraction < 1 ? (
+            <>
+              Uploading {state.name} <progress value={state.fraction} max={1} />{" "}
+              {Math.round(state.fraction * 100)}%
+            </>
+          ) : (
+            // Every byte is sent; the api hashes, probes and stores the file
+            // before it answers, which takes seconds for a large one.
+            "Checking the file…"
+          )}
         </p>
       )}
       {state.kind === "refused" && <Failure reason={state.reason} />}

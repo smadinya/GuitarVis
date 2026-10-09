@@ -56,6 +56,27 @@ describe("UploadPage", () => {
     expect(screen.getByRole("status").textContent).toContain("50%");
   });
 
+  it("says it is checking the file once every byte is sent, until the api answers", async () => {
+    let answer: (upload: Upload) => void = () => {};
+    render(
+      <UploadPage
+        upload={(_file, onProgress) => {
+          onProgress?.(0.5);
+          onProgress?.(1);
+          return new Promise<Upload>((resolve) => (answer = resolve));
+        }}
+      />,
+    );
+
+    choose(song());
+
+    const status = screen.getByRole("status").textContent;
+    expect(status).toContain("Checking the file");
+    expect(status).not.toContain("100%");
+    await act(async () => answer({ job: jobView(), created: true }));
+    expect(window.location.pathname).toBe(`/songs/${JOB_ID}`);
+  });
+
   it("shows the mapped text when the api refuses", async () => {
     render(
       <UploadPage
@@ -86,5 +107,26 @@ describe("UploadPage", () => {
     await act(async () => {});
 
     expect(screen.getByText(MESSAGES.unreachable.headline)).toBeTruthy();
+  });
+
+  it("keeps a file dropped just outside the drop zone from opening in the browser", () => {
+    const { unmount } = render(<UploadPage upload={() => new Promise(() => {})} />);
+
+    const near = new Event("drop", { cancelable: true });
+    const over = new Event("dragover", { cancelable: true });
+    window.dispatchEvent(near);
+    window.dispatchEvent(over);
+
+    expect(near.defaultPrevented).toBe(true);
+    expect(over.defaultPrevented).toBe(true);
+
+    unmount();
+    const later = new Event("drop", { cancelable: true });
+    const laterOver = new Event("dragover", { cancelable: true });
+    window.dispatchEvent(later);
+    window.dispatchEvent(laterOver);
+
+    expect(later.defaultPrevented).toBe(false);
+    expect(laterOver.defaultPrevented).toBe(false);
   });
 });
