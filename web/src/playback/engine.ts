@@ -17,11 +17,12 @@ export const SEEK_STEP_SEC = 5;
 export const MIN_LOOP_SEC = 0.5;
 /** Consecutive media errors before the engine stops retrying. */
 export const MAX_FAILURES = 3;
-/** Playback must get this far past where the engine last recovered before the
+/** This much playback after a recovery, however it got there, and the
  * failures stop counting. An error that comes back at the same place never
  * gets that far, so it ends in the error state rather than reloading forever. */
 const RECOVERED_AFTER_SEC = 2;
-/** The time readout in the state moves in steps of about this (about 4 Hz). */
+/** While playing, the time readout in the state moves in steps of about this
+ * (about 4 Hz). While paused it is exact. */
 const READOUT_SEC = 0.25;
 
 /** Loop points in song seconds. Both set means a loop. */
@@ -38,7 +39,8 @@ export interface EngineState {
   duration: number;
   buffering: boolean;
   error: "connection_lost" | null;
-  /** The current time, updated about four times a second. Draw from onFrame. */
+  /** The current time: about four times a second while playing, exact while
+   * paused. Draw from onFrame. */
   time: number;
 }
 
@@ -77,11 +79,15 @@ export class PlaybackEngine {
   private readonly unlisten: Array<() => void> = [];
   private state: EngineState;
   private frame: number | null = null;
-  /** A source being loaded: where to seek once it has metadata, and whether to play. */
+  /** A source being loaded: where to seek once it has metadata, and whether
+   * to play. Also set, never to play, once the engine has given up: it holds
+   * the position the next source resumes from. */
   private pending: Pending | null = null;
   private failures = 0;
-  /** Where the last recovery resumed. */
-  private resumedAt = 0;
+  /** Song seconds played since the last recovery. */
+  private played = 0;
+  /** The media time at which `played` was last counted. */
+  private mark = 0;
   /** Whether the song was playing when the engine gave up. */
   private resumeAfterError = false;
   /** The time at the last loop check. */
@@ -123,6 +129,9 @@ export class PlaybackEngine {
     });
     this.listen("error", () => this.onError());
 
+    // Only the file's length and format until play: an engine that is
+    // disposed unplayed has fetched next to nothing.
+    this.media.preload = "metadata";
     this.applyRate(1);
     this.load(0, false);
   }
@@ -186,6 +195,7 @@ export class PlaybackEngine {
     } else {
       this.media.currentTime = target;
       this.clock.jump();
+      this.mark = target;
     }
     this.update({ time: target });
     this.redraw();
@@ -236,13 +246,18 @@ export class PlaybackEngine {
     for (const unlisten of this.unlisten) unlisten();
     this.clock.dispose();
     this.media.pause();
+    // Pausing alone leaves the element downloading. Loading it with no
+    // source is how the HTML spec says to stop that.
+    this.media.removeAttribute("src");
+    this.media.load();
     this.frameListeners.clear();
     this.stateListeners.clear();
   }
 
   // --- internals ------------------------------------------------------------
 
-  /** The time to draw: held still while a source loads. */
+  /** The time to draw: held still while a source loads, and once the engine
+   * has given up. */
   private time(): number {
     return this.pending?.at ?? this.clock.now();
   }
@@ -268,7 +283,9 @@ export class PlaybackEngine {
       }
     }
     this.previous = t;
-    if (Math.abs(t - this.state.time) >= READOUT_SEC) this.update({ time: t });
+    if (!this.state.playing || Math.abs(t - this.state.time) >= READOUT_SEC) {
+      this.update({ time: t });
+    }
     return t;
   }
 
@@ -291,6 +308,7 @@ export class PlaybackEngine {
     this.media.currentTime = pending.at;
     this.clock.jump();
     this.previous = pending.at;
+    this.mark = pending.at;
     if (pending.resume) this.media.play().catch(() => this.syncPlaying());
     this.syncPlaying();
     // The frame loop stops while a source loads. Do not rely on the element's
@@ -315,27 +333,29 @@ export class PlaybackEngine {
     const resume = this.state.playing;
     this.failures += 1;
     if (this.failures >= MAX_FAILURES) {
-      this.pending = null;
+      // Hold the position, including a seek made while retrying, for the
+      // source the user chooses next.
+      this.pending = { at, resume: false };
       this.resumeAfterError = resume;
       this.media.pause();
       this.update({ error: "connection_lost", playing: false, buffering: false });
       return;
     }
-    this.resumedAt = at;
+    this.played = 0;
     this.load(at, resume);
   }
 
-  /** A recovery counts once playback has really moved on from where it
-   * resumed. canplay alone proves nothing: a file that is cut off at some
-   * point loads fine and fails again at the same place. */
+  /** A recovery counts once RECOVERED_AFTER_SEC have really been played
+   * since it, wherever in the song. Seeks and loop jumps move the mark without
+   * counting, so a short A/B loop recovers while an error that comes back at
+   * the same place never does. canplay alone proves nothing: a file that is
+   * cut off at some point loads fine and fails again at the same place. */
   private noteProgress(): void {
-    if (
-      this.failures > 0 &&
-      this.pending === null &&
-      this.media.currentTime >= this.resumedAt + RECOVERED_AFTER_SEC
-    ) {
-      this.failures = 0;
-    }
+    if (this.failures === 0 || this.pending !== null) return;
+    const t = this.media.currentTime;
+    if (t > this.mark) this.played += t - this.mark;
+    this.mark = t;
+    if (this.played >= RECOVERED_AFTER_SEC) this.failures = 0;
   }
 
   private applyRate(rate: Rate): void {

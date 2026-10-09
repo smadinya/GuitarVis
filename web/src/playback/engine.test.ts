@@ -319,6 +319,40 @@ describe("expired audio URLs", () => {
     expect(media.currentTime).toBe(1000);
   });
 
+  it("recovers each time inside a loop too short to get two seconds past the error", () => {
+    const { media, engine, play } = playingAt(30);
+    engine.setLoopPoint("a");
+    engine.seek(31.5);
+    engine.setLoopPoint("b");
+    engine.seek(30);
+
+    // Three URLs expire during one practice session on a 1.5 s loop.
+    for (let expiry = 0; expiry < MAX_FAILURES; expiry++) {
+      play(1);
+      media.emit("error");
+      media.loadMetadata(200);
+      for (let pass = 0; pass < 6; pass++) play(0.5); // round the loop, never past B
+    }
+
+    expect(engine.getState().error).toBeNull();
+    expect(media.currentTime).toBeGreaterThanOrEqual(30);
+    expect(media.currentTime).toBeLessThan(31.5);
+  });
+
+  it("does not count a seek forwards as playback", () => {
+    const { media, engine } = playingAt(100);
+
+    for (let i = 0; i < MAX_FAILURES - 1; i++) {
+      media.emit("error");
+      media.loadMetadata(200);
+      engine.seekBy(5); // the user skips ahead, and it fails again straight away
+      media.advance(0.25);
+    }
+    media.emit("error");
+
+    expect(engine.getState().error).toBe("connection_lost");
+  });
+
   it("gives up on an error that comes back at the same place, however often it loads", () => {
     const { media, engine } = playingAt(100);
 
@@ -392,6 +426,35 @@ describe("a file that will not play", () => {
     expect(engine.getState().error).toBeNull();
     media.emit("error");
     expect(engine.getState().error).toBe("connection_lost");
+  });
+
+  it("keeps a seek made while it was retrying, once it gives up", () => {
+    const { media, engine, frames, seen, play } = playingAt(100);
+    play(3);
+    media.emit("error");
+    engine.seek(30);
+    for (let i = 1; i < MAX_FAILURES; i++) media.emit("error");
+    expect(engine.getState().error).toBe("connection_lost");
+
+    frames.flush();
+
+    expect(seen.at(-1)).toBe(30);
+    expect(engine.getState().time).toBe(30);
+    engine.setSource("guitar");
+    media.loadMetadata(200);
+    expect(media.currentTime).toBe(30);
+  });
+
+  it("can be sought while it has given up", () => {
+    const { media, engine, frames, seen } = failedMix(100);
+
+    engine.seek(60);
+    frames.flush();
+    engine.setSource("guitar");
+    media.loadMetadata(200);
+
+    expect(seen.at(-1)).toBe(60);
+    expect(media.currentTime).toBe(60);
   });
 
   it("holds the strip at the failing position until another track is chosen", () => {
@@ -558,6 +621,16 @@ describe("the end, and frames", () => {
     expect(updates).toBeLessThanOrEqual(5);
   });
 
+  it("shows the exact time in the readout once paused", () => {
+    const { engine, frames, play } = playingAt(64.8);
+    play(0.22); // less than a readout step
+
+    engine.pause();
+    frames.flush();
+
+    expect(engine.getState().time).toBeCloseTo(65.02);
+  });
+
   it("lets go of the element when disposed", () => {
     const { media, engine, frames } = playingAt(5);
 
@@ -566,5 +639,21 @@ describe("the end, and frames", () => {
     expect(media.paused).toBe(true);
     expect(media.listenerCount()).toBe(0);
     expect(frames.pending).toBe(0);
+  });
+
+  it("stops the download when disposed", () => {
+    const { media, engine } = setup();
+    expect(media.fetching).toBe(true);
+
+    engine.dispose();
+
+    expect(media.src).toBe("");
+    expect(media.fetching).toBe(false);
+  });
+
+  it("asks only for metadata until it plays", () => {
+    const { media } = setup();
+
+    expect(media.preload).toBe("metadata");
   });
 });

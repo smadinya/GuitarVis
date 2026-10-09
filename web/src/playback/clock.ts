@@ -19,8 +19,11 @@ export interface MediaLike {
   playbackRate: number;
   defaultPlaybackRate: number;
   preservesPitch: boolean;
+  preload: string;
   play(): Promise<void>;
   pause(): void;
+  load(): void;
+  removeAttribute(name: string): void;
   addEventListener(type: string, listener: () => void): void;
   removeEventListener(type: string, listener: () => void): void;
 }

@@ -12,8 +12,12 @@ export class FakeMedia implements MediaLike {
   defaultPlaybackRate = 1;
   preservesPitch = false;
   webkitPreservesPitch = false;
+  preload = "";
   /** Every src ever set, in order. */
   readonly loads: string[] = [];
+  /** Whether the element is fetching a file: from setting src until load()
+   * runs with no src. */
+  fetching = false;
   /** When set, play() rejects with it, as a browser's autoplay policy may. */
   refusePlay: Error | null = null;
   private source = "";
@@ -29,10 +33,20 @@ export class FakeMedia implements MediaLike {
     return this.source;
   }
 
-  /** The media load algorithm, as far as the engine can see it. */
   set src(value: string) {
     this.source = value;
     this.loads.push(value);
+    this.load();
+  }
+
+  removeAttribute(name: string): void {
+    if (name === "src") this.source = "";
+  }
+
+  /** The media load algorithm, as far as the engine can see it. With no src,
+   * the element lets go of whatever it was fetching. */
+  load(): void {
+    this.fetching = this.source !== "";
     this.paused = true;
     this.finished = false;
     this.currentTime = 0;
