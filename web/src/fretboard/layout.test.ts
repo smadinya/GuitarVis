@@ -162,7 +162,7 @@ describe("confidence", () => {
     expect(fretboard.dots(3)).toEqual([]);
   });
 
-  it("lights every note the tab strip shows, and no other, across the real first song", () => {
+  it("lights every note that isHidden leaves shown, and no other, across the real first song", () => {
     const song = buildSong(FIRST_SONG);
     const fretboard = board(song);
     const lit = new Set<string>();
