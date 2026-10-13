@@ -1,0 +1,381 @@
+import { describe, expect, it } from "vitest";
+
+import { CHORD_FULL, FADED } from "../confidence";
+import { NoteCursor } from "../playback/cursor";
+import { buildSong, type Song } from "../song";
+import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
+import type { Beat, Chord, Note, Section, TabDocument } from "../types/tabDocument";
+import {
+  EMPTY_MESSAGE,
+  GLYPH_W,
+  PLAYHEAD_AT,
+  PX_PER_SEC,
+  UNCLEAR_LABEL,
+  layout,
+  rowsOf,
+  stringLabels,
+  type DrawOp,
+} from "./layout";
+
+const FIRST_SONG: TabDocument = firstSongJson;
+const VIEW = { width: 800, height: 200 };
+const NO_LOOP = { a: null, b: null };
+const PLAYHEAD_X = VIEW.width * PLAYHEAD_AT;
+
+type Text = Extract<DrawOp, { kind: "text" }>;
+type Line = Extract<DrawOp, { kind: "line" }>;
+
+function texts(ops: DrawOp[]): Text[] {
+  return ops.filter((op): op is Text => op.kind === "text");
+}
+
+function lines(ops: DrawOp[], paint: string): Line[] {
+  return ops.filter((op): op is Line => op.kind === "line" && op.paint === paint);
+}
+
+function frets(ops: DrawOp[]): Text[] {
+  return texts(ops).filter((op) => op.font === "fret" || op.font === "fretBold");
+}
+
+let ids = 0;
+function note(t: number, fields: Partial<Note> = {}): Note {
+  ids += 1;
+  return { id: `n${ids}`, t, dur: 0.5, midi: 45, string: 1, fret: 0, confidence: 0.95, ...fields };
+}
+
+function doc(fields: Partial<TabDocument> = {}): TabDocument {
+  return {
+    source: { title: "t", duration_sec: 60, audio_url: "/jobs/x/audio/mix" },
+    instrument: {},
+    timing: {},
+    ...fields,
+  };
+}
+
+describe("geometry", () => {
+  it("puts a note at playheadX + (t - now) * pxPerSec", () => {
+    const song = buildSong(doc({ notes: [note(11, { fret: 7 })] }));
+
+    const [seven] = frets(layout(song, 10, VIEW, NO_LOOP));
+
+    expect(seven.text).toBe("7");
+    expect(seven.x).toBe(PLAYHEAD_X + PX_PER_SEC);
+  });
+
+  it("draws the playhead at a fifth of the width", () => {
+    const song = buildSong(doc());
+
+    const [playhead] = lines(layout(song, 0, VIEW, NO_LOOP), "playhead");
+
+    expect(playhead.x1).toBe(PLAYHEAD_X);
+  });
+
+  it("leaves out notes outside the visible window", () => {
+    const song = buildSong(doc({ notes: [note(0), note(100)] }));
+
+    expect(frets(layout(song, 50, VIEW, NO_LOOP))).toEqual([]);
+  });
+});
+
+describe("strings", () => {
+  it("labels standard tuning e B G D A E, highest on top", () => {
+    const song = buildSong(doc());
+    const rows = rowsOf(song);
+
+    expect(stringLabels(song.tuning)).toEqual(["E", "A", "D", "G", "B", "e"]);
+    expect(rows.stringY[5]).toBeLessThan(rows.stringY[0]);
+    const labels = texts(layout(song, 0, VIEW, NO_LOOP))
+      .filter((op) => op.font === "label" && op.align === "center")
+      .sort((a, b) => a.y - b.y)
+      .map((op) => op.text);
+    expect(labels).toEqual(["e", "B", "G", "D", "A", "E"]);
+  });
+
+  it("keeps drop D's top E in capitals", () => {
+    expect(stringLabels(["D2", "A2", "D3", "G3", "B3", "E4"])).toEqual([
+      "D", "A", "D", "G", "B", "E",
+    ]);
+  });
+
+  it("names sharps and flats", () => {
+    expect(stringLabels(["C#2", "Bb2"])).toEqual(["C#", "Bb"]);
+  });
+
+  it("places each note on its own string", () => {
+    const song = buildSong(
+      doc({ notes: [note(1, { string: 0, fret: 2 }), note(1, { string: 5, fret: 3 })] }),
+    );
+    const rows = rowsOf(song);
+
+    const ops = frets(layout(song, 1, VIEW, NO_LOOP));
+
+    // String 0 is the lowest and is drawn at the bottom, string 5 at the top.
+    expect(ops.find((op) => op.text === "2")?.y).toBe(rows.stringY[0]);
+    expect(ops.find((op) => op.text === "3")?.y).toBe(rows.stringY[5]);
+    expect(rows.stringY[5]).toBeLessThan(rows.stringY[0]);
+  });
+});
+
+describe("note states", () => {
+  const song = buildSong(doc({ notes: [note(1), note(2), note(3)] }));
+
+  it("dims the past, accents what sounds, and leaves the rest plain", () => {
+    const [past, sounding, upcoming] = frets(layout(song, 2.2, VIEW, NO_LOOP));
+
+    expect(past.alpha).toBeLessThan(1);
+    expect(past.paint).toBe("text");
+    expect(sounding).toMatchObject({ paint: "accent", font: "fretBold", alpha: 1 });
+    expect(upcoming).toMatchObject({ paint: "text", font: "fret", alpha: 1 });
+  });
+
+  it("fades a weak note by its confidence", () => {
+    const weak = buildSong(doc({ notes: [note(2, { confidence: 0 })] }));
+
+    const [faded] = frets(layout(weak, 0, VIEW, NO_LOOP));
+
+    expect(faded.alpha).toBe(FADED);
+  });
+});
+
+describe("chords", () => {
+  const at = (confidence: number) =>
+    buildSong(doc({ chords: [{ t: 1, dur: 1, symbol: "Am", confidence }] }));
+  const am = (confidence: number) =>
+    texts(layout(at(confidence), 0, VIEW, NO_LOOP)).find((op) => op.text === "Am");
+
+  it("fades by the chord thresholds, which are not the notes'", () => {
+    // 0.65 would be a fully confident note, but a chord there is right about
+    // one time in four.
+    expect(am(0.65)?.alpha).toBe(FADED);
+    expect(am(CHORD_FULL)?.alpha).toBe(1);
+  });
+});
+
+describe("the degradation ladder", () => {
+  it("draws bar lines only at the first beat of a bar", () => {
+    const beats = [1, 2, 3, 4, 1].map((beat, i) => ({ t: i * 0.5, bar: beat === 1 && i > 0 ? 2 : 1, beat }));
+    const song = buildSong(doc({ timing: { beats } }));
+
+    expect(lines(layout(song, 0, VIEW, NO_LOOP), "bar").map((op) => op.x1)).toEqual([
+      PLAYHEAD_X,
+      PLAYHEAD_X + 2 * PX_PER_SEC,
+    ]);
+  });
+
+  it("keeps adjacent chords from overprinting as they cross the left edge", () => {
+    const song = buildSong(
+      doc({
+        chords: [
+          { t: 0, dur: 2, symbol: "Em", confidence: 0.9 },
+          { t: 2, dur: 2, symbol: "Am", confidence: 0.9 },
+        ],
+      }),
+    );
+
+    for (let now = 2; now <= 3.4; now += 0.05) {
+      const words = texts(layout(song, now, VIEW, NO_LOOP));
+      const em = words.find((op) => op.text === "Em");
+      const am = words.find((op) => op.text === "Am");
+      if (em === undefined || am === undefined) continue;
+      expect(em.x + "Em".length * GLYPH_W, `at ${now}`).toBeLessThanOrEqual(am.x);
+    }
+  });
+
+  it("keeps adjacent section labels from overprinting as they cross the left edge", () => {
+    const song = buildSong(
+      doc({
+        sections: [
+          { t: 0, dur: 2, label: "intro" },
+          { t: 2, dur: 2, label: "verse" },
+        ],
+      }),
+    );
+
+    for (let now = 2; now <= 3.4; now += 0.05) {
+      const words = texts(layout(song, now, VIEW, NO_LOOP));
+      const intro = words.find((op) => op.text === "intro");
+      const verse = words.find((op) => op.text === "verse");
+      if (intro === undefined || verse === undefined) continue;
+      expect(intro.x + "intro".length * GLYPH_W, `at ${now}`).toBeLessThanOrEqual(verse.x);
+    }
+  });
+
+  it("with no beats, draws no bar lines and still places the notes", () => {
+    const song = buildSong(doc({ notes: [note(1)] }));
+
+    const ops = layout(song, 0, VIEW, NO_LOOP);
+
+    expect(lines(ops, "bar")).toEqual([]);
+    expect(frets(ops)).toHaveLength(1);
+  });
+
+  it("collapses the chord and section rows when their tracks are empty", () => {
+    const bare = buildSong(doc());
+    const full = buildSong(
+      doc({
+        chords: [{ t: 0, dur: 2, symbol: "Em", confidence: 0.9 }],
+        sections: [{ t: 0, dur: 10, label: "intro" }],
+      }),
+    );
+
+    expect(rowsOf(bare)).toMatchObject({ chordY: null, sectionY: null });
+    expect(rowsOf(full).height).toBeGreaterThan(rowsOf(bare).height);
+    const words = texts(layout(full, 0, VIEW, NO_LOOP)).map((op) => op.text);
+    expect(words).toContain("Em");
+    expect(words).toContain("intro");
+  });
+
+  it("with no notes, draws the bare strings and a message", () => {
+    const song = buildSong(doc());
+
+    const ops = layout(song, 0, VIEW, NO_LOOP);
+
+    expect(lines(ops, "string")).toHaveLength(6);
+    expect(texts(ops).map((op) => op.text)).toContain(EMPTY_MESSAGE);
+  });
+
+  it("draws the real first song, which has no sections", () => {
+    const song = buildSong(FIRST_SONG);
+
+    const ops = layout(song, 3, VIEW, NO_LOOP);
+
+    expect(rowsOf(song).sectionY).toBeNull();
+    expect(frets(ops).length).toBeGreaterThan(0);
+    expect(lines(ops, "bar").length).toBeGreaterThan(0);
+  });
+});
+
+describe("hidden passages", () => {
+  const weak = (t: number) => note(t, { confidence: 0.05, fret: 9 });
+  const chord: Chord = { t: 1, dur: 1, symbol: "Am", confidence: 0.9 };
+
+  it("draws no fret numbers inside a hidden band", () => {
+    const song = buildSong(doc({ notes: [weak(1), weak(1.3), weak(1.6), note(3, { fret: 5 })] }));
+
+    const ops = layout(song, 0, VIEW, NO_LOOP);
+
+    expect(song.hidden).toHaveLength(1);
+    expect(frets(ops).map((op) => op.text)).toEqual(["5"]);
+    expect(ops.some((op) => op.kind === "rect" && op.paint === "hidden")).toBe(true);
+  });
+
+  it("shows the confident note that ends a band, however long the band's last note sounds", () => {
+    const song = buildSong(
+      doc({ notes: [weak(1), weak(1.3), note(1.6, { confidence: 0.05, dur: 3 }), note(2, { fret: 5 })] }),
+    );
+
+    const ops = layout(song, 1, VIEW, NO_LOOP);
+
+    expect(song.hidden).toHaveLength(1);
+    expect(frets(ops).map((op) => op.text)).toEqual(["5"]);
+  });
+
+  it("labels a band with no chord over it", () => {
+    const song = buildSong(doc({ notes: [weak(1), weak(1.3), weak(1.6)] }));
+
+    expect(texts(layout(song, 0, VIEW, NO_LOOP)).map((op) => op.text)).toContain(UNCLEAR_LABEL);
+  });
+
+  it("keeps the label on screen while a long band scrolls past", () => {
+    const long = Array.from({ length: 23 }, (_, i) => weak(1 + i * 0.9));
+    const song = buildSong(doc({ notes: long }));
+
+    expect(song.hidden).toHaveLength(1);
+    for (const now of [5, 10, 15]) {
+      const label = texts(layout(song, now, VIEW, NO_LOOP)).find((op) => op.text === UNCLEAR_LABEL);
+      expect(label, `at ${now}`).toBeDefined();
+      expect(label?.x).toBeGreaterThanOrEqual(0);
+      expect(label?.x).toBeLessThanOrEqual(VIEW.width);
+    }
+  });
+
+  it("draws the chord over a band larger, at its own confidence, and no label", () => {
+    const song = buildSong(
+      doc({ notes: [weak(1), weak(1.3), weak(1.6)], chords: [{ ...chord, confidence: 0 }] }),
+    );
+
+    const ops = texts(layout(song, 0, VIEW, NO_LOOP));
+
+    expect(ops.find((op) => op.text === "Am")).toMatchObject({ font: "chordLarge", alpha: FADED });
+    expect(ops.map((op) => op.text)).not.toContain(UNCLEAR_LABEL);
+  });
+});
+
+describe("the loop", () => {
+  it("shades between A and B and marks both", () => {
+    const song = buildSong(doc());
+
+    const ops = layout(song, 0, VIEW, { a: 1, b: 2 });
+
+    const band = ops.find((op) => op.kind === "rect" && op.paint === "loop");
+    expect(band).toMatchObject({ x: PLAYHEAD_X + PX_PER_SEC, w: PX_PER_SEC });
+    expect(lines(ops, "loop")).toHaveLength(2);
+  });
+
+  it("tints the fret numbers inside it, rather than having their knockouts cut holes in it", () => {
+    const song = buildSong(doc({ notes: [note(1.5, { fret: 7 })] }));
+
+    const ops = layout(song, 0, VIEW, { a: 1, b: 2 });
+
+    const band = ops.findIndex((op) => op.kind === "rect" && op.paint === "loop");
+    const knockout = ops.findIndex((op) => op.kind === "rect" && op.paint === "background");
+    const seven = ops.findIndex((op) => op.kind === "text" && op.text === "7");
+    expect(band).toBeGreaterThan(knockout);
+    expect(band).toBeGreaterThan(seven);
+  });
+
+  it("marks A alone before B is set", () => {
+    const ops = layout(buildSong(doc()), 0, VIEW, { a: 1, b: null });
+
+    expect(ops.some((op) => op.kind === "rect" && op.paint === "loop")).toBe(false);
+    expect(lines(ops, "loop")).toHaveLength(1);
+  });
+});
+
+describe("work per frame", () => {
+  /** An array that counts reads of its elements. */
+  function counted<T>(items: T[]): { items: T[]; reads: () => number } {
+    let reads = 0;
+    const proxy = new Proxy(items, {
+      get(target, key, receiver) {
+        if (typeof key === "string" && /^\d+$/.test(key)) reads++;
+        return Reflect.get(target, key, receiver);
+      },
+    });
+    return { items: proxy, reads: () => reads };
+  }
+
+  it("reads only the beats, chords, sections and passages near the screen", () => {
+    const hour = 3600;
+    const beats = counted<Beat>(
+      Array.from({ length: hour * 2 }, (_, i) => ({ t: i / 2, bar: 1 + Math.floor(i / 4), beat: 1 + (i % 4) })),
+    );
+    const chords = counted<Chord>(
+      Array.from({ length: hour / 2 }, (_, i) => ({ t: i * 2, dur: 2, symbol: "Am", confidence: 0.9 })),
+    );
+    const sections = counted<Section>(
+      Array.from({ length: hour / 20 }, (_, i) => ({ t: i * 20, dur: 20, label: "verse" })),
+    );
+    const hidden = counted(
+      Array.from({ length: hour / 10 }, (_, i) => ({ from: i * 10, to: i * 10 + 3, chorded: true })),
+    );
+    const song: Song = {
+      ...buildSong(doc()),
+      beats: beats.items,
+      chords: chords.items,
+      sections: sections.items,
+      hidden: hidden.items,
+      chordCursor: new NoteCursor(chords.items),
+      sectionCursor: new NoteCursor(sections.items),
+    };
+    const before = [beats, chords, sections, hidden].map((list) => list.reads());
+
+    const ops = layout(song, hour / 2, VIEW, NO_LOOP);
+
+    const reads = [beats, chords, sections, hidden].map((list, i) => list.reads() - before[i]);
+    for (const count of reads) expect(count).toBeLessThan(60);
+    expect(lines(ops, "bar").length).toBeGreaterThan(0);
+    expect(texts(ops).map((op) => op.text)).toContain("Am");
+    expect(texts(ops).map((op) => op.text)).toContain("verse");
+  });
+});

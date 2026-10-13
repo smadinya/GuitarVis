@@ -10,7 +10,7 @@ Start here: [`docs/specs/001-guitarvis-design/spec.md`](docs/specs/001-guitarvis
 ## Commands
 
 `make install` · `make check` · `make test` · `make schema` · `make eval-data` · `make eval` ·
-`make services` · `make migrate` · `make api` · `make worker` · `make help`
+`make services` · `make migrate` · `make api` · `make worker` · `make web` · `make help`
 
 `make check` is what CI runs. Run it before claiming anything works.
 
@@ -46,8 +46,8 @@ any default that would write specs elsewhere — see
 1. Pipeline skeleton (CLI, no UI)
 2. Fretboard mapper and evaluation harness
 3. API and job queue
-4. Web client: tab view and sync ← **next**
-5. 2D fretboard, then 3D guitar
+4. Web client: tab view and sync
+5. 2D fretboard, then 3D guitar ← **next**
 6. URL ingestion
 
 Phases 1–2 hold the technical risk. The rest is conventional work.
@@ -60,7 +60,8 @@ Phases 1–2 hold the technical risk. The rest is conventional work.
   `uv sync --extra eval-full` and `make eval-data ARGS=--audio` (~650 MB).
 - Ingestion shells out to `ffprobe`. Without ffmpeg installed, ingest tests
   skip rather than fail — install it to actually run them.
-- `web/src/types/tabDocument.ts` is generated. Editing it by hand fails CI.
+- `web/src/types/tabDocument.ts` and `web/src/types/api.ts` are generated.
+  Editing either by hand fails CI.
 - Transcription accuracy is 70–85% at best. Degrade, never fail: a broken stage
   omits its track and the job continues. Only "no usable guitar audio" fails a
   job outright.
@@ -73,3 +74,10 @@ Phases 1–2 hold the technical risk. The rest is conventional work.
 - Bump `CACHE_VERSION` in `apps/worker/src/guitarvis_worker/caching.py`
   whenever a stage's output for the same input changes. Nothing enforces it.
 - `make worker` runs the real stages, so it needs `uv sync --extra ml`.
+- `make web` proxies `/jobs` and `/health` to `localhost:8000`, so the client
+  needs `make api` running. The client assumes the api is on its origin.
+- Web tests that need a DOM start with `// @vitest-environment jsdom`.
+  Everything else runs on `node`. jsdom stays on 29.x until the dev machine's
+  Node is 22.22 or later.
+- `HIDE` and `FULL` in `web/src/confidence.ts` are measured
+  (`docs/specs/006-tab-view-sync/calibration.md`), not tuned by eye.

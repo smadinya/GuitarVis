@@ -19,6 +19,10 @@ git add schema web/src/types
 generated from the Pydantic models and committed. CI runs `make schema` and
 fails on any diff. Never hand-edit either file.
 
+`make schema` also writes `schema/api.schema.json` and `web/src/types/api.ts`.
+Those are the api's contract, not the tab document's, and `schema-check`
+guards all four.
+
 ## When to bump `SCHEMA_VERSION`
 
 **Additive, no bump:** a new optional field with a default; a widened

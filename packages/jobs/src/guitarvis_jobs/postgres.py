@@ -138,6 +138,16 @@ class PostgresJobStore:
         with self.engine.connect() as connection:
             return int(connection.execute(_active_from(client_ip)).scalar_one())
 
+    def active_jobs(self, client_ip: str) -> list[Job]:
+        statement = (
+            sa.select(jobs)
+            .where(*_is_active_from(client_ip))
+            .order_by(jobs.c.created_at, jobs.c.id)
+        )
+        with self.engine.connect() as connection:
+            rows = connection.execute(statement).mappings().all()
+        return [_to_job(row) for row in rows]
+
     def mark_running(self, job_id: str) -> Job | None:
         return self._update(
             job_id,
@@ -243,14 +253,16 @@ def _live_for(content_hash: str) -> sa.Select[Any]:
     return sa.select(jobs).where(jobs.c.content_hash == content_hash, _LIVE)
 
 
+def _is_active_from(client_ip: str) -> tuple[sa.ColumnElement[bool], ...]:
+    return (
+        jobs.c.client_ip == client_ip,
+        jobs.c.status.in_([status.value for status in ACTIVE_STATUSES]),
+    )
+
+
 def _active_from(client_ip: str) -> sa.Select[Any]:
     return (
-        sa.select(sa.func.count())
-        .select_from(jobs)
-        .where(
-            jobs.c.client_ip == client_ip,
-            jobs.c.status.in_([status.value for status in ACTIVE_STATUSES]),
-        )
+        sa.select(sa.func.count()).select_from(jobs).where(*_is_active_from(client_ip))
     )
 
 

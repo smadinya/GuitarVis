@@ -401,6 +401,9 @@ a different answer.
    (`soundtouchjs` or a WASM build) through Web Audio: meaningfully more work
    and a known source of artifacts. Either ship 1× only in v1 or budget real
    effort. Decide with the audio path in hand.
+   **Resolved by [ADR 0008](../../decisions/0008-native-time-stretch.md):**
+   native time-stretching on one media element, per the listening test in
+   [006's acceptance notes](../006-tab-view-sync/acceptance.md).
 8. **3D guitar asset** — procedural geometry (chosen default: full control,
    programmer-art risk) vs a sourced glTF model (better looking; licensing and
    file size). A good asset is a visible upgrade for a portfolio piece.

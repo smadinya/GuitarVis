@@ -8,7 +8,10 @@ from pydantic import BaseModel, field_serializer
 
 
 class FailureView(BaseModel):
-    reason: str
+    """Why a job failed. Only a FailureReason: the HttpReason values describe
+    a request, never a job."""
+
+    reason: FailureReason
     message: str
     stage: str | None
 
@@ -38,7 +41,7 @@ class JobView(BaseModel):
         failure = None
         if job.status is JobStatus.FAILED:
             failure = FailureView(
-                reason=(job.failure_reason or FailureReason.INTERNAL).value,
+                reason=job.failure_reason or FailureReason.INTERNAL,
                 message=job.failure_message or INTERNAL_FAILURE_MESSAGE,
                 stage=job.failed_stage,
             )

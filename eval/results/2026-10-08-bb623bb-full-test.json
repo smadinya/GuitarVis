@@ -1,0 +1,1775 @@
+{
+  "date": "2026-10-08",
+  "commit": "bb623bb",
+  "dirty": false,
+  "mode": "full",
+  "split": "test",
+  "mapper_costs": {
+    "move_weight": 1.0,
+    "span_weight": 0.5,
+    "height_weight": 0.1,
+    "open_bonus": 0.3,
+    "max_fret": 20,
+    "max_span": 4,
+    "beam": 50
+  },
+  "summary": {
+    "all": {
+      "excerpts": 60,
+      "string": {
+        "correct": 3607,
+        "total": 7166,
+        "rate": 0.5033491487580241
+      },
+      "note": {
+        "matched": 7180,
+        "truth": 8715,
+        "estimated": 9778,
+        "precision": 0.734301493147883,
+        "recall": 0.8238668961560528,
+        "f1": 0.7765100308224734
+      },
+      "chord": {
+        "correct": 5440,
+        "total": 16254,
+        "rate": 0.3346868463147533
+      },
+      "precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 80,
+          "matched": 6,
+          "precision": 0.075
+        },
+        "0.3": {
+          "estimated": 877,
+          "matched": 173,
+          "precision": 0.19726339794754846
+        },
+        "0.4": {
+          "estimated": 1261,
+          "matched": 624,
+          "precision": 0.4948453608247423
+        },
+        "0.5": {
+          "estimated": 2050,
+          "matched": 1525,
+          "precision": 0.7439024390243902
+        },
+        "0.6": {
+          "estimated": 2851,
+          "matched": 2412,
+          "precision": 0.8460189407225535
+        },
+        "0.7": {
+          "estimated": 2326,
+          "matched": 2142,
+          "precision": 0.9208942390369733
+        },
+        "0.8": {
+          "estimated": 332,
+          "matched": 297,
+          "precision": 0.8945783132530121
+        },
+        "0.9": {
+          "estimated": 1,
+          "matched": 1,
+          "precision": 1.0
+        }
+      },
+      "chord_precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.3": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.4": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.5": {
+          "estimated": 3264,
+          "matched": 221,
+          "precision": 0.06770833333333333
+        },
+        "0.6": {
+          "estimated": 6651,
+          "matched": 1572,
+          "precision": 0.2363554352728913
+        },
+        "0.7": {
+          "estimated": 3835,
+          "matched": 2034,
+          "precision": 0.5303780964797914
+        },
+        "0.8": {
+          "estimated": 1846,
+          "matched": 1522,
+          "precision": 0.8244853737811484
+        },
+        "0.9": {
+          "estimated": 93,
+          "matched": 91,
+          "precision": 0.978494623655914
+        }
+      }
+    },
+    "comp": {
+      "excerpts": 30,
+      "string": {
+        "correct": 2998,
+        "total": 5191,
+        "rate": 0.5775380466191485
+      },
+      "note": {
+        "matched": 5205,
+        "truth": 6536,
+        "estimated": 7440,
+        "precision": 0.6995967741935484,
+        "recall": 0.796358629130967,
+        "f1": 0.744848311390956
+      },
+      "chord": {
+        "correct": 4186,
+        "total": 8127,
+        "rate": 0.5150732127476314
+      },
+      "precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 63,
+          "matched": 6,
+          "precision": 0.09523809523809523
+        },
+        "0.3": {
+          "estimated": 790,
+          "matched": 171,
+          "precision": 0.21645569620253163
+        },
+        "0.4": {
+          "estimated": 1179,
+          "matched": 606,
+          "precision": 0.5139949109414759
+        },
+        "0.5": {
+          "estimated": 1905,
+          "matched": 1431,
+          "precision": 0.7511811023622047
+        },
+        "0.6": {
+          "estimated": 2122,
+          "matched": 1772,
+          "precision": 0.8350612629594723
+        },
+        "0.7": {
+          "estimated": 1217,
+          "matched": 1074,
+          "precision": 0.8824979457682827
+        },
+        "0.8": {
+          "estimated": 164,
+          "matched": 145,
+          "precision": 0.8841463414634146
+        },
+        "0.9": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        }
+      },
+      "chord_precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.3": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.4": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.5": {
+          "estimated": 1227,
+          "matched": 98,
+          "precision": 0.07986960065199673
+        },
+        "0.6": {
+          "estimated": 2194,
+          "matched": 769,
+          "precision": 0.3505013673655424
+        },
+        "0.7": {
+          "estimated": 2607,
+          "matched": 1718,
+          "precision": 0.6589950134253931
+        },
+        "0.8": {
+          "estimated": 1772,
+          "matched": 1510,
+          "precision": 0.8521444695259593
+        },
+        "0.9": {
+          "estimated": 93,
+          "matched": 91,
+          "precision": 0.978494623655914
+        }
+      }
+    },
+    "solo": {
+      "excerpts": 30,
+      "string": {
+        "correct": 609,
+        "total": 1975,
+        "rate": 0.30835443037974686
+      },
+      "note": {
+        "matched": 1975,
+        "truth": 2179,
+        "estimated": 2338,
+        "precision": 0.8447390932420873,
+        "recall": 0.9063790729692519,
+        "f1": 0.8744742085454948
+      },
+      "chord": {
+        "correct": 1254,
+        "total": 8127,
+        "rate": 0.15430047988187523
+      },
+      "precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 17,
+          "matched": 0,
+          "precision": 0.0
+        },
+        "0.3": {
+          "estimated": 87,
+          "matched": 2,
+          "precision": 0.022988505747126436
+        },
+        "0.4": {
+          "estimated": 82,
+          "matched": 18,
+          "precision": 0.21951219512195122
+        },
+        "0.5": {
+          "estimated": 145,
+          "matched": 94,
+          "precision": 0.6482758620689655
+        },
+        "0.6": {
+          "estimated": 729,
+          "matched": 640,
+          "precision": 0.877914951989026
+        },
+        "0.7": {
+          "estimated": 1109,
+          "matched": 1068,
+          "precision": 0.9630297565374211
+        },
+        "0.8": {
+          "estimated": 168,
+          "matched": 152,
+          "precision": 0.9047619047619048
+        },
+        "0.9": {
+          "estimated": 1,
+          "matched": 1,
+          "precision": 1.0
+        }
+      },
+      "chord_precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.3": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.4": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.5": {
+          "estimated": 2037,
+          "matched": 123,
+          "precision": 0.060382916053019146
+        },
+        "0.6": {
+          "estimated": 4457,
+          "matched": 803,
+          "precision": 0.18016603096253084
+        },
+        "0.7": {
+          "estimated": 1228,
+          "matched": 316,
+          "precision": 0.25732899022801303
+        },
+        "0.8": {
+          "estimated": 74,
+          "matched": 12,
+          "precision": 0.16216216216216217
+        },
+        "0.9": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        }
+      }
+    }
+  },
+  "excerpts": [
+    {
+      "name": "05_BN1-129-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 34,
+        "total": 139,
+        "rate": 0.2446043165467626
+      },
+      "note": {
+        "matched": 139,
+        "truth": 148,
+        "estimated": 182,
+        "precision": 0.7637362637362637,
+        "recall": 0.9391891891891891,
+        "f1": 0.8424242424242424
+      },
+      "chord": {
+        "correct": 36,
+        "total": 148,
+        "rate": 0.24324324324324326
+      }
+    },
+    {
+      "name": "05_BN1-129-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 9,
+        "total": 43,
+        "rate": 0.20930232558139536
+      },
+      "note": {
+        "matched": 43,
+        "truth": 44,
+        "estimated": 53,
+        "precision": 0.8113207547169812,
+        "recall": 0.9772727272727273,
+        "f1": 0.8865979381443299
+      },
+      "chord": {
+        "correct": 9,
+        "total": 148,
+        "rate": 0.060810810810810814
+      }
+    },
+    {
+      "name": "05_BN1-147-Gb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 60,
+        "total": 89,
+        "rate": 0.6741573033707865
+      },
+      "note": {
+        "matched": 89,
+        "truth": 96,
+        "estimated": 135,
+        "precision": 0.6592592592592592,
+        "recall": 0.9270833333333334,
+        "f1": 0.7705627705627706
+      },
+      "chord": {
+        "correct": 9,
+        "total": 98,
+        "rate": 0.09183673469387756
+      }
+    },
+    {
+      "name": "05_BN1-147-Gb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 7,
+        "total": 25,
+        "rate": 0.28
+      },
+      "note": {
+        "matched": 25,
+        "truth": 27,
+        "estimated": 35,
+        "precision": 0.7142857142857143,
+        "recall": 0.9259259259259259,
+        "f1": 0.8064516129032258
+      },
+      "chord": {
+        "correct": 32,
+        "total": 98,
+        "rate": 0.32653061224489793
+      }
+    },
+    {
+      "name": "05_BN2-131-B_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 74,
+        "total": 183,
+        "rate": 0.40437158469945356
+      },
+      "note": {
+        "matched": 183,
+        "truth": 202,
+        "estimated": 241,
+        "precision": 0.7593360995850622,
+        "recall": 0.905940594059406,
+        "f1": 0.8261851015801355
+      },
+      "chord": {
+        "correct": 43,
+        "total": 238,
+        "rate": 0.18067226890756302
+      }
+    },
+    {
+      "name": "05_BN2-131-B_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 8,
+        "total": 66,
+        "rate": 0.12121212121212122
+      },
+      "note": {
+        "matched": 66,
+        "truth": 69,
+        "estimated": 90,
+        "precision": 0.7333333333333333,
+        "recall": 0.9565217391304348,
+        "f1": 0.8301886792452831
+      },
+      "chord": {
+        "correct": 40,
+        "total": 238,
+        "rate": 0.16806722689075632
+      }
+    },
+    {
+      "name": "05_BN2-166-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 97,
+        "total": 149,
+        "rate": 0.6510067114093959
+      },
+      "note": {
+        "matched": 150,
+        "truth": 173,
+        "estimated": 207,
+        "precision": 0.7246376811594203,
+        "recall": 0.8670520231213873,
+        "f1": 0.7894736842105263
+      },
+      "chord": {
+        "correct": 91,
+        "total": 173,
+        "rate": 0.5260115606936416
+      }
+    },
+    {
+      "name": "05_BN2-166-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 25,
+        "total": 61,
+        "rate": 0.4098360655737705
+      },
+      "note": {
+        "matched": 61,
+        "truth": 67,
+        "estimated": 69,
+        "precision": 0.8840579710144928,
+        "recall": 0.9104477611940298,
+        "f1": 0.8970588235294118
+      },
+      "chord": {
+        "correct": 20,
+        "total": 173,
+        "rate": 0.11560693641618497
+      }
+    },
+    {
+      "name": "05_BN3-119-G_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 69,
+        "total": 172,
+        "rate": 0.4011627906976744
+      },
+      "note": {
+        "matched": 172,
+        "truth": 180,
+        "estimated": 221,
+        "precision": 0.7782805429864253,
+        "recall": 0.9555555555555556,
+        "f1": 0.85785536159601
+      },
+      "chord": {
+        "correct": 79,
+        "total": 303,
+        "rate": 0.2607260726072607
+      }
+    },
+    {
+      "name": "05_BN3-119-G_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 4,
+        "total": 57,
+        "rate": 0.07017543859649122
+      },
+      "note": {
+        "matched": 57,
+        "truth": 62,
+        "estimated": 70,
+        "precision": 0.8142857142857143,
+        "recall": 0.9193548387096774,
+        "f1": 0.8636363636363636
+      },
+      "chord": {
+        "correct": 20,
+        "total": 303,
+        "rate": 0.066006600660066
+      }
+    },
+    {
+      "name": "05_BN3-154-E_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 40,
+        "total": 152,
+        "rate": 0.2631578947368421
+      },
+      "note": {
+        "matched": 152,
+        "truth": 185,
+        "estimated": 197,
+        "precision": 0.7715736040609137,
+        "recall": 0.8216216216216217,
+        "f1": 0.7958115183246073
+      },
+      "chord": {
+        "correct": 67,
+        "total": 218,
+        "rate": 0.3073394495412844
+      }
+    },
+    {
+      "name": "05_BN3-154-E_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 5,
+        "total": 54,
+        "rate": 0.09259259259259259
+      },
+      "note": {
+        "matched": 54,
+        "truth": 56,
+        "estimated": 62,
+        "precision": 0.8709677419354839,
+        "recall": 0.9642857142857143,
+        "f1": 0.9152542372881356
+      },
+      "chord": {
+        "correct": 34,
+        "total": 218,
+        "rate": 0.1559633027522936
+      }
+    },
+    {
+      "name": "05_Funk1-114-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 130,
+        "total": 132,
+        "rate": 0.9848484848484849
+      },
+      "note": {
+        "matched": 132,
+        "truth": 181,
+        "estimated": 177,
+        "precision": 0.7457627118644068,
+        "recall": 0.7292817679558011,
+        "f1": 0.7374301675977654
+      },
+      "chord": {
+        "correct": 109,
+        "total": 253,
+        "rate": 0.4308300395256917
+      }
+    },
+    {
+      "name": "05_Funk1-114-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 12,
+        "total": 44,
+        "rate": 0.2727272727272727
+      },
+      "note": {
+        "matched": 44,
+        "truth": 60,
+        "estimated": 57,
+        "precision": 0.7719298245614035,
+        "recall": 0.7333333333333333,
+        "f1": 0.7521367521367521
+      },
+      "chord": {
+        "correct": 46,
+        "total": 253,
+        "rate": 0.18181818181818182
+      }
+    },
+    {
+      "name": "05_Funk1-97-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 71,
+        "total": 145,
+        "rate": 0.4896551724137931
+      },
+      "note": {
+        "matched": 146,
+        "truth": 177,
+        "estimated": 163,
+        "precision": 0.8957055214723927,
+        "recall": 0.8248587570621468,
+        "f1": 0.8588235294117647
+      },
+      "chord": {
+        "correct": 92,
+        "total": 297,
+        "rate": 0.30976430976430974
+      }
+    },
+    {
+      "name": "05_Funk1-97-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 30,
+        "total": 44,
+        "rate": 0.6818181818181818
+      },
+      "note": {
+        "matched": 44,
+        "truth": 58,
+        "estimated": 47,
+        "precision": 0.9361702127659575,
+        "recall": 0.7586206896551724,
+        "f1": 0.8380952380952381
+      },
+      "chord": {
+        "correct": 59,
+        "total": 297,
+        "rate": 0.19865319865319866
+      }
+    },
+    {
+      "name": "05_Funk2-108-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 125,
+        "total": 174,
+        "rate": 0.7183908045977011
+      },
+      "note": {
+        "matched": 175,
+        "truth": 245,
+        "estimated": 230,
+        "precision": 0.7608695652173914,
+        "recall": 0.7142857142857143,
+        "f1": 0.7368421052631579
+      },
+      "chord": {
+        "correct": 75,
+        "total": 288,
+        "rate": 0.2604166666666667
+      }
+    },
+    {
+      "name": "05_Funk2-108-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 30,
+        "total": 59,
+        "rate": 0.5084745762711864
+      },
+      "note": {
+        "matched": 59,
+        "truth": 61,
+        "estimated": 70,
+        "precision": 0.8428571428571429,
+        "recall": 0.9672131147540983,
+        "f1": 0.9007633587786259
+      },
+      "chord": {
+        "correct": 19,
+        "total": 288,
+        "rate": 0.06597222222222222
+      }
+    },
+    {
+      "name": "05_Funk2-119-G_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 109,
+        "total": 142,
+        "rate": 0.7676056338028169
+      },
+      "note": {
+        "matched": 142,
+        "truth": 182,
+        "estimated": 173,
+        "precision": 0.8208092485549133,
+        "recall": 0.7802197802197802,
+        "f1": 0.8
+      },
+      "chord": {
+        "correct": 37,
+        "total": 242,
+        "rate": 0.15289256198347106
+      }
+    },
+    {
+      "name": "05_Funk2-119-G_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 31,
+        "total": 83,
+        "rate": 0.37349397590361444
+      },
+      "note": {
+        "matched": 83,
+        "truth": 99,
+        "estimated": 92,
+        "precision": 0.9021739130434783,
+        "recall": 0.8383838383838383,
+        "f1": 0.8691099476439791
+      },
+      "chord": {
+        "correct": 48,
+        "total": 242,
+        "rate": 0.19834710743801653
+      }
+    },
+    {
+      "name": "05_Funk3-112-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 127,
+        "total": 158,
+        "rate": 0.8037974683544303
+      },
+      "note": {
+        "matched": 160,
+        "truth": 212,
+        "estimated": 201,
+        "precision": 0.7960199004975125,
+        "recall": 0.7547169811320755,
+        "f1": 0.774818401937046
+      },
+      "chord": {
+        "correct": 91,
+        "total": 322,
+        "rate": 0.2826086956521739
+      }
+    },
+    {
+      "name": "05_Funk3-112-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 19,
+        "total": 66,
+        "rate": 0.2878787878787879
+      },
+      "note": {
+        "matched": 66,
+        "truth": 70,
+        "estimated": 79,
+        "precision": 0.8354430379746836,
+        "recall": 0.9428571428571428,
+        "f1": 0.8859060402684564
+      },
+      "chord": {
+        "correct": 32,
+        "total": 322,
+        "rate": 0.09937888198757763
+      }
+    },
+    {
+      "name": "05_Funk3-98-A_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 121,
+        "total": 144,
+        "rate": 0.8402777777777778
+      },
+      "note": {
+        "matched": 146,
+        "truth": 184,
+        "estimated": 199,
+        "precision": 0.7336683417085427,
+        "recall": 0.7934782608695652,
+        "f1": 0.762402088772846
+      },
+      "chord": {
+        "correct": 162,
+        "total": 392,
+        "rate": 0.413265306122449
+      }
+    },
+    {
+      "name": "05_Funk3-98-A_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 13,
+        "total": 64,
+        "rate": 0.203125
+      },
+      "note": {
+        "matched": 64,
+        "truth": 65,
+        "estimated": 73,
+        "precision": 0.8767123287671232,
+        "recall": 0.9846153846153847,
+        "f1": 0.927536231884058
+      },
+      "chord": {
+        "correct": 60,
+        "total": 392,
+        "rate": 0.15306122448979592
+      }
+    },
+    {
+      "name": "05_Jazz1-130-D_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 61,
+        "total": 121,
+        "rate": 0.5041322314049587
+      },
+      "note": {
+        "matched": 121,
+        "truth": 141,
+        "estimated": 135,
+        "precision": 0.8962962962962963,
+        "recall": 0.8581560283687943,
+        "f1": 0.8768115942028986
+      },
+      "chord": {
+        "correct": 15,
+        "total": 147,
+        "rate": 0.10204081632653061
+      }
+    },
+    {
+      "name": "05_Jazz1-130-D_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 20,
+        "total": 51,
+        "rate": 0.39215686274509803
+      },
+      "note": {
+        "matched": 51,
+        "truth": 58,
+        "estimated": 76,
+        "precision": 0.6710526315789473,
+        "recall": 0.8793103448275862,
+        "f1": 0.7611940298507462
+      },
+      "chord": {
+        "correct": 37,
+        "total": 147,
+        "rate": 0.25170068027210885
+      }
+    },
+    {
+      "name": "05_Jazz1-200-B_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 22,
+        "total": 83,
+        "rate": 0.26506024096385544
+      },
+      "note": {
+        "matched": 83,
+        "truth": 175,
+        "estimated": 106,
+        "precision": 0.7830188679245284,
+        "recall": 0.4742857142857143,
+        "f1": 0.5907473309608541
+      },
+      "chord": {
+        "correct": 24,
+        "total": 72,
+        "rate": 0.3333333333333333
+      }
+    },
+    {
+      "name": "05_Jazz1-200-B_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 7,
+        "total": 42,
+        "rate": 0.16666666666666666
+      },
+      "note": {
+        "matched": 42,
+        "truth": 50,
+        "estimated": 49,
+        "precision": 0.8571428571428571,
+        "recall": 0.84,
+        "f1": 0.8484848484848485
+      },
+      "chord": {
+        "correct": 4,
+        "total": 72,
+        "rate": 0.05555555555555555
+      }
+    },
+    {
+      "name": "05_Jazz2-110-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 154,
+        "total": 208,
+        "rate": 0.7403846153846154
+      },
+      "note": {
+        "matched": 213,
+        "truth": 252,
+        "estimated": 260,
+        "precision": 0.8192307692307692,
+        "recall": 0.8452380952380952,
+        "f1": 0.83203125
+      },
+      "chord": {
+        "correct": 39,
+        "total": 305,
+        "rate": 0.12786885245901639
+      }
+    },
+    {
+      "name": "05_Jazz2-110-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 40,
+        "total": 83,
+        "rate": 0.4819277108433735
+      },
+      "note": {
+        "matched": 83,
+        "truth": 103,
+        "estimated": 104,
+        "precision": 0.7980769230769231,
+        "recall": 0.8058252427184466,
+        "f1": 0.8019323671497585
+      },
+      "chord": {
+        "correct": 31,
+        "total": 305,
+        "rate": 0.10163934426229508
+      }
+    },
+    {
+      "name": "05_Jazz2-187-F#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 58,
+        "total": 127,
+        "rate": 0.4566929133858268
+      },
+      "note": {
+        "matched": 127,
+        "truth": 247,
+        "estimated": 145,
+        "precision": 0.8758620689655172,
+        "recall": 0.5141700404858299,
+        "f1": 0.6479591836734694
+      },
+      "chord": {
+        "correct": 47,
+        "total": 167,
+        "rate": 0.281437125748503
+      }
+    },
+    {
+      "name": "05_Jazz2-187-F#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 14,
+        "total": 56,
+        "rate": 0.25
+      },
+      "note": {
+        "matched": 56,
+        "truth": 61,
+        "estimated": 65,
+        "precision": 0.8615384615384616,
+        "recall": 0.9180327868852459,
+        "f1": 0.8888888888888888
+      },
+      "chord": {
+        "correct": 27,
+        "total": 167,
+        "rate": 0.16167664670658682
+      }
+    },
+    {
+      "name": "05_Jazz3-137-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 110,
+        "total": 188,
+        "rate": 0.5851063829787234
+      },
+      "note": {
+        "matched": 190,
+        "truth": 235,
+        "estimated": 233,
+        "precision": 0.8154506437768241,
+        "recall": 0.8085106382978723,
+        "f1": 0.811965811965812
+      },
+      "chord": {
+        "correct": 115,
+        "total": 280,
+        "rate": 0.4107142857142857
+      }
+    },
+    {
+      "name": "05_Jazz3-137-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 23,
+        "total": 74,
+        "rate": 0.3108108108108108
+      },
+      "note": {
+        "matched": 74,
+        "truth": 77,
+        "estimated": 87,
+        "precision": 0.8505747126436781,
+        "recall": 0.961038961038961,
+        "f1": 0.9024390243902439
+      },
+      "chord": {
+        "correct": 24,
+        "total": 280,
+        "rate": 0.08571428571428572
+      }
+    },
+    {
+      "name": "05_Jazz3-150-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 41,
+        "total": 141,
+        "rate": 0.2907801418439716
+      },
+      "note": {
+        "matched": 141,
+        "truth": 227,
+        "estimated": 187,
+        "precision": 0.7540106951871658,
+        "recall": 0.6211453744493393,
+        "f1": 0.6811594202898551
+      },
+      "chord": {
+        "correct": 59,
+        "total": 256,
+        "rate": 0.23046875
+      }
+    },
+    {
+      "name": "05_Jazz3-150-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 38,
+        "total": 61,
+        "rate": 0.6229508196721312
+      },
+      "note": {
+        "matched": 61,
+        "truth": 69,
+        "estimated": 70,
+        "precision": 0.8714285714285714,
+        "recall": 0.8840579710144928,
+        "f1": 0.8776978417266187
+      },
+      "chord": {
+        "correct": 27,
+        "total": 256,
+        "rate": 0.10546875
+      }
+    },
+    {
+      "name": "05_Rock1-130-A_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 47,
+        "total": 261,
+        "rate": 0.18007662835249041
+      },
+      "note": {
+        "matched": 261,
+        "truth": 312,
+        "estimated": 287,
+        "precision": 0.9094076655052264,
+        "recall": 0.8365384615384616,
+        "f1": 0.8714524207011686
+      },
+      "chord": {
+        "correct": 141,
+        "total": 185,
+        "rate": 0.7621621621621621
+      }
+    },
+    {
+      "name": "05_Rock1-130-A_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 2,
+        "total": 55,
+        "rate": 0.03636363636363636
+      },
+      "note": {
+        "matched": 55,
+        "truth": 60,
+        "estimated": 63,
+        "precision": 0.873015873015873,
+        "recall": 0.9166666666666666,
+        "f1": 0.8943089430894309
+      },
+      "chord": {
+        "correct": 26,
+        "total": 185,
+        "rate": 0.14054054054054055
+      }
+    },
+    {
+      "name": "05_Rock1-90-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 178,
+        "total": 221,
+        "rate": 0.8054298642533937
+      },
+      "note": {
+        "matched": 221,
+        "truth": 277,
+        "estimated": 240,
+        "precision": 0.9208333333333333,
+        "recall": 0.7978339350180506,
+        "f1": 0.8549323017408124
+      },
+      "chord": {
+        "correct": 290,
+        "total": 320,
+        "rate": 0.90625
+      }
+    },
+    {
+      "name": "05_Rock1-90-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 28,
+        "total": 84,
+        "rate": 0.3333333333333333
+      },
+      "note": {
+        "matched": 84,
+        "truth": 99,
+        "estimated": 103,
+        "precision": 0.8155339805825242,
+        "recall": 0.8484848484848485,
+        "f1": 0.8316831683168316
+      },
+      "chord": {
+        "correct": 51,
+        "total": 320,
+        "rate": 0.159375
+      }
+    },
+    {
+      "name": "05_Rock2-142-D_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 73,
+        "total": 281,
+        "rate": 0.2597864768683274
+      },
+      "note": {
+        "matched": 281,
+        "truth": 460,
+        "estimated": 301,
+        "precision": 0.9335548172757475,
+        "recall": 0.6108695652173913,
+        "f1": 0.7385019710906702
+      },
+      "chord": {
+        "correct": 171,
+        "total": 270,
+        "rate": 0.6333333333333333
+      }
+    },
+    {
+      "name": "05_Rock2-142-D_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 6,
+        "total": 77,
+        "rate": 0.07792207792207792
+      },
+      "note": {
+        "matched": 77,
+        "truth": 86,
+        "estimated": 85,
+        "precision": 0.9058823529411765,
+        "recall": 0.8953488372093024,
+        "f1": 0.9005847953216374
+      },
+      "chord": {
+        "correct": 37,
+        "total": 270,
+        "rate": 0.13703703703703704
+      }
+    },
+    {
+      "name": "05_Rock2-85-F_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 195,
+        "total": 222,
+        "rate": 0.8783783783783784
+      },
+      "note": {
+        "matched": 222,
+        "truth": 325,
+        "estimated": 288,
+        "precision": 0.7708333333333334,
+        "recall": 0.683076923076923,
+        "f1": 0.7243066884176182
+      },
+      "chord": {
+        "correct": 174,
+        "total": 310,
+        "rate": 0.5612903225806452
+      }
+    },
+    {
+      "name": "05_Rock2-85-F_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 53,
+        "total": 115,
+        "rate": 0.4608695652173913
+      },
+      "note": {
+        "matched": 115,
+        "truth": 125,
+        "estimated": 128,
+        "precision": 0.8984375,
+        "recall": 0.92,
+        "f1": 0.9090909090909091
+      },
+      "chord": {
+        "correct": 14,
+        "total": 310,
+        "rate": 0.04516129032258064
+      }
+    },
+    {
+      "name": "05_Rock3-117-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 39,
+        "total": 309,
+        "rate": 0.1262135922330097
+      },
+      "note": {
+        "matched": 309,
+        "truth": 398,
+        "estimated": 343,
+        "precision": 0.9008746355685131,
+        "recall": 0.7763819095477387,
+        "f1": 0.8340080971659919
+      },
+      "chord": {
+        "correct": 219,
+        "total": 328,
+        "rate": 0.6676829268292683
+      }
+    },
+    {
+      "name": "05_Rock3-117-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 36,
+        "total": 67,
+        "rate": 0.5373134328358209
+      },
+      "note": {
+        "matched": 67,
+        "truth": 70,
+        "estimated": 73,
+        "precision": 0.9178082191780822,
+        "recall": 0.9571428571428572,
+        "f1": 0.9370629370629371
+      },
+      "chord": {
+        "correct": 57,
+        "total": 328,
+        "rate": 0.17378048780487804
+      }
+    },
+    {
+      "name": "05_Rock3-148-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 87,
+        "total": 231,
+        "rate": 0.37662337662337664
+      },
+      "note": {
+        "matched": 231,
+        "truth": 249,
+        "estimated": 464,
+        "precision": 0.4978448275862069,
+        "recall": 0.927710843373494,
+        "f1": 0.6479663394109397
+      },
+      "chord": {
+        "correct": 159,
+        "total": 259,
+        "rate": 0.6138996138996139
+      }
+    },
+    {
+      "name": "05_Rock3-148-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 6,
+        "total": 57,
+        "rate": 0.10526315789473684
+      },
+      "note": {
+        "matched": 57,
+        "truth": 61,
+        "estimated": 67,
+        "precision": 0.8507462686567164,
+        "recall": 0.9344262295081968,
+        "f1": 0.890625
+      },
+      "chord": {
+        "correct": 28,
+        "total": 259,
+        "rate": 0.10810810810810811
+      }
+    },
+    {
+      "name": "05_SS1-100-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 59,
+        "total": 100,
+        "rate": 0.59
+      },
+      "note": {
+        "matched": 100,
+        "truth": 102,
+        "estimated": 290,
+        "precision": 0.3448275862068966,
+        "recall": 0.9803921568627451,
+        "f1": 0.5102040816326531
+      },
+      "chord": {
+        "correct": 267,
+        "total": 288,
+        "rate": 0.9270833333333334
+      }
+    },
+    {
+      "name": "05_SS1-100-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 48,
+        "total": 56,
+        "rate": 0.8571428571428571
+      },
+      "note": {
+        "matched": 56,
+        "truth": 60,
+        "estimated": 71,
+        "precision": 0.7887323943661971,
+        "recall": 0.9333333333333333,
+        "f1": 0.8549618320610687
+      },
+      "chord": {
+        "correct": 118,
+        "total": 288,
+        "rate": 0.4097222222222222
+      }
+    },
+    {
+      "name": "05_SS1-68-E_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 141,
+        "total": 142,
+        "rate": 0.9929577464788732
+      },
+      "note": {
+        "matched": 142,
+        "truth": 143,
+        "estimated": 291,
+        "precision": 0.4879725085910653,
+        "recall": 0.993006993006993,
+        "f1": 0.6543778801843319
+      },
+      "chord": {
+        "correct": 353,
+        "total": 423,
+        "rate": 0.83451536643026
+      }
+    },
+    {
+      "name": "05_SS1-68-E_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 7,
+        "total": 68,
+        "rate": 0.10294117647058823
+      },
+      "note": {
+        "matched": 68,
+        "truth": 78,
+        "estimated": 98,
+        "precision": 0.6938775510204082,
+        "recall": 0.8717948717948718,
+        "f1": 0.7727272727272727
+      },
+      "chord": {
+        "correct": 82,
+        "total": 423,
+        "rate": 0.1938534278959811
+      }
+    },
+    {
+      "name": "05_SS2-107-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 143,
+        "total": 201,
+        "rate": 0.7114427860696517
+      },
+      "note": {
+        "matched": 201,
+        "truth": 222,
+        "estimated": 313,
+        "precision": 0.6421725239616614,
+        "recall": 0.9054054054054054,
+        "f1": 0.7514018691588785
+      },
+      "chord": {
+        "correct": 260,
+        "total": 314,
+        "rate": 0.8280254777070064
+      }
+    },
+    {
+      "name": "05_SS2-107-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 11,
+        "total": 78,
+        "rate": 0.14102564102564102
+      },
+      "note": {
+        "matched": 78,
+        "truth": 87,
+        "estimated": 87,
+        "precision": 0.896551724137931,
+        "recall": 0.896551724137931,
+        "f1": 0.896551724137931
+      },
+      "chord": {
+        "correct": 61,
+        "total": 314,
+        "rate": 0.1942675159235669
+      }
+    },
+    {
+      "name": "05_SS2-88-F_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 178,
+        "total": 184,
+        "rate": 0.967391304347826
+      },
+      "note": {
+        "matched": 184,
+        "truth": 196,
+        "estimated": 477,
+        "precision": 0.3857442348008386,
+        "recall": 0.9387755102040817,
+        "f1": 0.5468053491827637
+      },
+      "chord": {
+        "correct": 256,
+        "total": 382,
+        "rate": 0.6701570680628273
+      }
+    },
+    {
+      "name": "05_SS2-88-F_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 24,
+        "total": 91,
+        "rate": 0.26373626373626374
+      },
+      "note": {
+        "matched": 91,
+        "truth": 93,
+        "estimated": 97,
+        "precision": 0.9381443298969072,
+        "recall": 0.978494623655914,
+        "f1": 0.9578947368421052
+      },
+      "chord": {
+        "correct": 60,
+        "total": 382,
+        "rate": 0.15706806282722513
+      }
+    },
+    {
+      "name": "05_SS3-84-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 182,
+        "total": 210,
+        "rate": 0.8666666666666667
+      },
+      "note": {
+        "matched": 210,
+        "truth": 211,
+        "estimated": 364,
+        "precision": 0.5769230769230769,
+        "recall": 0.995260663507109,
+        "f1": 0.7304347826086957
+      },
+      "chord": {
+        "correct": 383,
+        "total": 457,
+        "rate": 0.838074398249453
+      }
+    },
+    {
+      "name": "05_SS3-84-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 39,
+        "total": 106,
+        "rate": 0.36792452830188677
+      },
+      "note": {
+        "matched": 106,
+        "truth": 111,
+        "estimated": 121,
+        "precision": 0.8760330578512396,
+        "recall": 0.954954954954955,
+        "f1": 0.9137931034482759
+      },
+      "chord": {
+        "correct": 85,
+        "total": 457,
+        "rate": 0.18599562363238512
+      }
+    },
+    {
+      "name": "05_SS3-98-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 173,
+        "total": 182,
+        "rate": 0.9505494505494505
+      },
+      "note": {
+        "matched": 182,
+        "truth": 199,
+        "estimated": 390,
+        "precision": 0.4666666666666667,
+        "recall": 0.914572864321608,
+        "f1": 0.6179966044142614
+      },
+      "chord": {
+        "correct": 323,
+        "total": 392,
+        "rate": 0.8239795918367347
+      }
+    },
+    {
+      "name": "05_SS3-98-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 14,
+        "total": 88,
+        "rate": 0.1590909090909091
+      },
+      "note": {
+        "matched": 88,
+        "truth": 93,
+        "estimated": 97,
+        "precision": 0.9072164948453608,
+        "recall": 0.946236559139785,
+        "f1": 0.9263157894736842
+      },
+      "chord": {
+        "correct": 66,
+        "total": 392,
+        "rate": 0.1683673469387755
+      }
+    }
+  ]
+}

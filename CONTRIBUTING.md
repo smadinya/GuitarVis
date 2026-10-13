@@ -25,7 +25,7 @@ the hook that refuses commits on `main`.
 | `make format` | Apply Python formatting and import order |
 | `make typecheck` | mypy and `tsc --noEmit` |
 | `make test` | pytest and vitest |
-| `make schema` | Regenerate the JSON Schema and the web types |
+| `make schema` | Regenerate the JSON Schemas and the web types |
 | `make schema-check` | Fail if the committed schema/web types are stale |
 | `make check` | Everything CI runs |
 | `make eval-data` | Download GuitarSet into `~/.cache` (`ARGS=--audio` for full mode) |
@@ -34,6 +34,7 @@ the hook that refuses commits on `main`.
 | `make migrate` | Create or upgrade the jobs table, and create the bucket |
 | `make api` | Serve the api on `localhost:8000`, reloading on change |
 | `make worker` | Run jobs from the queue (`ARGS="--device cuda"`; needs the `ml` extra) |
+| `make web` | Serve the web client on `localhost:5173`, proxying the api |
 | `make clean` | Remove caches and build output |
 | `make help` | List these targets with their one-line descriptions |
 

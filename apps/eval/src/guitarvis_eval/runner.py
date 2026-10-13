@@ -16,6 +16,12 @@ from guitarvis_core.contracts import (
 )
 from guitarvis_core.tabdoc import STANDARD_TUNING
 
+from guitarvis_eval.calibration import (
+    BANDS,
+    ConfidenceBands,
+    chord_bands,
+    confidence_bands,
+)
 from guitarvis_eval.dataset import Excerpt
 from guitarvis_eval.metrics import (
     NoteCounts,
@@ -34,6 +40,8 @@ class ExcerptScore:
     baseline_strings: Tally | None = None  # oracle mode only
     notes: NoteCounts | None = None  # full mode only
     chords: Tally | None = None  # full mode only
+    confidence: ConfidenceBands | None = None  # full mode only
+    chord_confidence: ConfidenceBands | None = None  # full mode only
 
 
 def score_oracle(
@@ -70,6 +78,9 @@ def score_full(
     Note F1 scores the transcriber's own output, before the mapper drops
     anything, so it moves only when transcription does. String accuracy
     scores the notes the mapper placed, over those matching the truth.
+    The confidence bands tally the transcriber's notes too, for the same
+    reason: they calibrate what the transcriber's confidence means. The
+    chord bands do the same for the analyzer's.
     """
     events = transcriber.transcribe(audio)
     heard = match_notes(excerpt.notes, events)
@@ -87,23 +98,33 @@ def score_full(
             matched=len(heard), truth=len(excerpt.notes), estimated=len(events)
         ),
         chords=chord_tally(excerpt.chords, structure.chords, excerpt.duration),
+        confidence=confidence_bands(events, {e for _, e in heard}),
+        chord_confidence=chord_bands(
+            excerpt.chords, structure.chords, excerpt.duration
+        ),
     )
 
 
 def summarize(scores: Sequence[ExcerptScore]) -> dict[str, object]:
     """Totals overall ("all") and per style ("comp", "solo"). Counts are
-    summed before dividing, so long excerpts weigh more than short ones."""
+    summed before dividing, so long excerpts weigh more than short ones.
+    Confidence bands appear here only: per excerpt, they are mostly empty."""
     groups: dict[str, list[ExcerptScore]] = {"all": list(scores)}
     for score in scores:
         groups.setdefault(score.style, []).append(score)
-    return {group: _total(members) for group, members in sorted(groups.items())}
+    return {
+        group: _total(members, with_bands=True)
+        for group, members in sorted(groups.items())
+    }
 
 
 def score_to_dict(score: ExcerptScore) -> dict[str, object]:
     return {"name": score.name, "style": score.style, **_total([score])}
 
 
-def _total(scores: Sequence[ExcerptScore]) -> dict[str, object]:
+def _total(
+    scores: Sequence[ExcerptScore], *, with_bands: bool = False
+) -> dict[str, object]:
     out: dict[str, object] = {
         "excerpts": len(scores),
         "string": _tally(sum((s.strings for s in scores), Tally())),
@@ -125,7 +146,27 @@ def _total(scores: Sequence[ExcerptScore]) -> dict[str, object]:
     chords = [s.chords for s in scores if s.chords is not None]
     if chords:
         out["chord"] = _tally(sum(chords, Tally()))
+    bands = [s.confidence for s in scores if s.confidence is not None]
+    if with_bands and bands:
+        out["precision_by_confidence"] = _bands(sum(bands, ConfidenceBands()))
+    chord_bands = [s.chord_confidence for s in scores if s.chord_confidence]
+    if with_bands and chord_bands:
+        out["chord_precision_by_confidence"] = _bands(
+            sum(chord_bands, ConfidenceBands())
+        )
     return out
+
+
+def _bands(bands: ConfidenceBands) -> dict[str, object]:
+    """Keyed by each band's lower edge: "0.3" holds [0.3, 0.4)."""
+    return {
+        f"{band / BANDS:.1f}": {
+            "estimated": bands.estimated[band],
+            "matched": bands.matched[band],
+            "precision": bands.precision(band),
+        }
+        for band in range(BANDS)
+    }
 
 
 def _tally(tally: Tally) -> dict[str, object]:

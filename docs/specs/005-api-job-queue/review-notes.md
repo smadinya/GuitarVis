@@ -13,6 +13,8 @@ read this file before it starts.
   and only the row being read. A user can therefore get 429 until those exact
   jobs are polled or their files re-uploaded. The 429 path reads the rows it
   counts, so it could reconcile them first. That is still a read, not a reaper.
+  **Resolved in 006:** at the limit, POST /jobs reconciles every row it counted
+  (JobStore.active_jobs) and counts again.
 - **Hung storage stalls the api.** The S3 client uses a 60 s read timeout and
   standard retries. Storage that accepts connections and then hangs can hold
   `/health`, and any blob call, for minutes. Give `ping` its own short,
@@ -31,6 +33,8 @@ read this file before it starts.
 - **A row can say running while RQ's retry waits.** When RQ kills a horse it
   schedules the retry itself, so the row keeps its last stage and percent
   until the retry starts. Phase 4 should not read a stalled percent as a hang.
+  **Handled in 006:** the song page never decides a job has hung; it keeps
+  polling, and shows what the api reports.
 - **The worker runs on after its row is finished.** `_ProgressWriter` only
   logs when `set_progress` returns False. Reconciliation cannot cause this
   today: the job timeout (30 min) ends a run before its row is stale enough

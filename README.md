@@ -4,10 +4,10 @@ Takes a recording of a song, isolates the guitar, transcribes what it plays,
 and renders the result as tablature you can play along with — in three synced
 views: scrolling tab, a 2D fretboard, and a 3D guitar.
 
-**Status: phase 3 of 6 done.** The pipeline runs end to end and emits real
-tablature, and it now runs as a service: upload audio to the api, poll the
-job, fetch the tab document and the audio to play it against. The web client
-(phase 4) is next.
+**Status: phase 4 of 6 done.** Upload a song in the browser, watch it
+process, and play it back with a scrolling tab strip in sync with the audio:
+slowed down, looped, or with the guitar isolated. The 2D fretboard and the
+3D guitar (phase 5) are next.
 
 ## How it works
 
@@ -106,6 +106,15 @@ make api           # localhost:8000
 make worker        # in another terminal; needs `uv sync --extra ml`
 ```
 
+Then the client, in a third terminal:
+
+```bash
+make web           # localhost:5173, proxying the api
+```
+
+Open `http://localhost:5173`, drop in a song, and wait for the four stages.
+Space plays and pauses, and ← and → seek five seconds.
+
 ```bash
 curl -F file=@song.mp3 localhost:8000/jobs        # → 202 and a job id
 curl localhost:8000/jobs/<id>                      # stage and percent
@@ -119,7 +128,7 @@ Uploads and stems stay in storage until you run `docker compose down -v`.
 ## Documentation
 
 - [Design spec](docs/specs/001-guitarvis-design/spec.md) — the whole system,
-  including the thirteen decisions still open
+  including the decisions still open
 - [Contributing](CONTRIBUTING.md) — workflow and commands
 - [Conventions](docs/CONVENTIONS.md) — how the code is written
 - [Decisions](docs/decisions/) — what was chosen and why

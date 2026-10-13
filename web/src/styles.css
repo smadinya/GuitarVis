@@ -1,0 +1,156 @@
+/* Colours are tokens. The tab strip's canvas reads the --tab-* ones. */
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf7;
+  --fg: #1f1d1a;
+  --muted: #6b665d;
+  --accent: #c2410c;
+  --border: #d8d3c8;
+  --panel: #f1ede4;
+
+  --tab-background: #fbfaf7;
+  --tab-text: #1f1d1a;
+  --tab-muted: #7a7469;
+  --tab-accent: #c2410c;
+  --tab-string: #c9c3b6;
+  --tab-bar: #9e978a;
+  --tab-playhead: #c2410c;
+  --tab-loop: #2563eb;
+  --tab-hidden: #e7e1d4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171614;
+    --fg: #ece8df;
+    --muted: #a39d91;
+    --accent: #fb923c;
+    --border: #3a3631;
+    --panel: #23211e;
+
+    --tab-background: #171614;
+    --tab-text: #ece8df;
+    --tab-muted: #a39d91;
+    --tab-accent: #fb923c;
+    --tab-string: #45403a;
+    --tab-bar: #6d675e;
+    --tab-playhead: #fb923c;
+    --tab-loop: #60a5fa;
+    --tab-hidden: #2b2824;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.5 system-ui, sans-serif;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.masthead {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.masthead a {
+  color: var(--fg);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  padding: 48px 16px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  cursor: pointer;
+}
+
+.drop-zone.dragging {
+  border-color: var(--accent);
+}
+
+.failure {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-left: 4px solid var(--accent);
+  background: var(--panel);
+}
+
+.failure .headline {
+  font-weight: 700;
+}
+
+.failure .detail {
+  color: var(--muted);
+}
+
+.warnings {
+  margin-bottom: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+}
+
+/* No border or padding: they would take from the content box the canvas
+   draws into. The frame sits outside it. */
+.tab-strip {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.controls .group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.controls button {
+  min-width: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.controls button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.time {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+progress {
+  width: 100%;
+  max-width: 400px;
+}

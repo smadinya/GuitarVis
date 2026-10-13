@@ -9,7 +9,7 @@
 UV  := uv
 NPM := npm --prefix web
 
-# `schema-check` rewrites schema/ and web/src/types/tabDocument.ts as a side
+# `schema-check` rewrites schema/ and the generated files in web/src/types/ as a side
 # effect of the `schema` prerequisite it runs first. typecheck and test both
 # read those same files. Run with `make -j` (or a parallel `check`), that
 # write could race a read and either see a half-written file or trip the
@@ -45,7 +45,7 @@ PY_SOURCES := packages/core/src packages/jobs/src apps/api/src apps/worker/src a
               packages/core/tests packages/jobs/tests apps/api/tests apps/worker/tests apps/eval/tests
 
 .PHONY: help install lint format typecheck test test-py test-web \
-        schema schema-check check eval eval-data services migrate api worker clean
+        schema schema-check check eval eval-data services migrate api worker web clean
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -88,27 +88,28 @@ test-py:
 test-web:
 	$(NPM) run test
 
-schema: ## Regenerate the tab document schema and the web types
+schema: ## Regenerate the contract schemas and the web types
 	$(UV) run python -m guitarvis_core.schema_export schema/tab-document.schema.json
+	$(UV) run python -m guitarvis_api.schema_export schema/api.schema.json
 	$(NPM) run generate-types
 
-# Scoped to tabDocument.ts specifically, not the whole web/src/types
-# directory: that directory also holds tabDocument.test.ts, a hand-written
-# test file, and a naive `-- web/src/types` scope would make editing that
-# test look like a stale-artifact failure.
+# Scoped to every generated file in web/src/types, which is all of it but
+# the hand-written *.test.ts files beside them: editing a test must not look
+# like a stale artifact.
 #
 # `git status --porcelain`, not `git diff --exit-code`: diff only sees
-# changes to tracked files, so a schema_export.py bug that starts emitting a
-# brand-new (untracked) file would pass `git diff` silently. status also
-# reports untracked paths under the scoped directories.
+# changes to tracked files, so a generator that starts emitting a brand-new
+# (untracked) file would pass `git diff` silently. status also reports
+# untracked paths under the scoped directories.
 schema-check: schema ## Fail if the committed contract artifacts are stale
-	@changes="$$(git status --porcelain -- schema web/src/types/tabDocument.ts)"; \
+	@changes="$$(git status --porcelain -- schema web/src/types ':(exclude)web/src/types/*.test.ts')"; \
 	if [ -n "$$changes" ]; then \
 	  echo "$$changes"; \
 	  echo ""; \
 	  echo "✗ Contract artifacts are stale."; \
-	  echo "  tabdoc.py changed without regenerating, or the regenerated"; \
-	  echo "  output was never committed. Commit the changes listed above."; \
+	  echo "  tabdoc.py or the api's schemas.py changed without regenerating,"; \
+	  echo "  or the regenerated output was never committed. Commit the"; \
+	  echo "  changes listed above."; \
 	  exit 1; \
 	fi
 
@@ -131,6 +132,9 @@ api: ## Serve the api on localhost:8000, reloading on change
 
 worker: ## Run jobs from the queue (ARGS="--device cuda"; needs `uv sync --extra ml`)
 	$(UV) run guitarvis-worker serve $(ARGS)
+
+web: ## Serve the web client on localhost:5173, proxying the api on :8000
+	$(NPM) run dev
 
 clean: ## Remove caches and build output
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .venv web/node_modules web/dist
