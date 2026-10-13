@@ -1,12 +1,11 @@
 /**
  * The fretboard at one instant, as marks to draw: a dot on each string that
- * sounds, a closing ring at each position about to, and a message when there
- * is nothing else to read. Pure: the same song, time and neck always give the
- * same marks, so everything worth testing about the fretboard is tested here,
- * and Fretboard only draws.
+ * sounds, and a message when there is nothing else to read. Pure: the same
+ * song, time and neck always give the same marks, so everything worth testing
+ * about the fretboard is tested here, and Fretboard only draws.
  *
- * Opacity means confidence and nothing else. How soon a note comes is its
- * ring's size, so a faint ring is always a doubtful note, never a distant one.
+ * The neck shows only the present. What is coming is the tab strip's to show,
+ * and opacity means confidence and nothing else.
  */
 import { CHORD_THRESHOLDS, emphasis, isHidden } from "../confidence";
 import { EMPTY_MESSAGE, UNCLEAR_LABEL, noteName } from "../labels";
@@ -18,15 +17,11 @@ import { DOT_R, type Neck } from "./neck";
 /** The shortest time a dot stays lit, in seconds: a 40 ms pick would
  * otherwise light for two frames. */
 export const MIN_LIT = 0.15;
-/** How far ahead rings appear, in song seconds, so at 0.5× they close half
- * as fast. Enough to move the hand at moderate tempos. */
-export const LOOKAHEAD = 1.5;
 
 /** Each mark has a key that is stable across frames, so its SVG node is
  * updated in place rather than replaced. */
 export type Mark =
   | { kind: "dot"; key: string; x: number; y: number; r: number; name: string; opacity: number }
-  | { kind: "ring"; key: string; x: number; y: number; r: number; opacity: number }
   | { kind: "message"; key: string; x: number; y: number; text: string; chord: boolean; opacity: number };
 
 /**
@@ -77,37 +72,29 @@ export function layout(song: Song, cursors: Cursors, now: number, neck: Neck): M
   };
   if (song.notes.length === 0) return [message(middle, EMPTY_MESSAGE, false, 1)];
 
-  // Every note that could be lit now or ringed soon. A note lit by MIN_LIT
-  // started at most MIN_LIT ago; a longer one is still within its duration.
-  const notes = cursors.notes.window(now - MIN_LIT, now + LOOKAHEAD);
+  // Every note that could be lit now. A note lit by MIN_LIT started at most
+  // MIN_LIT ago; a longer one is still within its duration.
+  const notes = cursors.notes.window(now - MIN_LIT, now);
   // A long note may have started in a passage that is already over, and stays
   // hidden: read the passages back to the earliest onset in play.
   const since = Math.min(now, notes[0]?.t ?? now);
-  const hidden = inWindow(song.hidden, since, now + LOOKAHEAD, (p) => p.from, (p) => p.to);
+  const hidden = inWindow(song.hidden, since, now, (p) => p.from, (p) => p.to);
 
   const dots = new Map<number, Mark>(); // by string: the latest onset wins
-  const rings = new Map<string, Mark>(); // by position: the soonest onset wins
   for (const note of notes) {
     const y = neck.strings[note.string]?.y;
     const x = neck.noteX[note.fret];
     if (y === undefined || x === undefined || isHidden(hidden, note.t)) continue;
-    const opacity = emphasis(note.confidence);
 
     const until = cursors.until.get(note) ?? note.t + Math.max(note.dur, MIN_LIT);
     if (note.t <= now && now <= until) {
       const name = noteName(note.midi);
+      const opacity = emphasis(note.confidence);
       dots.set(note.string, { kind: "dot", key: `dot:${note.id}`, x, y, r: DOT_R, name, opacity });
-    }
-
-    const ahead = note.t - now;
-    const key = `ring:${note.string}:${note.fret}`;
-    if (ahead >= 0 && ahead <= LOOKAHEAD && !rings.has(key)) {
-      // 2r at the far edge of the window, r at the onset, where the dot fills it.
-      rings.set(key, { kind: "ring", key, x, y, r: DOT_R * (1 + ahead / LOOKAHEAD), opacity });
     }
   }
 
-  const marks = [...rings.values(), ...dots.values()];
+  const marks = [...dots.values()];
   if (isHidden(hidden, now)) {
     // Inside a hidden passage, the chord is all there is to read.
     const chord = cursors.chords.window(now, now).at(-1);

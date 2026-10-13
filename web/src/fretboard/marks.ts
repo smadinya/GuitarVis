@@ -10,9 +10,8 @@ const SVG = "http://www.w3.org/2000/svg";
 
 type Kind = Mark["kind"];
 
-/** Drawn in this order, so a dot covers the ring that closes on it and a
- * message sits over both. */
-const KINDS: readonly Kind[] = ["ring", "dot", "message"];
+/** Drawn in this order, so a message sits over the dots. */
+const KINDS: readonly Kind[] = ["dot", "message"];
 
 export class MarkLayer {
   private readonly groups: Record<Kind, SVGGElement>;
@@ -26,7 +25,7 @@ export class MarkLayer {
       layer.append(g);
       return g;
     };
-    this.groups = { ring: group("ring"), dot: group("dot"), message: group("message") };
+    this.groups = { dot: group("dot"), message: group("message") };
   }
 
   apply(marks: readonly Mark[]): void {
@@ -57,8 +56,6 @@ export class MarkLayer {
 
 function create(kind: Kind): SVGElement {
   switch (kind) {
-    case "ring":
-      return element("circle", "fret-ring");
     case "dot": {
       const dot = element("g", "fret-dot");
       dot.append(element("circle"), element("text"));
@@ -72,11 +69,6 @@ function create(kind: Kind): SVGElement {
 function update(node: SVGElement, mark: Mark): void {
   set(node, "opacity", mark.opacity);
   switch (mark.kind) {
-    case "ring":
-      set(node, "cx", mark.x);
-      set(node, "cy", mark.y);
-      set(node, "r", mark.r);
-      break;
     case "dot": {
       set(node, "transform", `translate(${mark.x} ${mark.y})`);
       const [circle, text] = node.children;

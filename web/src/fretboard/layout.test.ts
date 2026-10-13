@@ -6,7 +6,7 @@ import { EMPTY_MESSAGE, UNCLEAR_LABEL } from "../labels";
 import { buildSong, type Song } from "../song";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
 import type { Chord, Note, TabDocument } from "../types/tabDocument";
-import { LOOKAHEAD, MIN_LIT, cursorsOf, layout, type Mark } from "./layout";
+import { MIN_LIT, cursorsOf, layout, type Mark } from "./layout";
 import { DOT_R, neckOf } from "./neck";
 
 const FIRST_SONG: TabDocument = firstSongJson;
@@ -14,7 +14,6 @@ const MINIMAL: TabDocument = minimalJson;
 const WIDTH = 1000;
 
 type Dot = Extract<Mark, { kind: "dot" }>;
-type Ring = Extract<Mark, { kind: "ring" }>;
 type Message = Extract<Mark, { kind: "message" }>;
 
 let ids = 0;
@@ -42,7 +41,6 @@ function board(song: Song) {
     neck,
     at,
     dots: (now: number) => at(now).filter((m): m is Dot => m.kind === "dot"),
-    rings: (now: number) => at(now).filter((m): m is Ring => m.kind === "ring"),
     message: (now: number) => at(now).find((m): m is Message => m.kind === "message"),
   };
 }
@@ -123,73 +121,34 @@ describe("dots", () => {
   });
 });
 
-describe("rings", () => {
-  const coming = note(2, { string: 3, fret: 5, midi: 60 });
-  const fretboard = boardOf([coming]);
+describe("upcoming notes", () => {
+  it("draws nothing for a note until it sounds: what is coming is the tab strip's to show", () => {
+    const fretboard = boardOf([note(2, { string: 3, fret: 5, midi: 60 })]);
 
-  it("appears LOOKAHEAD before the onset at twice the dot's radius", () => {
-    expect(fretboard.rings(2 - LOOKAHEAD - 0.01)).toEqual([]);
-    expect(fretboard.rings(2 - LOOKAHEAD)[0]).toMatchObject({
-      x: fretboard.neck.noteX[5],
-      y: fretboard.neck.strings[3].y,
-      r: 2 * DOT_R,
-    });
-  });
-
-  it("closes linearly to the dot's radius at the onset, where the dot fills it", () => {
-    expect(fretboard.rings(2 - LOOKAHEAD / 2)[0].r).toBeCloseTo(1.5 * DOT_R);
-    expect(fretboard.rings(2)[0].r).toBe(DOT_R);
-    expect(fretboard.dots(2)).toHaveLength(1);
-    expect(fretboard.rings(2.01)).toEqual([]);
-  });
-
-  it("is unlabelled: the name appears when the note sounds", () => {
-    expect(fretboard.rings(1.5)[0]).not.toHaveProperty("name");
-  });
-
-  it("draws one ring per position, for the nearest onset", () => {
-    const strums = [1, 1.3, 1.6, 1.9].map((t) => note(t, { string: 0, fret: 3 }));
-    const strummed = boardOf(strums);
-
-    const rings = strummed.rings(0.8);
-
-    expect(rings).toHaveLength(1);
-    expect(rings[0].key).toBe("ring:0:3");
-    expect(rings[0].r).toBeCloseTo(DOT_R * (1 + 0.2 / LOOKAHEAD));
-  });
-
-  it("can share a position with a dot: the cue for a repeated note", () => {
-    const repeated = boardOf([note(1, { fret: 3 }), note(1.4, { fret: 3 })]);
-
-    const marks = repeated.at(1.1);
-
-    expect(marks.map((m) => m.kind).sort()).toEqual(["dot", "ring"]);
-    const [dot, ring] = [marks.find((m) => m.kind === "dot"), marks.find((m) => m.kind === "ring")];
-    expect([dot?.x, dot?.y]).toEqual([ring?.x, ring?.y]);
+    expect(fretboard.at(0.5)).toEqual([]);
+    expect(fretboard.at(1.99)).toEqual([]);
+    expect(fretboard.at(2).map((m) => m.kind)).toEqual(["dot"]);
   });
 });
 
 describe("confidence", () => {
-  it("sets the opacity of dots and rings by emphasis(confidence)", () => {
-    const fretboard = boardOf([
-      note(1, { string: 0, confidence: 0.55 }),
-      note(1.5, { string: 1, confidence: 0.2 }),
-    ]);
+  it("sets a dot's opacity by emphasis(confidence)", () => {
+    const middling = note(1, { string: 0, confidence: 0.55 });
+    const doubtful = note(1, { string: 1, confidence: 0.2 });
 
-    const marks = fretboard.at(1);
+    const dots = boardOf([middling, doubtful]).dots(1);
 
-    expect(marks.find((m) => m.kind === "dot")?.opacity).toBe(emphasis(0.55));
-    expect(marks.find((m) => m.key === "ring:1:0")?.opacity).toBe(FADED);
+    expect(dots.find((d) => d.key === `dot:${middling.id}`)?.opacity).toBe(emphasis(0.55));
+    expect(dots.find((d) => d.key === `dot:${doubtful.id}`)?.opacity).toBe(FADED);
   });
 
   const weak = (t: number) => note(t, { confidence: 0.05, string: 2, fret: 7 });
 
-  it("gives a note in a hidden passage neither a dot nor a ring, even before the passage", () => {
+  it("gives a note in a hidden passage no dot", () => {
     const fretboard = boardOf([weak(1), weak(1.3), weak(1.6), note(3, { fret: 5 })]);
 
-    expect(fretboard.at(0.5)).toEqual([]); // all three hidden notes are within LOOKAHEAD
     expect(fretboard.dots(1.35)).toEqual([]);
-    expect(fretboard.rings(1.9).map((r) => r.key)).toEqual(["ring:1:5"]);
+    expect(fretboard.dots(3)).toHaveLength(1);
   });
 
   it("keeps a hidden note dark after its passage ends, however long it sounds", () => {
@@ -259,11 +218,10 @@ describe("hidden passages", () => {
 });
 
 describe("the other cases", () => {
-  it("draws the minimal fixture: the open low E, and a ring closing on the D string's second fret", () => {
+  it("draws the minimal fixture: the open low E, and nothing yet for the D string's second fret", () => {
     const fretboard = board(buildSong(MINIMAL));
 
     expect(fretboard.at(0.1)).toEqual([
-      expect.objectContaining({ kind: "ring", key: "ring:2:2" }),
       expect.objectContaining({ kind: "dot", key: "dot:n_0000", name: "E", x: fretboard.neck.noteX[0] }),
     ]);
   });

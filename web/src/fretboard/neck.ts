@@ -18,14 +18,14 @@ export const SPARE_FRETS = 2;
 /** A note dot's radius, in CSS pixels: room for a name such as C#. */
 export const DOT_R = 11;
 export const STRING_GAP = 30;
-/** Right of fret N's wire: room for a ring at its widest on the last fret. */
+/** Right of fret N's wire, so the last wire is not on the panel's edge. */
 export const END_PAD = 12;
 /** Inlay dots, by fret. Fret 12 has two. */
 export const INLAY_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21];
 
 const GUTTER = 22; // the string labels' column
 const OPEN_W = 2 * DOT_R + 8; // open-string notes, between the labels and the nut
-const EDGE = 26; // above the top string: room for a ring at its widest, 2r
+const EDGE = 26; // above the top string: half a string gap of fingerboard, and a margin
 const NUMBERS = 18; // from the inlay row to the fret numbers
 const BELOW = 12; // under the fret numbers
 const THICKEST = 2.5; // the lowest string's stroke, in CSS pixels

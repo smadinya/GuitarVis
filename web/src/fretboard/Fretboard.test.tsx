@@ -85,13 +85,13 @@ describe("Fretboard", () => {
     expect(svg.querySelector(".fret-dot")).toBeNull();
   });
 
-  it("rings a note before it sounds", () => {
+  it("draws nothing for a note before it sounds", () => {
     const { svg, at } = mount(ONE_NOTE);
 
     at(0.25);
 
-    expect(svg.querySelectorAll(".fret-ring")).toHaveLength(1);
-    expect(svg.querySelector(".fret-dot")).toBeNull();
+    // The inlays are the neck's only circles.
+    expect(svg.querySelectorAll("circle:not(.fret-inlay)")).toHaveLength(0);
   });
 
   it("shows the message for a document with no notes", () => {

@@ -10,9 +10,7 @@ function dot(key: string, fields: Partial<Extract<Mark, { kind: "dot" }>> = {}):
   return { kind: "dot", key, x: 10, y: 20, r: 11, name: "E", opacity: 1, ...fields };
 }
 
-function ring(key: string, r: number): Mark {
-  return { kind: "ring", key, x: 30, y: 40, r, opacity: 0.5 };
-}
+const CHORD: Mark = { kind: "message", key: "message", x: 0, y: 0, text: "Am", chord: true, opacity: 1 };
 
 describe("MarkLayer", () => {
   let layer: SVGGElement;
@@ -39,15 +37,16 @@ describe("MarkLayer", () => {
   });
 
   it("reuses the node for the same key, and updates its attributes", () => {
-    marks.apply([ring("ring:0:3", 22)]);
-    const [before] = nodes(".fret-ring");
+    marks.apply([dot("dot:n1")]);
+    const [before] = nodes(".fret-dot");
 
-    marks.apply([ring("ring:0:3", 16.5)]);
+    marks.apply([dot("dot:n1", { x: 40, opacity: 0.5 })]);
 
-    const [after] = nodes(".fret-ring");
+    const [after] = nodes(".fret-dot");
     expect(after).toBe(before);
-    expect(after.getAttribute("r")).toBe("16.5");
-    expect(nodes(".fret-ring")).toHaveLength(1);
+    expect(after.getAttribute("transform")).toBe("translate(40 20)");
+    expect(after.getAttribute("opacity")).toBe("0.5");
+    expect(nodes(".fret-dot")).toHaveLength(1);
   });
 
   it("removes the node of a key that is gone", () => {
@@ -58,21 +57,22 @@ describe("MarkLayer", () => {
     expect(nodes(".fret-dot").map((n) => n.getAttribute("transform"))).toEqual(["translate(10 50)"]);
   });
 
-  it("draws rings under dots, and a message over both, whatever order they arrive in", () => {
-    const message: Mark = { kind: "message", key: "message", x: 0, y: 0, text: "Am", chord: true, opacity: 1 };
+  it("draws in two groups, the dots and then the message", () => {
+    expect([...layer.children].map((g) => g.getAttribute("class"))).toEqual(["fret-dots", "fret-messages"]);
+  });
 
-    marks.apply([message, dot("dot:n1"), ring("ring:0:3", 20)]);
+  it("draws a message over the dots, whatever order they arrive in", () => {
+    marks.apply([CHORD, dot("dot:n1")]);
 
-    const order = nodes(".fret-ring, .fret-dot, .fret-message").map((n) => n.getAttribute("class"));
-    expect(order).toEqual(["fret-ring", "fret-dot", "fret-message fret-chord"]);
+    const order = nodes(".fret-dot, .fret-message").map((n) => n.getAttribute("class"));
+    expect(order).toEqual(["fret-dot", "fret-message fret-chord"]);
   });
 
   it("restyles the message when it changes from a chord to the unclear label", () => {
-    const chord: Mark = { kind: "message", key: "message", x: 0, y: 0, text: "Am", chord: true, opacity: 1 };
-    marks.apply([chord]);
+    marks.apply([CHORD]);
     const [before] = nodes(".fret-message");
 
-    marks.apply([{ ...chord, text: "unclear passage", chord: false }]);
+    marks.apply([{ ...CHORD, text: "unclear passage", chord: false }]);
 
     expect(nodes(".fret-message")).toEqual([before]);
     expect(before.getAttribute("class")).toBe("fret-message");
@@ -80,7 +80,7 @@ describe("MarkLayer", () => {
   });
 
   it("removes everything it drew on dispose", () => {
-    marks.apply([dot("dot:n1"), ring("ring:0:3", 20)]);
+    marks.apply([dot("dot:n1"), CHORD]);
 
     marks.dispose();
 

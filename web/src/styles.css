@@ -28,7 +28,6 @@
   --fret-text: #7a7469;
   --fret-dot: #c2410c;
   --fret-dot-text: #ffffff;
-  --fret-ring: #c2410c;
   --fret-chord: #1f1d1a;
 }
 
@@ -60,7 +59,6 @@
     --fret-text: #a39d91;
     --fret-dot: #fb923c;
     --fret-dot-text: #171614;
-    --fret-ring: #fb923c;
     --fret-chord: #ece8df;
   }
 }
@@ -198,12 +196,6 @@ main {
 .fret-dot text {
   fill: var(--fret-dot-text);
   font: bold 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-.fret-ring {
-  fill: none;
-  stroke: var(--fret-ring);
-  stroke-width: 2;
 }
 
 /* A halo in the board's colour, so the strings do not strike through it. */
