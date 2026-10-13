@@ -12,6 +12,8 @@
 
 **Checked while writing:** this plan's code was assembled in a scratch worktree of this branch, following the plan's own steps, and run. `npm --prefix web test` ran `tsc` and then 244 web tests in 20 files, up from 189 in 15. `npm --prefix web run lint` and `npm --prefix web run build` were both clean. Five rules were then broken on purpose, one at a time, and each broke its named test: dropping `litUntil`, narrowing the hidden-passage window, dropping the hidden check, reading the neck from the frame listener's closure rather than its ref, and resubscribing on resize. The component was also rendered in headless Chromium, light and dark; the message's halo came out of that. **Not run:** the Python half of `make check`, which this plan does not touch, and Task 6. A snippet that fails as written most likely has a transcription slip. Compare it with the plan before doubting the design.
 
+**Amended after Task 5:** the approach rings were dropped before the acceptance run, as too distracting (see the spec's *Rejected alternatives*). Tasks 3 to 5 below still show the ring code as it was first built and committed. A later commit removes it: `LOOKAHEAD`, the `ring` mark, its SVG group, the `--fret-ring` token and their tests. Task 6's step on changing `LOOKAHEAD` no longer applies.
+
 ## Global Constraints
 
 Repo-wide rules from `CLAUDE.md` and `docs/CONVENTIONS.md`, and the values the spec fixes. Every task inherits them.
@@ -1960,10 +1962,10 @@ The plan settles these. The PR's *Deviations from the spec* section copies them.
 
 - **A later onset ends an earlier note on its string for good.** The spec says both "a later onset on the same string ends the earlier note" and "among the lit notes on a string, only the latest onset is drawn". Those disagree when a long note is followed by a short one: under the second rule, the long note lights again once the short one goes dark. `litUntil` follows the first rule. Each note is lit until the end of `max(dur, MIN_LIT)`, or until the next onset on its string, whichever comes first (Review Focus 1).
 - **The hidden passages are read back to the earliest onset in play.** A note still sounding may have started in a passage that is already over, and it stays hidden. This is the rule the tab strip applies to the same notes (Review Focus 2).
-- **A ring shows from `LOOKAHEAD` before its onset up to and including the onset,** where it has closed to r and the dot fills it. Once the onset passes, the next note at that position, if one is within `LOOKAHEAD`, takes over the ring's key and node.
 - **`Cursors` carries `until` beside the two cursors.** The map is computed once per song, with them.
-- **The inlays sit in a row under the neck,** as the spec's sketch draws them, not on the fingerboard, where the rings would cross them. Fret 12's pair sits side by side.
+- **The inlays sit in a row under the neck,** as the spec's sketch draws them, not on the fingerboard, where the dots would cover them. Fret 12's pair sits side by side.
 - **The strings run through the open-string column,** so an open note's dot sits on its string. The fret numbers run from 1 to N, with none under the open column.
 - **The message has a halo in the board's colour,** so the strings do not strike through it, as the tab strip knocks out the string behind each fret number. A chord symbol is drawn at 32 px, bold and monospace.
-- **Rings, dots and the message are drawn in three SVG groups, in that order.** The stacking never depends on the order in which marks first appeared.
+- **Dots and the message are drawn in two SVG groups, in that order.** The stacking never depends on the order in which marks first appeared.
 - **The component measures a `<div>` that wraps the SVG,** and sizes the SVG from it.
+- **The tab strip now reads its notes' hidden passages back to the earliest onset in play, too.** The final review found that 006's strip read them only from the screen's left edge, so a weak note sounding on after its band had scrolled off came back as a sounding tail, while the fretboard kept it hidden. Success condition 3 asks both views to hide the same notes, so the strip takes the fretboard's rule, for its notes only. `confidence.ts` stays unchanged, so the widening is written in both layouts; moving it into one helper there is a later change.

@@ -26,8 +26,8 @@ The success conditions:
    `make web` running, a song plays with the fretboard above the tab strip.
    Its notes light as they sound, at 1× and at 0.5×, in step with the audio
    and with the tab strip.
-2. Upcoming notes arrive as closing rings, and stay readable in a real
-   song's densest passage.
+2. The neck shows only what sounds now. What is coming is the tab strip's
+   to show.
 3. The fretboard fades and hides exactly the notes the tab strip fades and
    hides. A document with no notes, or with hidden passages, renders its
    fallback. Tests prove both.
@@ -38,8 +38,7 @@ The success conditions:
 **In:**
 - the fretboard panel, above the tab strip;
 - the neck, fitted to the song, with true fret spacing;
-- sounding notes as dots named by pitch class, and upcoming notes as
-  approach rings;
+- sounding notes as dots named by pitch class;
 - the confidence rule and the hidden-passage fallback, from `confidence.ts`
   unchanged;
 - moving the view text shared by the tab strip and the fretboard into one
@@ -48,6 +47,8 @@ The success conditions:
 - a manual acceptance record.
 
 **Out:**
+- any look-ahead on the neck. The tab strip shows what is coming. Approach
+  rings were built and dropped (see *Rejected alternatives*);
 - the 3D guitar, and the `[3D | 2D]` toggle. With one fretboard view there is
   nothing to toggle. Both come with the next spec, and open decision 9
   (simultaneous views) stays open;
@@ -76,8 +77,8 @@ web/src/
   fretboard/
     neck.ts            pure: (song, width) → Neck — the fret range, and where
                        every wire, string, note position and inlay sits
-    layout.ts          pure: (song, cursors, t, neck) → Mark[] — dots, rings,
-                       and the centred message
+    layout.ts          pure: (song, cursors, t, neck) → Mark[] — dots, and
+                       the centred message
     marks.ts           the keyed updater: applies a Mark[] to an SVG layer
     Fretboard.tsx      React draws the neck from Neck; onFrame → layout → apply
   player/Player.tsx    mounts <Fretboard> above <TabStrip>
@@ -91,7 +92,7 @@ and the component only draws.
 
 The parent spec draws the 2D fretboard in SVG, and the mark count settles it.
 The tab strip is canvas because a song has thousands of notes on it. The
-fretboard shows at most one dot per string and a few dozen rings.
+fretboard shows at most one dot per string.
 
 006 has a rule: React never re-renders at frame rate. The fretboard keeps it
 by splitting the SVG in two.
@@ -104,9 +105,8 @@ by splitting the SVG in two.
   its SVG node. It creates a node for a new key, sets attributes on an
   existing one, and removes the nodes whose keys are gone.
 
-Keys are stable across frames: `dot:<note id>`, `ring:<string>:<fret>` and
-`message`. So a note's dot is one node for its whole life, and a ring is one
-node while it closes in.
+Keys are stable across frames: `dot:<note id>` and `message`. So a note's dot
+is one node for its whole life.
 
 Colours, stroke widths and fonts come from CSS classes on the nodes and from
 custom properties in `styles.css`. Dark mode needs no code, and nothing reads
@@ -122,7 +122,7 @@ is labelled "Tab".
    E  ○ ‖──────┼──────┼─────┼─────┼────┼────┼───┼───┼───┼──┼──┼──┤
    A    ‖──────┼──────┼─────┼─────┼────┼────┼───┼───┼───┼──┼──┼──┤
    D    ‖──────┼──────┼──(E)┼─────┼────┼────┼───┼───┼───┼──┼──┼──┤  ● sounding
-   G    ‖──────┼──────┼─────┼──◯──┼────┼────┼───┼───┼───┼──┼──┼──┤  ◯ upcoming
+   G    ‖──────┼──────┼─────┼─────┼────┼────┼───┼───┼───┼──┼──┼──┤
    B    ‖──────┼──────┼─────┼─────┼────┼────┼───┼───┼───┼──┼──┼──┤
    e    ‖──────┼──────┼─────┼─────┼────┼────┼───┼───┼───┼──┼──┼──┤
                       •           •          •          •        ••
@@ -215,33 +215,18 @@ there is no right choice between a sharp and a flat. Sharps match the chord
 symbols, which the structure stage also spells with sharps. A dot therefore
 reads `A#` under an `A#` chord, never `B♭`.
 
-**Upcoming notes: approach rings.**
-- A note gets a ring while its onset is within `LOOKAHEAD`, 1.5 s, after
-  now.
-- The window is in song seconds, as the tab strip's scroll is. At 0.5× the
-  rings close half as fast, in step with the slowed audio.
-- A ring is drawn at the note's position, and its radius shrinks linearly:
-  from 2r at the far edge of the window, to r at the onset. r is the dot's
-  radius. At the onset the ring meets the dot that fills it.
-- Rings are not labelled. The name appears when the note sounds.
-- **One ring per position, the nearest.** A strummed chord repeated four
-  times in 1.5 s would otherwise stack four rings on each of six positions.
-  Only the soonest onset at each string and fret gets a ring.
-- A position can hold a dot and a ring at once. That is the cue for a
-  repeated note: it sounds now, and is about to sound again.
-
-The parent spec asks for a look-ahead of about 2 s, and every view receives
-it. The tab strip shows about 4 s ahead and is what the learner reads from.
-The fretboard shows the present, so its look-ahead only has to give the hand
-time to move. 1.5 s does that at moderate tempos without crowding the neck.
-It is one constant, and the acceptance run checks it.
+**Upcoming notes: none.** The neck draws nothing for a note until it
+sounds. The parent spec asks for a look-ahead of about 2 s in every view. The
+tab strip shows about 4 s ahead and is what the learner reads from, so the
+fretboard leaves the look-ahead to it and shows only the present. Approach
+rings were built first, and dropped as too distracting (see *Rejected
+alternatives*).
 
 **Confidence.** The fretboard imports `confidence.ts` unchanged, as 006
 promised.
-- A dot's and a ring's opacity is `emphasis(note.confidence)`. Opacity means
-  confidence and nothing else. How soon a note comes is the ring's size, so
-  a faint ring is always a doubtful note, never a distant one.
-- A note whose onset `isHidden` gets no dot and no ring, at any time. It is
+- A dot's opacity is `emphasis(note.confidence)`. Opacity means confidence
+  and nothing else.
+- A note whose onset `isHidden` gets no dot, at any time. It is
   the same test the tab strip applies to the same `song.hidden`, so both views
   hide the same notes.
 - While now is inside a hidden passage:
@@ -255,10 +240,9 @@ promised.
   the tab strip. The warnings banner says why.
 - **Paused, and seeking.** The engine emits one frame after each seek or state
   change, so a paused fretboard shows that exact instant. A seek re-seats the
-  cursors, so the dots and rings are right immediately after a jump.
-- **The A/B loop.** The jump back to A is a seek, so the rings for the start
-  of the loop appear as the loop restarts. No ring announces the jump before
-  it happens. The tab strip shows the loop.
+  cursors, so the dots are right immediately after a jump.
+- **The A/B loop.** The jump back to A is a seek, so the board is right as
+  the loop restarts. The tab strip shows the loop.
 
 ### Shared view text
 
@@ -290,13 +274,9 @@ and the component opt into jsdom per file, as 006's page tests do.
   - a dot is lit across `[t, t + dur]`, and for `MIN_LIT` when `dur` is
     shorter;
   - on one string, the latest onset wins;
-  - a ring appears at `t − LOOKAHEAD` with radius 2r, is r at the onset, and
-    is linear between;
-  - one ring per position, the nearest, and a dot and a ring can share a
-    position;
-  - opacity is `emphasis(confidence)` for dots and rings;
-  - a hidden note gets neither a dot nor a ring, even before its passage
-    starts;
+  - a note gets no mark before its onset;
+  - a dot's opacity is `emphasis(confidence)`;
+  - a hidden note gets no dot, even once its passage has ended;
   - inside a hidden passage, the sounding chord's symbol shows, or "unclear
     passage" with no chord;
   - a document with no notes gives the message.
@@ -318,10 +298,9 @@ Recorded in `acceptance.md` in this folder before the PR is opened, as in 006:
 
 - **End to end,** in a browser against real services, with a real song:
   - at 1×, the dots light with the audio and with the tab strip;
-  - at 0.5×, the same, with the rings closing half as fast;
-  - in the song's densest passage, the rings stay readable;
-  - 1.5 s of warning is enough to move the hand. If it is not, the value
-    chosen and why go in the record;
+  - at 0.5×, the same;
+  - with only the present on the neck, the tab strip gives enough warning to
+    move the hand. If it does not, the record says so;
   - a seek and an A/B loop leave the board right.
 - **Dark mode,** and resizing the window during playback.
 - **The two string orders.** Say whether reading the fretboard and the tab
@@ -340,13 +319,22 @@ the layout is pure, that swap touches only the painter.
 JSX. It re-renders the panel sixty times a second, which 006 rules out, and
 that would not stay cheap once the 3D view shares the page.
 
+**Approach rings.** Each note due within 1.5 s got a ring at its position,
+closing from twice the dot's radius to the dot at its onset, one ring per
+position. They were built and tested, then dropped before the acceptance run
+as too distracting. A neck of closing rings pulls the eye away from what
+sounds now, and repeats what the tab strip already shows. The commits that
+built them are in the branch's history, if the acceptance run shows the hand
+needs warning on the neck itself.
+
 **Fading ghosts,** the parent spec's literal wording: every note in the
 look-ahead drawn faint, brightening as it nears. Brightness would then mean
 both "soon" and "confident", and a faint ghost would be ambiguous. That is
 the silent wrongness the parent spec warns against.
 
-**Only the next onset.** The cleanest picture, but it shows one step ahead.
-In a fast run the hand needs more warning than one note gives.
+**Only the next onset.** The cleanest look-ahead on the neck, but it shows one
+step ahead. In a fast run that is less warning than the tab strip already
+gives.
 
 **The whole neck, always.** Frets 0 to 20 for every song shows where a
 passage sits on the whole neck, but shrinks every dot. A song in open
@@ -378,8 +366,9 @@ disagree with the chord symbols, which are spelled with sharps.
   spec adds the `[3D | 2D]` toggle, and can reuse `neck.ts`'s fret
   arithmetic.
 - **The parent spec's look-ahead is refined.** "Look-ahead notes appear
-  ghosted" becomes approach rings, and the fretboard looks 1.5 s ahead, not
-  2 s. The tab strip still shows about 4 s.
+  ghosted" does not hold for the 2D fretboard. It shows only the present,
+  and the tab strip's 4 s carries the look-ahead. The 3D guitar's spec
+  decides its own.
 - **One screen shows two string orders.** The tab strip puts the highest
   string on top and the fretboard puts the lowest. If that confuses
   learners, a later orientation setting is a change to `neck.ts` alone.
@@ -391,16 +380,14 @@ disagree with the chord symbols, which are spelled with sharps.
 
 ## Risks
 
-- **SVG updates per frame.** The layer changes a few dozen attributes a
+- **SVG updates per frame.** The layer changes a few attributes per string a
   frame, well within what browsers handle. If a slow machine stutters during
   the acceptance run, the canvas painter is the fallback.
-- **Crowded rings.** One ring per position bounds them by the positions in
-  use. In a fast passage across many positions they can still crowd the neck.
-  At the far edge of the window a ring's radius is 2r, about 22 px, and
-  strings are about 30 px apart, so new rings on neighbouring strings at the
-  same fret overlap until they close in. The acceptance run
-  checks the densest passage of a real song. `LOOKAHEAD` and the starting
-  radius are the levers.
+- **No warning on the neck.** A learner who watches only the fretboard sees
+  each note as it sounds, with no time to move the hand there. The tab strip
+  just below shows 4 s ahead. The acceptance run says whether that is enough.
+  If it is not, the approach rings are in the history (see *Rejected
+  alternatives*).
 - **Two string orders.** See *Consequences*. The acceptance record says
   whether it confused.
 - **Sustain is the transcriber's.** A dot lasts as long as `dur`, and
