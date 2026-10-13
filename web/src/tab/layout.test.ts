@@ -250,6 +250,20 @@ describe("hidden passages", () => {
     expect(frets(ops).map((op) => op.text)).toEqual(["5"]);
   });
 
+  it("keeps a weak note hidden after its band scrolls off, however long it sounds", () => {
+    // The band runs from 1 to the confident note at 2; its last note sounds on to 6.
+    const song = buildSong(
+      doc({ notes: [weak(1), weak(1.3), note(1.6, { confidence: 0.05, dur: 4.4 }), note(2, { fret: 5 })] }),
+    );
+
+    // The band is off the left edge by now, and the weak note is still sounding.
+    const ops = layout(song, 4.5, VIEW, NO_LOOP);
+
+    expect(song.hidden).toHaveLength(1);
+    expect(frets(ops)).toEqual([]);
+    expect([...lines(ops, "accent"), ...lines(ops, "muted")]).toEqual([]);
+  });
+
   it("labels a band with no chord over it", () => {
     const song = buildSong(doc({ notes: [weak(1), weak(1.3), weak(1.6)] }));
 

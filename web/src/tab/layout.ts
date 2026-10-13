@@ -141,9 +141,15 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
     }
   }
 
-  for (const note of song.cursor.window(from, to)) {
+  const notes = song.cursor.window(from, to);
+  // A long note may have started in a passage that has scrolled off the left
+  // edge, and stays hidden, as on the fretboard: read the passages back to the
+  // earliest onset in play.
+  const since = Math.min(from, notes[0]?.t ?? from);
+  const hiddenNotes = since < from ? inWindow(song.hidden, since, to, (p) => p.from, (p) => p.to) : hidden;
+  for (const note of notes) {
     const y = rows.stringY[note.string];
-    if (y === undefined || isHidden(hidden, note.t)) continue;
+    if (y === undefined || isHidden(hiddenNotes, note.t)) continue;
     const end = note.t + note.dur;
     const sounding = note.t <= now && now <= end;
     const alpha = (end < now ? PAST_ALPHA : 1) * emphasis(note.confidence);
