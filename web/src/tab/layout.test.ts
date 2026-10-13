@@ -1,21 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { CHORD_FULL, FADED } from "../confidence";
+import { EMPTY_MESSAGE, UNCLEAR_LABEL } from "../labels";
 import { NoteCursor } from "../playback/cursor";
 import { buildSong, type Song } from "../song";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
 import type { Beat, Chord, Note, Section, TabDocument } from "../types/tabDocument";
-import {
-  EMPTY_MESSAGE,
-  GLYPH_W,
-  PLAYHEAD_AT,
-  PX_PER_SEC,
-  UNCLEAR_LABEL,
-  layout,
-  rowsOf,
-  stringLabels,
-  type DrawOp,
-} from "./layout";
+import { GLYPH_W, PLAYHEAD_AT, PX_PER_SEC, layout, rowsOf, type DrawOp } from "./layout";
 
 const FIRST_SONG: TabDocument = firstSongJson;
 const VIEW = { width: 800, height: 200 };
@@ -82,23 +73,12 @@ describe("strings", () => {
     const song = buildSong(doc());
     const rows = rowsOf(song);
 
-    expect(stringLabels(song.tuning)).toEqual(["E", "A", "D", "G", "B", "e"]);
     expect(rows.stringY[5]).toBeLessThan(rows.stringY[0]);
     const labels = texts(layout(song, 0, VIEW, NO_LOOP))
       .filter((op) => op.font === "label" && op.align === "center")
       .sort((a, b) => a.y - b.y)
       .map((op) => op.text);
     expect(labels).toEqual(["e", "B", "G", "D", "A", "E"]);
-  });
-
-  it("keeps drop D's top E in capitals", () => {
-    expect(stringLabels(["D2", "A2", "D3", "G3", "B3", "E4"])).toEqual([
-      "D", "A", "D", "G", "B", "E",
-    ]);
-  });
-
-  it("names sharps and flats", () => {
-    expect(stringLabels(["C#2", "Bb2"])).toEqual(["C#", "Bb"]);
   });
 
   it("places each note on its own string", () => {
@@ -268,6 +248,20 @@ describe("hidden passages", () => {
 
     expect(song.hidden).toHaveLength(1);
     expect(frets(ops).map((op) => op.text)).toEqual(["5"]);
+  });
+
+  it("keeps a weak note hidden after its band scrolls off, however long it sounds", () => {
+    // The band runs from 1 to the confident note at 2; its last note sounds on to 6.
+    const song = buildSong(
+      doc({ notes: [weak(1), weak(1.3), note(1.6, { confidence: 0.05, dur: 4.4 }), note(2, { fret: 5 })] }),
+    );
+
+    // The band is off the left edge by now, and the weak note is still sounding.
+    const ops = layout(song, 4.5, VIEW, NO_LOOP);
+
+    expect(song.hidden).toHaveLength(1);
+    expect(frets(ops)).toEqual([]);
+    expect([...lines(ops, "accent"), ...lines(ops, "muted")]).toEqual([]);
   });
 
   it("labels a band with no chord over it", () => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { Fretboard } from "../fretboard/Fretboard";
 import type { MediaLike } from "../playback/clock";
 import { PlaybackEngine } from "../playback/engine";
 import type { Song } from "../song";
@@ -15,8 +16,8 @@ export interface PlayerProps {
   createMedia: () => MediaLike;
 }
 
-/** One engine per song; every view subscribes to it. Phase 5's fretboards
- * are more onFrame listeners beside the TabStrip. */
+/** One engine per song; every view subscribes to it. The fretboard sits
+ * above the tab strip; the 3D guitar will be one more onFrame listener. */
 export function Player({ song, jobId, createMedia }: PlayerProps) {
   const [engine, setEngine] = useState<PlaybackEngine | null>(null);
 
@@ -32,6 +33,7 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
   return (
     <section className="player">
       <Warnings warnings={song.warnings} />
+      <Fretboard song={song} engine={engine} />
       <TabStrip song={song} engine={engine} />
       <Controls engine={engine} />
     </section>

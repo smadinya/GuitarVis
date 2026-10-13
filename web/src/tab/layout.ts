@@ -7,6 +7,7 @@
  * bar lines and nothing else.
  */
 import { CHORD_THRESHOLDS, emphasis, isHidden, type Passage } from "../confidence";
+import { EMPTY_MESSAGE, UNCLEAR_LABEL, stringLabels } from "../labels";
 import { inWindow } from "../playback/cursor";
 import type { LoopPoints } from "../playback/engine";
 import type { Song } from "../song";
@@ -15,8 +16,6 @@ import type { Song } from "../song";
 export const PX_PER_SEC = 150;
 /** The playhead's place, as a fraction of the width. Right of it is look-ahead. */
 export const PLAYHEAD_AT = 0.2;
-export const EMPTY_MESSAGE = "No notes to show";
-export const UNCLEAR_LABEL = "unclear passage";
 
 const PAD = 8;
 const ROW = 20;
@@ -103,20 +102,6 @@ export function rowsOf(song: Song): Rows {
   return { sectionY, chordY, stringY, top, bottom, height: bottom + STRING_GAP / 2 + PAD };
 }
 
-/**
- * Letter names by string, lowest first. The top string is lowercased when it
- * shares a letter with the bottom one: e … E in standard tuning, while drop D
- * keeps its capital E.
- */
-export function stringLabels(tuning: readonly string[]): string[] {
-  const labels = tuning.map((name) => /^[A-Ga-g][#b]?/.exec(name)?.[0] ?? name);
-  const top = labels.length - 1;
-  if (top > 0 && labels[top].toLowerCase() === labels[0].toLowerCase()) {
-    labels[top] = labels[top].toLowerCase();
-  }
-  return labels;
-}
-
 export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPoints): DrawOp[] {
   const rows = rowsOf(song);
   const { width, height } = viewport;
@@ -156,9 +141,15 @@ export function layout(song: Song, now: number, viewport: Viewport, loop: LoopPo
     }
   }
 
-  for (const note of song.cursor.window(from, to)) {
+  const notes = song.cursor.window(from, to);
+  // A long note may have started in a passage that has scrolled off the left
+  // edge, and stays hidden, as on the fretboard: read the passages back to the
+  // earliest onset in play.
+  const since = Math.min(from, notes[0]?.t ?? from);
+  const hiddenNotes = since < from ? inWindow(song.hidden, since, to, (p) => p.from, (p) => p.to) : hidden;
+  for (const note of notes) {
     const y = rows.stringY[note.string];
-    if (y === undefined || isHidden(hidden, note.t)) continue;
+    if (y === undefined || isHidden(hiddenNotes, note.t)) continue;
     const end = note.t + note.dur;
     const sounding = note.t <= now && now <= end;
     const alpha = (end < now ? PAST_ALPHA : 1) * emphasis(note.confidence);
