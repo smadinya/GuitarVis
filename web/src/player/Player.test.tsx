@@ -134,6 +134,15 @@ describe("Player", () => {
     expect(strip.style.height).toMatch(/^\d+px$/);
   });
 
+  it("shows the fretboard above the tab strip", () => {
+    mount();
+
+    const fretboard = screen.getByRole("img", { name: "Fretboard" });
+    const strip = screen.getByLabelText("Tab");
+
+    expect(fretboard.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("shows the document's warnings", () => {
     mount({ warnings: ["Chord detection failed, so this tab has no chords."] });
     expect(screen.getByRole("complementary", { name: "Warnings" }).textContent).toContain(

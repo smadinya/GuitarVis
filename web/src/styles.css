@@ -1,4 +1,5 @@
-/* Colours are tokens. The tab strip's canvas reads the --tab-* ones. */
+/* Colours are tokens. The tab strip's canvas reads the --tab-* ones; the
+   fretboard's SVG uses the --fret-* ones through its classes. */
 :root {
   color-scheme: light dark;
   --bg: #fbfaf7;
@@ -17,6 +18,18 @@
   --tab-playhead: #c2410c;
   --tab-loop: #2563eb;
   --tab-hidden: #e7e1d4;
+
+  --fret-background: #fbfaf7;
+  --fret-board: #f1ede4;
+  --fret-wire: #b4ad9f;
+  --fret-nut: #6b665d;
+  --fret-string: #8c8578;
+  --fret-inlay: #d2ccbf;
+  --fret-text: #7a7469;
+  --fret-dot: #c2410c;
+  --fret-dot-text: #ffffff;
+  --fret-ring: #c2410c;
+  --fret-chord: #1f1d1a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,6 +50,18 @@
     --tab-playhead: #fb923c;
     --tab-loop: #60a5fa;
     --tab-hidden: #2b2824;
+
+    --fret-background: #171614;
+    --fret-board: #23211e;
+    --fret-wire: #57524a;
+    --fret-nut: #a39d91;
+    --fret-string: #8a8478;
+    --fret-inlay: #3d3934;
+    --fret-text: #a39d91;
+    --fret-dot: #fb923c;
+    --fret-dot-text: #171614;
+    --fret-ring: #fb923c;
+    --fret-chord: #ece8df;
   }
 }
 
@@ -114,6 +139,86 @@ main {
   width: 100%;
   border-radius: 8px;
   box-shadow: 0 0 0 1px var(--border);
+}
+
+/* The SVG takes its width from this box, never the other way round. */
+.fretboard {
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--fret-background);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.fretboard svg {
+  display: block;
+}
+
+.fret-board {
+  fill: var(--fret-board);
+}
+
+.fret-wire {
+  stroke: var(--fret-wire);
+  stroke-width: 2;
+}
+
+.fret-nut {
+  stroke: var(--fret-nut);
+  stroke-width: 5;
+}
+
+/* stroke-width comes from each string's attribute: lower strings are thicker. */
+.fret-string {
+  stroke: var(--fret-string);
+}
+
+.fret-inlay {
+  fill: var(--fret-inlay);
+}
+
+.fret-label,
+.fret-number,
+.fret-dot text,
+.fret-message {
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.fret-label,
+.fret-number {
+  fill: var(--fret-text);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.fret-dot circle {
+  fill: var(--fret-dot);
+}
+
+.fret-dot text {
+  fill: var(--fret-dot-text);
+  font: bold 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.fret-ring {
+  fill: none;
+  stroke: var(--fret-ring);
+  stroke-width: 2;
+}
+
+/* A halo in the board's colour, so the strings do not strike through it. */
+.fret-message {
+  fill: var(--fret-text);
+  font: 15px system-ui, sans-serif;
+  paint-order: stroke;
+  stroke: var(--fret-board);
+  stroke-width: 6px;
+  stroke-linejoin: round;
+}
+
+.fret-message.fret-chord {
+  fill: var(--fret-chord);
+  font: bold 32px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .controls {
