@@ -85,6 +85,27 @@ describe("Fretboard", () => {
     expect(svg.querySelector(".fret-dot")).toBeNull();
   });
 
+  it("gives each pluck of a repeated note its own node, so the pulse plays for each", () => {
+    // Two plucks of the low E's third fret; the first one's sustain runs past the second.
+    const { svg, at } = mount({
+      ...ONE_NOTE,
+      notes: [
+        { id: "first", t: 1, dur: 1, midi: 43, string: 0, fret: 3, confidence: 0.95 },
+        { id: "again", t: 1.5, dur: 1, midi: 43, string: 0, fret: 3, confidence: 0.95 },
+      ],
+    });
+
+    at(1.2);
+    const first = svg.querySelector(".fret-dot");
+    at(1.6);
+    const again = svg.querySelector(".fret-dot");
+
+    expect(first).not.toBeNull();
+    expect(again).not.toBe(first);
+    expect(first?.isConnected).toBe(false);
+    expect(svg.querySelectorAll(".fret-dot")).toHaveLength(1);
+  });
+
   it("draws nothing for a note before it sounds", () => {
     const { svg, at } = mount(ONE_NOTE);
 

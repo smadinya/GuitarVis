@@ -189,8 +189,25 @@ main {
   font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+/* Every onset is a new dot, so each pluck swells once, even on a fret that
+   was already lit. */
 .fret-dot circle {
   fill: var(--fret-dot);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fret-pluck 150ms ease-out;
+}
+
+@keyframes fret-pluck {
+  from {
+    transform: scale(1.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fret-dot circle {
+    animation: none;
+  }
 }
 
 .fret-dot text {
