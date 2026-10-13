@@ -206,6 +206,11 @@ call. `song.ts` already says that another view makes its own.
   onset is drawn, so there is at most one dot per string. This also absorbs
   transcribed durations that run past the next note.
 - A dot is filled in the accent colour, with the note's name inside.
+- **A pulse on each pluck.** A dot swells briefly as it appears. Every onset
+  has its own dot, so a note plucked again on the same fret shows each pluck,
+  where it would otherwise read as one held note, or as a blink. It is CSS
+  only, and off under `prefers-reduced-motion`. A dot that appears after a
+  seek pulses too.
 
 **Note names.** `noteName(midi)` gives the pitch class only, so `E2` and `E4`
 both read `E`. The fret already says which octave.
@@ -288,6 +293,7 @@ and the component opt into jsdom per file, as 006's page tests do.
 - **`Fretboard`** (jsdom):
   - it draws N + 1 wires and one string per tuning entry;
   - it subscribes to `onFrame` and unsubscribes on unmount;
+  - each pluck of a repeated note gets its own node, which the pulse needs;
   - the `Player` test finds the fretboard above the tab strip.
 - **Fixtures:** the existing `minimal.tabdoc.json` and
   `first-song.tabdoc.json`, which uses frets 0 to 8 and so draws twelve.
@@ -299,6 +305,8 @@ Recorded in `acceptance.md` in this folder before the PR is opened, as in 006:
 - **End to end,** in a browser against real services, with a real song:
   - at 1×, the dots light with the audio and with the tab strip;
   - at 0.5×, the same;
+  - a note plucked again and again on one fret shows each pluck, and the
+    pulse does not distract;
   - with only the present on the neck, the tab strip gives enough warning to
     move the hand. If it does not, the record says so;
   - a seek and an A/B loop leave the board right.
