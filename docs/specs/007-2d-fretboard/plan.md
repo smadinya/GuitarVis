@@ -86,7 +86,7 @@ These are inputs the spec implies but never names, most likely first. Each one i
   - `noteName(midi: number): string`. The pitch class, spelled with sharps: `noteName(61) === "C#"`.
   - `tab/layout.ts` no longer exports `EMPTY_MESSAGE`, `UNCLEAR_LABEL` or `stringLabels`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/labels.test.ts`:
 
@@ -125,12 +125,12 @@ describe("noteName", () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm --prefix web test -- src/labels.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './labels'`.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 Create `web/src/labels.ts`:
 
@@ -169,7 +169,7 @@ export function noteName(midi: number): string {
 }
 ```
 
-- [ ] **Step 4: Point the tab strip at it**
+- [x] **Step 4: Point the tab strip at it**
 
 In `web/src/tab/layout.ts`, add the import beside the others:
 
@@ -251,7 +251,7 @@ Delete the two tests that moved to `labels.test.ts`:
 
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/labels.test.ts src/tab/layout.test.ts`
 Expected: PASS, 29 tests: 5 in `labels.test.ts` and 24 in `layout.test.ts`. The strip's own tests are untouched apart from their imports, so it draws what it drew.
@@ -261,7 +261,7 @@ Then check that nothing else imported the moved names from `tab/`:
 Run: `grep -rn "stringLabels\|EMPTY_MESSAGE\|UNCLEAR_LABEL" web/src web/scripts`
 Expected: matches only in `labels.ts`, `labels.test.ts`, `tab/layout.ts` and `tab/layout.test.ts`. The last two import from `../labels`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add web/src/labels.ts web/src/labels.test.ts web/src/tab/layout.ts web/src/tab/layout.test.ts
@@ -295,7 +295,7 @@ The neck is laid out like this, in CSS pixels. Left to right: a 22 px gutter for
   - `interface Neck { frets; width; height; wireX: number[]; noteX: number[]; strings: NeckString[]; top; bottom; stringsFrom; labelX; inlayY; numberY; inlays: Inlay[] }`. `frets` is N. `wireX` and `noteX` are indexed by fret and have N + 1 entries each. `strings` is indexed by string, 0 the lowest. `top` and `bottom` are the fingerboard's edges, which the wires span.
   - `neckOf(song: Song, width: number): Neck`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/fretboard/neck.test.ts`:
 
@@ -430,12 +430,12 @@ describe("inlays", () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm --prefix web test -- src/fretboard/neck.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './neck'`.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 Create `web/src/fretboard/neck.ts`:
 
@@ -560,12 +560,12 @@ export function neckOf(song: Song, width: number): Neck {
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/fretboard/neck.test.ts`
 Expected: PASS, 14 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/fretboard/neck.ts web/src/fretboard/neck.test.ts
@@ -614,7 +614,7 @@ Two details go beyond the spec's wording. Both are listed under *Decisions the s
   - `litUntil(notes: readonly Note[]): Map<Note, number>`.
   - `layout(song: Song, cursors: Cursors, now: number, neck: Neck): Mark[]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/fretboard/layout.test.ts`:
 
@@ -907,12 +907,12 @@ describe("the other cases", () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm --prefix web test -- src/fretboard/layout.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './layout'`.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 Create `web/src/fretboard/layout.ts`:
 
@@ -1044,12 +1044,12 @@ function message(at: { x: number; y: number }, text: string, chord: boolean, opa
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/fretboard/layout.test.ts`
 Expected: PASS, 25 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/fretboard/layout.ts web/src/fretboard/layout.test.ts
@@ -1086,7 +1086,7 @@ This applies each frame's marks to an SVG layer without React. Each key keeps on
     - the message is `text.fret-message`, with the class `fret-chord` added when it shows a chord.
   - Every node has an `opacity` attribute.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/fretboard/marks.test.ts`:
 
@@ -1182,12 +1182,12 @@ describe("MarkLayer", () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm --prefix web test -- src/fretboard/marks.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './marks'`.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 Create `web/src/fretboard/marks.ts`:
 
@@ -1300,12 +1300,12 @@ function set(node: Element, name: string, value: string | number): void {
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/fretboard/marks.test.ts`
 Expected: PASS, 6 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/fretboard/marks.ts web/src/fretboard/marks.test.ts
@@ -1341,7 +1341,7 @@ The component measures a plain `<div>` that wraps the SVG, never the SVG itself.
   - `Player` renders `<Fretboard>` between `<Warnings>` and `<TabStrip>`.
   - The `--fret-*` custom properties, light and dark, and the `.fretboard` and `.fret-*` classes in `web/src/styles.css`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/fretboard/Fretboard.test.tsx`:
 
@@ -1504,12 +1504,12 @@ In `web/src/player/Player.test.tsx`, add this test after `makes the canvas's CSS
   });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm --prefix web test -- src/fretboard/Fretboard.test.tsx src/player/Player.test.tsx`
 Expected: FAIL. `tsc` reports `Cannot find module './Fretboard'`.
 
-- [ ] **Step 3: Write the component**
+- [x] **Step 3: Write the component**
 
 Create `web/src/fretboard/Fretboard.tsx`:
 
@@ -1615,7 +1615,7 @@ export function Fretboard({ song, engine }: { song: Song; engine: PlaybackEngine
 }
 ```
 
-- [ ] **Step 4: Mount it in the player**
+- [x] **Step 4: Mount it in the player**
 
 Replace `web/src/player/Player.tsx` with:
 
@@ -1663,12 +1663,12 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
 }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/fretboard/Fretboard.test.tsx src/player/Player.test.tsx`
 Expected: PASS, 23 tests: 6 in `Fretboard.test.tsx` and 17 in `Player.test.tsx`.
 
-- [ ] **Step 6: Give it colour**
+- [x] **Step 6: Give it colour**
 
 The SVG takes every colour, stroke and font from these classes. Dark mode therefore needs no code. Nothing reads a palette, as `TabStrip` must.
 
@@ -1803,7 +1803,7 @@ Then, after the `.tab-strip` rule and before `.controls {`, add:
 }
 ```
 
-- [ ] **Step 7: Run the whole web suite, the linter and the build**
+- [x] **Step 7: Run the whole web suite, the linter and the build**
 
 Run: `npm --prefix web test`
 Expected: PASS, 244 tests in 20 files.
@@ -1811,7 +1811,7 @@ Expected: PASS, 244 tests in 20 files.
 Run: `npm --prefix web run lint && npm --prefix web run build`
 Expected: no lint problems, and `✓ built`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add web/src/fretboard/Fretboard.tsx web/src/fretboard/Fretboard.test.tsx \
@@ -1840,7 +1840,7 @@ Some checks cannot be automated honestly. Whether the dots land with the audio, 
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Write the record to fill in**
+- [x] **Step 1: Write the record to fill in**
 
 Create `docs/specs/007-2d-fretboard/acceptance.md`:
 
@@ -1888,7 +1888,7 @@ The tab strip puts the highest string on top, and the fretboard the lowest.
 Reading the two together, was the reversed order confusing? …
 ```
 
-- [ ] **Step 2: Bring the services up for your human partner**
+- [x] **Step 2: Bring the services up for your human partner**
 
 ```bash
 make services && make migrate
@@ -1916,7 +1916,7 @@ When they are done:
 - **If the SVG stutters during playback,** stop and raise it with your human partner. The spec names the canvas painter as the fallback, but that is a design change, not a fix. Do not open the PR.
 - **If the two string orders confused them,** record it. The spec's *Consequences* names the follow-up, an orientation setting. It is not in this phase.
 
-- [ ] **Step 4: Verify everything**
+- [x] **Step 4: Verify everything**
 
 Run: `GUITARVIS_REQUIRE_SERVICES=1 make check`
 Expected: exit 0, with nothing skipped for want of services.
@@ -1930,7 +1930,7 @@ git commit -m "docs: 007's manual acceptance and plan checkboxes
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 5: Open the PR**
+- [x] **Step 5: Open the PR**
 
 Pushing and opening a PR are visible to others, so confirm with your human partner first. Then write the body to `tmp/pr-body.md` (`tmp/` is gitignored), from `.github/pull_request_template.md`:
 
