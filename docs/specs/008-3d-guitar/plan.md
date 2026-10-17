@@ -115,7 +115,7 @@ A note's loudness travels from transcription to the document. Nothing measures i
   - Generated TypeScript: `Note.loudness?: number | null`, with the description as its doc comment.
 - Not touched: eval's `LowestFretMapper`, which never carries loudness, because evaluation does not read it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `packages/core/tests/test_tabdoc.py`:
 
@@ -188,16 +188,16 @@ def test_a_transcription_cached_before_loudness_still_loads(tmp_path: Path) -> N
     assert inner.calls == 0
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/core/tests/test_tabdoc.py apps/worker/tests/test_fretboard_mapper.py apps/worker/tests/test_pipeline.py apps/worker/tests/test_caching.py`
 Expected: FAIL. `test_loudness_is_optional` fails with `AttributeError`, the round-trip with `extra_forbidden`, and the others with `TypeError: ... unexpected keyword argument 'loudness'`.
 
-- [ ] **Step 3: Add the fields, and copy them along**
+- [x] **Step 3: Add the fields, and copy them along**
 
 Add the three fields as the Interfaces block states. In the mapper's `TabNote(...)`, add `loudness=note.loudness`. In `run_pipeline`'s `Note(...)`, add `loudness=tab.loudness`.
 
-- [ ] **Step 4: Regenerate the contract artifacts**
+- [x] **Step 4: Regenerate the contract artifacts**
 
 Run: `make schema && git status --short schema web/src/types`
 Expected: `schema/tab-document.schema.json` and `web/src/types/tabDocument.ts` modified, and nothing else. `api.schema.json` does not embed the tab document. The new TypeScript reads:
@@ -209,12 +209,12 @@ Expected: `schema/tab-document.schema.json` and `web/src/types/tabDocument.ts` m
   loudness?: number | null;
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `uv run pytest packages apps/worker apps/eval && npm --prefix web test -- src/types`
 Expected: PASS. Evaluation's positional `TabNote(...)` and `NoteEvent(...)` calls are untouched and still pass, and so does the fixture contract test on both sides.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/core/src/guitarvis_core/tabdoc.py packages/core/src/guitarvis_core/contracts.py \
@@ -250,7 +250,7 @@ The worker measures each strum's level from the guitar stem, between transcripti
   - `measure_loudness(stem_path: Path, events: Sequence[NoteEvent]) -> list[NoteEvent]`. It returns the events in their given order, each a `dataclasses.replace` with `loudness` set and rounded to 3 places. With no events it returns `[]` without opening the file. When the stem cannot be measured it raises, with whatever `wave` and the file system raise (`EOFError`, `wave.Error`, `OSError`), or with `ValueError` for a sample width other than 16-bit or a reference level of 0.
 - From `apps/worker/tests/stem_fixture.py`: `write_stem(path: Path, plucks: Sequence[tuple[float, float, int]], *, seconds: float = 4.0, rate: int = 8000, channels: int = 2) -> Path`. It writes a 16-bit wav of silence plus square-wave plucks, each `(onset, length, amplitude)`. A square wave's RMS is its amplitude. Other tests import it as `from stem_fixture import write_stem`, as eval's tests import `guitarset_fixture`.
 
-- [ ] **Step 1: Write the fixture and the failing tests**
+- [x] **Step 1: Write the fixture and the failing tests**
 
 `write_stem` fills an `array.array("h")` of zeros, `int(seconds * rate) * channels` long. For each pluck, every frame from `int(onset * rate)` up to `min(int((onset + length) * rate), the frame count)` gets `+amplitude` on even frames and `-amplitude` on odd ones, in every channel. It writes the array with `wave` at sample width 2.
 
@@ -388,12 +388,12 @@ def test_an_unreadable_stem_costs_loudness_and_nothing_else(
     assert "loudness" in caplog.text
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest apps/worker/tests/test_loudness.py apps/worker/tests/test_pipeline.py`
 Expected: FAIL with `ModuleNotFoundError: No module named 'guitarvis_worker.loudness'`.
 
-- [ ] **Step 3: Write `measure_loudness` in `apps/worker/src/guitarvis_worker/loudness.py`**
+- [x] **Step 3: Write `measure_loudness` in `apps/worker/src/guitarvis_worker/loudness.py`**
 
 The module docstring says why loudness is measured here and is not confidence. Point it at spec 008's *Loudness*. The algorithm:
 
@@ -402,7 +402,7 @@ The module docstring says why loudness is measured here and is not confidence. P
 3. **Reference.** Take the nearest-rank 95th percentile of the group levels: `sorted(levels)[math.ceil(REFERENCE_PERCENTILE * len(levels)) - 1]`. Not `statistics.quantiles`, which on Python 3.12 refuses a single value. A reference of 0 raises `ValueError("the stem is silent under every note")`.
 4. **Loudness.** `min(1, max(0, (20 * log10(level / reference) - FLOOR_DB) / -FLOOR_DB))`, and 0.0 for a level of 0. Round to 3 places.
 
-- [ ] **Step 4: Call it from `run_pipeline`**
+- [x] **Step 4: Call it from `run_pipeline`**
 
 Import `logging` and `from guitarvis_worker.loudness import measure_loudness`, and add `log = logging.getLogger(__name__)` below the imports. After stage 2's `try/except/else`, and before stage 3:
 
@@ -425,7 +425,7 @@ if events:
 
 `transcribed_note_count=len(events)` is unchanged, since measuring neither adds nor drops a note.
 
-- [ ] **Step 5: Add the degradation row to both tables**
+- [x] **Step 5: Add the degradation row to both tables**
 
 In `.claude/skills/pipeline-stage/SKILL.md`'s *Degrade, do not fail* table and the parent spec's table (lines 313–320), after the *Fretboard mapper raises* row:
 
@@ -433,12 +433,12 @@ In `.claude/skills/pipeline-stage/SKILL.md`'s *Degrade, do not fail* table and t
 | Loudness cannot be measured from the stem | Every note's `loudness` is null, and strings swing at the default amplitude; the worker logs it, and the document carries no warning |
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `uv run pytest apps/worker && uv run ruff check apps/worker && uv run mypy apps/worker/src apps/worker/tests`
 Expected: PASS, and both linters clean. Every older pipeline test now logs a loudness warning, since `audio()` writes an empty file. They still pass, because none of them asserts on the log.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/worker/src/guitarvis_worker/loudness.py apps/worker/src/guitarvis_worker/pipeline.py \
@@ -474,7 +474,7 @@ The deciding half of 007's `fretboard/layout.ts` moves to `guitar/sounding.ts`, 
   - `interface Sounding { notes: SoundingNote[]; message: Message | null }`.
   - `sounding(song: Song, cursors: Cursors, now: number): Sounding`. `notes` holds at most one entry per string. A note on a string outside `song.tuning`, or with a negative fret, is skipped.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Port `web/src/fretboard/layout.test.ts` to `web/src/guitar/sounding.test.ts` one test for one, keeping every name and timing assertion. Drop `neckOf`, `DOT_R` and `WIDTH`. The `board(song)` helper becomes:
 
@@ -532,12 +532,12 @@ In `web/src/views.test.ts`, import `{ cursorsOf as soundingCursors, sounding } f
   });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/guitar/sounding.test.ts src/views.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './sounding'`.
 
-- [ ] **Step 3: Write `sounding.ts`**
+- [x] **Step 3: Write `sounding.ts`**
 
 Copy `MIN_LIT`, `Cursors`, `cursorsOf` and `litUntil` from `fretboard/layout.ts` verbatim. `sounding()` is `layout()`'s body with three changes:
 - the neck lookups become the skip rule: `note.string < 0 || note.string >= song.tuning.length || note.fret < 0`;
@@ -546,12 +546,12 @@ Copy `MIN_LIT`, `Cursors`, `cursorsOf` and `litUntil` from `fretboard/layout.ts`
 
 Keep `layout`'s comments on the window and on reading the passages back to the earliest onset. The module comment says this decides *what* sounds, and that what is coming is the tab strip's to show.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/guitar/sounding.test.ts src/views.test.ts`
 Expected: PASS. Ported one for one, that is 22 tests in `sounding.test.ts` and 4 in `views.test.ts`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/guitar/sounding.ts web/src/guitar/sounding.test.ts web/src/views.test.ts
@@ -594,7 +594,7 @@ The rules the signatures do not fix:
 - Inlays: for each `f` in `INLAY_FRETS` with f ≤ F, at `(noteX(f), 0, 0.05)`. Fret 12 gives two, at y = ±0.6 · spread.
 - `bounds`: `min = (boardEnd, −REACH, headToWorld({x: HEAD_LENGTH, y: 0, z: −HEAD_DEPTH}).z)` and `max = (headToWorld({x: HEAD_LENGTH, y: 0, z: 0}).x, REACH, stringZ(boardEnd) + LIFT)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `web/src/guitar/geometry.test.ts`. Its helpers follow `fretboard/neck.test.ts`: `note(fret)`, `doc(fields)`, and `songWith(frets: number[], tuning = STANDARD)`, which builds a song from those frets. `const g = geometryOf(songWith([0, 5]))`. The tests:
 
@@ -720,21 +720,21 @@ describe("bounds", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/guitar/geometry.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './geometry'`.
 
-- [ ] **Step 3: Write `geometryOf` by the rules above**
+- [x] **Step 3: Write `geometryOf` by the rules above**
 
 F is `Math.max(MIN_FRETS, ...song.notes.map((n) => n.fret))`, ignoring negative frets. `labels` is `stringLabels(song.tuning)`. The module comment says: dimensions in mm, axes as in the spec's *The model*, and [spike.html](spike.html) as the reference for every number.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/guitar/geometry.test.ts`
 Expected: PASS, 15 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/guitar/geometry.ts web/src/guitar/geometry.test.ts
@@ -769,7 +769,7 @@ The vibration as pure functions of the note and song time.
   - `swing(note: Plucked, t: number): number`, which is `sin(2π · frequency(midi) · (t − onset))`.
   - `displacement(note: Plucked, t: number, u: number): number`, which is `envelope · profile(u) · swing`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 import { describe, expect, it } from "vitest";
@@ -834,21 +834,21 @@ describe("loudness and pitch", () => {
 
 `toEqual` on `amplitude(0.5)` relies on 0.6 + 0.5 × 2.6 being exactly 1.9 in floating point. If it is not, use `toBeCloseTo` for that one value.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/guitar/vibration.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './vibration'`.
 
-- [ ] **Step 3: Write the module by the Interfaces block**
+- [x] **Step 3: Write the module by the Interfaces block**
 
 The module comment says the motion is drawn slowed down, because a real string moves too fast to see. It also says time is song time, so a pause freezes the string.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/guitar/vibration.test.ts`
 Expected: PASS, 8 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/guitar/vibration.ts web/src/guitar/vibration.test.ts
@@ -881,7 +881,7 @@ The scene graph, built from a `Geometry`. It is ported from the spike, and it ru
   - `buildModel(g: Geometry, paintText: TextPainter): Model`.
   - Object names, which the tests use: `board`, `neck`, `nut`, `wire`, `inlay`, `headstock` (a Group), `tuner` (a Group per string), `string` (the tube), `string-blur`, `string-head`, `label`, and `fret-number`.
 
-- [ ] **Step 1: Add three**
+- [x] **Step 1: Add three**
 
 ```bash
 npm --prefix web install three@^0.186.1
@@ -890,7 +890,7 @@ npm --prefix web install --save-dev @types/three@^0.186.0
 
 Check: `git diff web/package.json` shows `three` under `dependencies` and `@types/three` under `devDependencies`, and nothing else.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```typescript
 import { BufferGeometry, Material, Mesh, Texture } from "three";
@@ -964,12 +964,12 @@ it("disposes every geometry and material it made", () => {
 
 `songWith` and `STANDARD` are as in `geometry.test.ts`. Copy them in, since a test file does not import another.
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/guitar/model.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './model'`.
 
-- [ ] **Step 4: Port the spike into `buildModel`**
+- [x] **Step 4: Port the spike into `buildModel`**
 
 Port [spike.html](spike.html) lines 88–243 (the lights, materials, board, neck back, frets, nut, inlays, headstock and tuners, and strings), with these substitutions:
 
@@ -992,12 +992,12 @@ Then add what the spike lacks:
 - **Text materials:** `MeshBasicMaterial({ map, transparent: true, depthWrite: false })`.
 - **`dispose()`** traverses `root` and disposes every mesh's geometry and material, plus every texture `paintText` returned.
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/guitar/model.test.ts && npm --prefix web run lint`
 Expected: PASS, 6 tests, and lint clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add web/package.json web/package-lock.json web/src/guitar/model.ts web/src/guitar/model.test.ts
@@ -1034,7 +1034,7 @@ Home poses, double-click focus, the pan clamp and the easing, as pure functions.
   - `easeInOut(k: number): number`, the spike's: `k < 0.5 ? 2k² : 1 − (−2k + 2)² / 2`.
   - `between(a: Pose, b: Pose, k: number): Pose`, linear in both points.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 import { PerspectiveCamera, Vector3 } from "three";
@@ -1114,19 +1114,19 @@ it("eases in and out, from one pose to the other", () => {
 
 three's `subVectors` and `copy` take a `Vector3Like`, so the plain `Vec3` objects need no cast.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/guitar/camera.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './camera'`.
 
-- [ ] **Step 3: Write the module by the Interfaces block**
+- [x] **Step 3: Write the module by the Interfaces block**
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/guitar/camera.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/guitar/camera.ts web/src/guitar/camera.test.ts
@@ -1164,7 +1164,7 @@ The keyed updater. Each frame's sounding notes become dot and ring meshes, one p
   - `repaint()` disposes the cached textures, clears the cache, and gives each live mesh a fresh map.
   - `dispose()` removes every mesh and disposes the materials, the textures and the shared plane.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 const g = geometryOf(buildSong(doc()));
@@ -1250,21 +1250,21 @@ it("paints each name once, and again on repaint", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/guitar/notes.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './notes'`.
 
-- [ ] **Step 3: Write `NoteLayer` by the Interfaces block**
+- [x] **Step 3: Write `NoteLayer` by the Interfaces block**
 
 Its comment says this is 007's `MarkLayer` for three.js: a key is stable across frames, so its mesh is made once, updated while the key lasts, and removed when it is gone. Every onset has its own key, which is what makes each pluck pulse.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test -- src/guitar/notes.test.ts`
 Expected: PASS, 8 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/guitar/notes.ts web/src/guitar/notes.test.ts
@@ -1395,7 +1395,7 @@ The renderer, the frame loop and the chrome, not yet mounted. `fretboard/` is st
 - `.guitar-unavailable`: absolute, inset 0, centred, `margin: 0; padding: 16px; color: var(--muted); text-align: center`.
 - The comment at the top of `styles.css` gains: "the guitar's three.js scene reads the --guitar-* ones."
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `web/src/guitar/Guitar.test.tsx`:
 
@@ -1485,19 +1485,19 @@ it("stops drawing once disposed", () => {
 
 `setUp` returns `{ stage, own, engine, renderer, tick(ms), at(t) }`. The engine has its own `FakeFrames`, separate from the stage's `own`.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/guitar/Guitar.test.tsx src/guitar/stage.test.ts`
 Expected: FAIL. `tsc` reports `Cannot find module './Guitar'` and `'./stage'`.
 
-- [ ] **Step 3: Write `textures.ts`, `stage.ts`, `Guitar.tsx` and the styles, as described above**
+- [x] **Step 3: Write `textures.ts`, `stage.ts`, `Guitar.tsx` and the styles, as described above**
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm --prefix web test && npm --prefix web run lint`
 Expected: PASS: all of `web/`'s tests, including 10 in `Guitar.test.tsx` and 4 in `stage.test.ts`, and lint clean. jsdom may print "Not implemented: HTMLCanvasElement's getContext()" for canvases the stub misses. That is noise, not a failure.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/guitar/textures.ts web/src/guitar/stage.ts web/src/guitar/stage.test.ts \
@@ -1528,7 +1528,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes: `Guitar` (Task 9).
 - Produces: nothing new. `web/src/fretboard/` no longer exists.
 
-- [ ] **Step 1: Update the tests**
+- [x] **Step 1: Update the tests**
 
 In `web/src/player/Player.test.tsx`, replace `shows the fretboard above the tab strip` with:
 
@@ -1557,12 +1557,12 @@ In `web/src/views.test.ts`:
 - rename the imports `soundingCursors` → `cursorsOf`;
 - reword the header: "The tab strip and the guitar each read the hidden passages for their own window, by the same rule written twice."
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/player/Player.test.tsx`
 Expected: FAIL. `findByRole("img", { name: "Guitar" })` times out, because the player still shows the fretboard.
 
-- [ ] **Step 3: Mount the guitar lazily, and delete the fretboard**
+- [x] **Step 3: Mount the guitar lazily, and delete the fretboard**
 
 In `Player.tsx`:
 
@@ -1600,7 +1600,7 @@ In `web/vite.config.ts`:
   },
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `npm --prefix web test && npm --prefix web run lint`
 Expected: PASS, lint clean.
@@ -1614,7 +1614,7 @@ Expected: no warning. `dist/assets/` holds a `Guitar-*.js` of about 590 kB (abou
 Run: `make services && make check`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A web/src/fretboard web/src/player/Player.tsx web/src/player/Player.test.tsx web/src/views.test.ts \
@@ -1638,7 +1638,7 @@ Close the parent spec's open decision 8, point the docs at the guitar, and commi
 - Create: `docs/decisions/0009-procedural-guitar-model.md`, `docs/specs/008-3d-guitar/acceptance.md`
 - Modify: `docs/decisions/README.md`, `docs/specs/001-guitarvis-design/spec.md` (lines 268–272 and 407–409), `docs/CONVENTIONS.md`, `CLAUDE.md`
 
-- [ ] **Step 1: Write ADR 0009 from `docs/decisions/template.md`**
+- [x] **Step 1: Write ADR 0009 from `docs/decisions/template.md`**
 
 - Title: "0009. The guitar is built in code, not loaded from a model file".
 - Status: "Accepted". Date: the commit date. Spec: `[008-3d-guitar](../specs/008-3d-guitar/spec.md#the-model)`.
@@ -1646,7 +1646,7 @@ Close the parent spec's open decision 8, point the docs at the guitar, and commi
 - **Decision:** a procedural neck and headstock, built with plain three.js from `guitar/geometry.ts`, after spike.html.
 - **Consequences:** every dimension is a tested constant, and any song's fret range fits. No asset pipeline or licence. The body, bridge and sound hole are not drawn. A sourced model would need the geometry module's positions mapped onto it, which is the work to revisit.
 
-- [ ] **Step 2: Update the indexes and the parent spec**
+- [x] **Step 2: Update the indexes and the parent spec**
 
 - `docs/decisions/README.md`: add 0009's row to *Accepted*, and delete the "3D guitar asset: procedural or sourced glTF" row from *Still open*.
 - Parent spec, under *Rendering*:
@@ -1658,7 +1658,7 @@ Close the parent spec's open decision 8, point the docs at the guitar, and commi
   - move "← **next**" from phase 5 to phase 6;
   - under *Things that will bite you*, add: "The guitar's tests run without WebGL. Pure modules in `web/src/guitar/` run on `node`, three.js included. `Guitar` and `Stage` take a fake renderer under jsdom."
 
-- [ ] **Step 3: Write `docs/specs/008-3d-guitar/acceptance.md`**
+- [x] **Step 3: Write `docs/specs/008-3d-guitar/acceptance.md`**
 
 Use 007's `acceptance.md` layout: a **Spec:** link to the spec's *Manual acceptance*, a sentence on what it is for, and *Setup* (commit; machine, OS and browser; songs, with title, length and the frets they reach). Then one checkbox per item in the spec's *Manual acceptance*, under its own headings: *End to end*, *The views*, *Readability*, *Frame rate*, *Dark mode, reduced motion, resizing, WebGL off*, and *The string orders*. Each section ends with "Notes: …". Add three free-text lines:
 - "Readable without zoom down to a panel width of: … px"
@@ -1667,12 +1667,12 @@ Use 007's `acceptance.md` layout: a **Spec:** link to the spec's *Manual accepta
 
 State at the top: "Filled in before the PR is merged. 007's record was committed blank and merged without the run."
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `grep -n "react-three-fiber" docs/specs/001-guitarvis-design/spec.md docs/CONVENTIONS.md CLAUDE.md`
 Expected: only the parent spec's line that now says "not react-three-fiber".
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/decisions docs/specs/001-guitarvis-design/spec.md docs/CONVENTIONS.md CLAUDE.md \
