@@ -88,7 +88,7 @@ function setUp({ view }: { view: View }) {
   };
   /** The 2D home pose at the box's aspect `width / height`. */
   const home2d = (width: number, height: number) => homePose("2d", geometryOf(song), width / height);
-  return { stage, canvas, own, engine, media, renderer, tick, at, resize, home2d };
+  return { stage, canvas, overlay, own, engine, engineFrames, media, renderer, tick, at, resize, home2d };
 }
 
 /** The stage's camera and controls, which only a test reaches into. */
@@ -229,6 +229,55 @@ describe("Stage", () => {
     const before = renderer.render.mock.calls.length;
     tick(16);
     expect(renderer.render.mock.calls.length).toBe(before + 1);
+    stage.dispose();
+  });
+
+  it("draws once a frame when a seek lands during a camera move, in either order", () => {
+    const { stage, overlay, own, engine, engineFrames, renderer, tick } = setUp({ view: "3d" });
+    const renders = () => renderer.render.mock.calls.length;
+    engineFrames.flush(); // at 0, with no message
+    stage.setView("2d");
+    tick(16);
+    expect(own.pending).toBe(1); // the camera is still moving
+    expect(overlay.hidden).toBe(true);
+
+    // In one browser frame, the stage's own frame runs first, then the engine's.
+    engine.seek(7); // in a hidden passage, where the overlay shows the chord
+    let before = renders();
+    tick(16);
+    engineFrames.flush();
+    expect(renders() - before).toBe(1);
+    tick(16); // the next own frame draws at 7
+    expect(overlay.hidden).toBe(false);
+
+    // The engine's frame runs first, then the stage's own, which draws at 1.
+    engine.seek(1);
+    before = renders();
+    engineFrames.flush();
+    tick(16);
+    expect(renders() - before).toBe(1);
+    expect(overlay.hidden).toBe(true);
+    stage.dispose();
+  });
+
+  it("hands its frames to the engine's when the song starts during a camera move", () => {
+    const { stage, own, engine, engineFrames, media, renderer, tick } = setUp({ view: "3d" });
+    const renders = () => renderer.render.mock.calls.length;
+    media.loadMetadata();
+    engineFrames.flush();
+    stage.setView("2d");
+    expect(own.pending).toBe(1);
+
+    engine.play();
+    const before = renders();
+    engineFrames.flush(); // the engine's first frame, with the stage's own still pending
+    tick(16);
+    expect(renders() - before).toBe(1);
+    expect(own.pending).toBe(0);
+
+    engineFrames.flush();
+    expect(renders() - before).toBe(2);
+    expect(own.pending).toBe(0);
     stage.dispose();
   });
 

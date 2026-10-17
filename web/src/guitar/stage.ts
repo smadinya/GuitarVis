@@ -6,8 +6,10 @@
  * emits frames while the song plays. While paused, or while an audio source
  * loads even with Play pressed, it emits one after each change. The camera and
  * a dot's pulse need frames of their own then, so the stage requests them
- * itself, at the engine's last time, and stops once nothing moves. It never
- * calls `engine.redraw()`, which would make every view redraw.
+ * itself, at the engine's last time, and stops once nothing moves. While one
+ * is pending, an engine frame leaves the drawing to it, so the guitar draws
+ * once a frame. It never calls `engine.redraw()`, which would make every view
+ * redraw.
  *
  * The two views share one camera and one `OrbitControls`; the view sets what
  * the controls may do. In 2D the stage also clears the modifiers from a mouse
@@ -268,8 +270,11 @@ export class Stage {
       this.controls.removeEventListener("end", onEnd);
     });
 
+    // The stage's own frame, if pending, draws at this `t`. Either may run
+    // first in the browser's frame, so cancelling it here would not do.
     this.stop = this.engine.onFrame((t) => {
       this.t = t;
+      if (this.frame !== null) return;
       if (this.draw(t)) this.wake();
     });
   }

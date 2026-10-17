@@ -47,11 +47,17 @@ function mount(
 ) {
   const song = buildSong(doc);
   const { engine, frames } = engineFor(song);
+  // The Stage's own frames are the browser's animation frames: these.
+  const own = new FakeFrames();
+  vi.stubGlobal("requestAnimationFrame", own.request);
+  vi.stubGlobal("cancelAnimationFrame", own.cancel);
   const view = render(<Guitar song={song} engine={engine} createRenderer={createRenderer} />);
-  /** Move the song to `t` and run the frame that draws it. */
+  /** Move the song to `t` and run the frames that draw it: the engine's, then
+   * the Stage's own, which draws at `t` when one was pending. */
   const at = (t: number) => {
     engine.seek(t);
     frames.flush();
+    own.flush();
   };
   return { engine, renderer, view, at };
 }
@@ -68,6 +74,7 @@ describe("Guitar", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     localStorage.clear();
   });
 

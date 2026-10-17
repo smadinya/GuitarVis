@@ -104,7 +104,7 @@ order.
 **Files:** `web/src/playback/engine.ts`, its tests, `web/src/guitar/stage.ts`,
 `web/src/guitar/stage.test.ts`.
 
-- [ ] **#13.** Engine test: the new check is false while paused, false while
+- [x] **#13.** Engine test: the new check is false while paused, false while
   playing with a source loading, and true once `loadedmetadata` fires with a
   resume. Stage tests: move "leaves the drawing to the engine's frames while
   the song plays" past `media.loadMetadata()`, and add one in which Play
@@ -112,13 +112,13 @@ order.
   frames. Code: the engine's check is true exactly when `runFrame` would ask
   for the next frame (`playing`, no `pending`, not disposed). `wake()` returns
   early on that, not on `playing`. Commit: `Fixes #13.`
-- [ ] **#15.** Test: paused, a camera move under way (own frames running),
+- [x] **#15.** Test: paused, a camera move under way (own frames running),
   seek with `at(t)`, flush both queues in each order, and expect one render
   per flush pair, with the new `t` drawn by the next own frame. Code: the
   engine's listener sets `this.t`. When `this.frame !== null` it returns, and
   the pending frame draws `t`. Otherwise it draws as now.
   Commit: `Fixes #15.`
-- [ ] `npm run test`, `npm run typecheck` and `npm run lint` pass in `web/`.
+- [x] `npm run test`, `npm run typecheck` and `npm run lint` pass in `web/`.
 
 ## Task 4: Failures and lifecycle (#16, #17, #18, #19, #12)
 
