@@ -45,7 +45,7 @@ import {
   type Pose,
   type View,
 } from "./camera";
-import { geometryOf, type Geometry } from "./geometry";
+import { geometryOf, type Geometry, type Vec3 } from "./geometry";
 import { buildModel, type Model } from "./model";
 import { NoteLayer } from "./notes";
 import { cursorsOf, sounding, type Cursors, type Message } from "./sounding";
@@ -82,6 +82,8 @@ interface Tween {
 /** Past this many device pixels per CSS pixel, the cost outruns the gain. */
 const MAX_PIXEL_RATIO = 2;
 const DAMPING = 0.08;
+/** OrbitControls' own test for a move: a squared distance, in mm². */
+const EPS = 1e-6;
 const DARK = "(prefers-color-scheme: dark)";
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
@@ -130,6 +132,12 @@ function stopMomentum(controls: OrbitControls): void {
   owed._performCursorZoom = false;
 }
 
+/** Whether the camera is somewhere else in `b` than in `a`, beyond rounding. */
+function apart(a: Pose, b: Pose): boolean {
+  const far = (p: Vec3, q: Vec3) => (p.x - q.x) ** 2 + (p.y - q.y) ** 2 + (p.z - q.z) ** 2 > EPS;
+  return far(a.position, b.position) || far(a.target, b.target);
+}
+
 export class Stage {
   private readonly canvas: HTMLCanvasElement;
   private readonly overlay: HTMLElement;
@@ -159,6 +167,8 @@ export class Stage {
   private still = false;
   /** Whether the user has moved the camera since it was last sent home. */
   private touched = false;
+  /** Where the camera was as the user's gesture began, or null between gestures. */
+  private gesture: Pose | null = null;
   private tween: Tween | null = null;
   /** The engine's last song time, which the stage's own frames draw at. */
   private t: number;
@@ -229,17 +239,30 @@ export class Stage {
       this.wake();
     });
 
+    // OrbitControls sends `start` on any press or wheel, moving or not, so a
+    // gesture touches the camera only once the camera leaves where the gesture
+    // began. A `change` alone is not enough. One comes while damping runs on
+    // after a release, and one when update() catches up with a pose the stage
+    // placed, which a click's own frames can bring.
     const onStart = () => {
-      this.touched = true;
+      this.gesture = this.pose();
       this.tween = null;
       this.wake();
     };
-    const onChange = () => this.wake();
+    const onChange = () => {
+      if (this.gesture !== null && apart(this.gesture, this.pose())) this.touched = true;
+      this.wake();
+    };
+    const onEnd = () => {
+      this.gesture = null;
+    };
     this.controls.addEventListener("start", onStart);
     this.controls.addEventListener("change", onChange);
+    this.controls.addEventListener("end", onEnd);
     this.unlisten.push(() => {
       this.controls.removeEventListener("start", onStart);
       this.controls.removeEventListener("change", onChange);
+      this.controls.removeEventListener("end", onEnd);
     });
 
     this.stop = this.engine.onFrame((t) => {
@@ -357,6 +380,8 @@ export class Stage {
     this.camera.position.set(position.x, position.y, position.z);
     this.controls.target.set(target.x, target.y, target.z);
     this.camera.lookAt(this.controls.target);
+    // The stage's move is not the user's, even during a gesture.
+    if (this.gesture !== null) this.gesture = this.pose();
   }
 
   private applyView(): void {
