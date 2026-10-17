@@ -17,6 +17,16 @@ describe("the shape along the string", () => {
     const middle = Math.abs(displacement(plucked(), 1.03, 0.5));
     for (let u = 0; u <= 1; u += 0.05) expect(Math.abs(displacement(plucked(), 1.03, u))).toBeLessThanOrEqual(middle);
   });
+
+  it("is the note's envelope at the peak of its wobble, mid-string", () => {
+    const t = 1 + 1 / 28;
+    expect(displacement(plucked(), t, 0.5)).toBeCloseTo(envelope(plucked(), t), 9);
+  });
+
+  it("is the product of the envelope, the shape along the string and the swing", () => {
+    const t = 1.2;
+    expect(displacement(plucked(), t, 0.25)).toBeCloseTo(envelope(plucked(), t) * Math.sin(Math.PI / 4) * swing(plucked(), t), 9);
+  });
 });
 
 describe("over time", () => {
@@ -37,6 +47,14 @@ describe("over time", () => {
 
   it("starts each pluck from rest", () => {
     expect(swing(plucked({ onset: 2.25 }), 2.25)).toBe(0);
+  });
+
+  it("wobbles at 7 Hz: a quarter period in, the swing is at its peak", () => {
+    expect(swing(plucked(), 1 + 1 / 28)).toBeCloseTo(1, 9);
+  });
+
+  it("returns to rest after a half period, at 7 Hz", () => {
+    expect(swing(plucked(), 1 + 1 / 14)).toBeCloseTo(0, 9);
   });
 });
 
