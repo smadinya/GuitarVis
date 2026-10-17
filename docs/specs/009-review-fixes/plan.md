@@ -167,6 +167,8 @@ tests. Docs: 008's `spec.md` *Rendering*, "No WebGL", and the message in
 
 ## Task 5: Finish
 
-- [ ] `make services`, then `make check`.
-- [ ] Tick this plan's boxes. Open the PR with the template. Its body closes
+- [x] `make services`, then `make check`. `make check` passes. Docker was not
+  reachable from the dev machine at the end, so the 72 integration tests
+  skipped locally. CI runs them with `GUITARVIS_REQUIRE_SERVICES=1`.
+- [x] Tick this plan's boxes. Open the PR with the template. Its body closes
   each issue (`Fixes #7`, …).
