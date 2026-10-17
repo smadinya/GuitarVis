@@ -13,7 +13,18 @@
  * the controls may do. Every number about where the camera goes is in
  * camera.ts.
  */
-import { Color, MOUSE, PerspectiveCamera, Raycaster, Scene, TOUCH, Vector2, type WebGLRenderer } from "three";
+import {
+  Color,
+  MOUSE,
+  PerspectiveCamera,
+  Raycaster,
+  Scene,
+  type Spherical,
+  TOUCH,
+  Vector2,
+  type Vector3,
+  type WebGLRenderer,
+} from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 import type { PlaybackEngine } from "../playback/engine";
@@ -90,6 +101,34 @@ const CONTROLS: Record<
     touch: { ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN },
   },
 };
+
+/**
+ * Drop the motion the controls still owe from a drag. OrbitControls keeps a
+ * drag's momentum in private fields and spends it only in update(), which
+ * the stage does not call while a tween runs: without this, the momentum
+ * would be spent once the camera arrives, tilting 2D and sliding a reset or a
+ * double-click off its pose.
+ *
+ * OrbitControls has no public way to do this. These are the fields update()
+ * carries from one call to the next in three 0.186.1
+ * (examples/jsm/controls/OrbitControls.js): the rotation and pan still owed,
+ * and a zoom not yet applied (which update() already resets as it ends:
+ * cleared here too, in case a gesture left one between calls). Recheck them
+ * on a three upgrade. The momentum tests in stage.test.ts fail if the
+ * rotation's or the pan's field moves.
+ */
+function stopMomentum(controls: OrbitControls): void {
+  const owed = controls as unknown as {
+    _sphericalDelta: Spherical;
+    _panOffset: Vector3;
+    _scale: number;
+    _performCursorZoom: boolean;
+  };
+  owed._sphericalDelta.set(0, 0, 0);
+  owed._panOffset.set(0, 0, 0);
+  owed._scale = 1;
+  owed._performCursorZoom = false;
+}
 
 export class Stage {
   private readonly canvas: HTMLCanvasElement;
@@ -296,6 +335,7 @@ export class Stage {
 
   /** Animate to `pose`: over TRANSITION_MS, or at once under reduced motion. */
   private goTo(pose: Pose): void {
+    stopMomentum(this.controls);
     this.tween = { from: this.pose(), to: pose, start: this.now() };
     this.wake();
   }

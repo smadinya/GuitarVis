@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { type PerspectiveCamera, Vector3 } from "three";
+import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PlaybackEngine } from "../playback/engine";
@@ -7,7 +9,7 @@ import { FakeFrames, FakeMedia } from "../test/fakeMedia";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
 import { JOB_ID } from "../test/jobs";
 import type { TabDocument } from "../types/tabDocument";
-import type { View } from "./camera";
+import { HOME_3D, type View } from "./camera";
 import { Stage } from "./stage";
 
 const FIRST_SONG: TabDocument = firstSongJson;
@@ -62,7 +64,12 @@ function setUp({ view }: { view: View }) {
     engine.seek(t);
     engineFrames.flush();
   };
-  return { stage, own, engine, renderer, tick, at };
+  return { stage, canvas, own, engine, renderer, tick, at };
+}
+
+/** The stage's camera and controls, which only a test reaches into. */
+function insides(stage: Stage) {
+  return stage as unknown as { camera: PerspectiveCamera; controls: OrbitControls };
 }
 
 describe("Stage", () => {
@@ -112,6 +119,44 @@ describe("Stage", () => {
     stage.setView("2d");
     tick(16);
 
+    expect(own.pending).toBe(0);
+    stage.dispose();
+  });
+
+  it("drops a drag's leftover momentum before moving, so 2D arrives level and stays", () => {
+    const { stage, own, tick, at } = setUp({ view: "3d" });
+    const { controls, camera } = insides(stage);
+
+    controls.rotateLeft(0.05); // a drag in 3D, released with momentum left
+    stage.setView("2d");
+    for (let i = 0; i < 8; i++) tick(100);
+    at(1);
+    for (let i = 0; i < 20; i++) tick(16);
+
+    const looking = camera.getWorldDirection(new Vector3());
+    expect(looking.x).toBeCloseTo(0, 6);
+    expect(looking.y).toBeCloseTo(0, 6);
+    expect(looking.z).toBeCloseTo(-1, 6);
+    expect(own.pending).toBe(0);
+    stage.dispose();
+  });
+
+  it("lands a reset after a pan on the home pose, and does not drift off it", () => {
+    const { stage, canvas, own, tick, at } = setUp({ view: "3d" });
+    const { controls, camera } = insides(stage);
+    // OrbitControls scales a pan by the element's height, which jsdom gives as 0.
+    Object.defineProperty(canvas, "clientHeight", { configurable: true, value: 300 });
+
+    controls.pan(60, 0); // a pan, released with momentum left
+    stage.resetView();
+    for (let i = 0; i < 8; i++) tick(100);
+    at(1);
+    for (let i = 0; i < 20; i++) tick(16);
+
+    for (const axis of ["x", "y", "z"] as const) {
+      expect(controls.target[axis]).toBeCloseTo(HOME_3D.target[axis], 3);
+      expect(camera.position[axis]).toBeCloseTo(HOME_3D.position[axis], 3);
+    }
     expect(own.pending).toBe(0);
     stage.dispose();
   });
