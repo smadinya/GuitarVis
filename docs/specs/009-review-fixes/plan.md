@@ -41,30 +41,30 @@ Docs: 008's `spec.md` (*Shape of the change*, *Loudness*, *Testing*), the
 pipeline-stage skill and 001's degradation table if their wording names the
 order.
 
-- [ ] **#7, test.** In `test_loudness.py`, onsets 1.00, 1.04 and 1.08 give two
+- [x] **#7, test.** In `test_loudness.py`, onsets 1.00, 1.04 and 1.08 give two
   groups: {1.00, 1.04} and {1.08}. Run it and watch it fail (one group today).
-- [ ] **#7, code.** `_strums` compares each onset with its group's first
+- [x] **#7, code.** `_strums` compares each onset with its group's first
   onset. Move the 50 ms window into `guitarvis_core`, and import it in
   `stages/fretboard.py` (in place of `VOICING_WINDOW_SEC`'s definition) and in
   `loudness.py` (in place of `STRUM_WINDOW_SEC`). Fix the docstrings that
   describe chaining.
-- [ ] **#7, spec.** Amend 008's *Loudness*, "Strums", with a line
+- [x] **#7, spec.** Amend 008's *Loudness*, "Strums", with a line
   "Amended by [009](../009-review-fixes/spec.md)". Commit: `Fixes #7.`
-- [ ] **#9, test.** In the pipeline tests: a mapper that builds `TabNote`s
+- [x] **#9, test.** In the pipeline tests: a mapper that builds `TabNote`s
   without loudness, as eval's `LowestFretMapper` does, still yields notes with
   loudness in the document. Run it and watch it fail.
-- [ ] **#9, code.** `measure_loudness` takes and returns `TabNote`s.
+- [x] **#9, code.** `measure_loudness` takes and returns `TabNote`s.
   `run_pipeline` calls it after stage 4, on the mapper's notes, inside the same
   degrade-and-log `try`. `NoteEvent` loses `loudness`. The mapper stops
   copying it. `CachedTranscriber`'s loader drops a `loudness` key from old
   entries, with a test that loads one. Check that the fretboard stage is not
   cached, and that `CACHE_VERSION` therefore stays.
-- [ ] **#9, docs.** Update `loudness.py`'s module docstring and
+- [x] **#9, docs.** Update `loudness.py`'s module docstring and
   `contracts.py`'s docstrings. Amend 008's *Shape of the change*, *Loudness*
   ("Where", "Contract") and *Testing* ("the mapper copies loudness"). Update
   the pipeline-stage skill if it says loudness runs before the mapper.
   Commit: `Fixes #9.`
-- [ ] `uv run pytest`, ruff and mypy pass.
+- [x] `uv run pytest`, ruff and mypy pass.
 
 ## Task 2: The camera (#10, #14, #11, #20)
 

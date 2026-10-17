@@ -108,12 +108,10 @@ Calls made in writing this spec, open to change:
 
 ```
 packages/core/…/tabdoc.py     Note gains loudness: float | None
-packages/core/…/contracts.py  NoteEvent and TabNote gain loudness: float | None
+packages/core/…/contracts.py  TabNote gains loudness: float | None
 apps/worker/…/loudness.py     measures loudness from the stem (new, not a stage)
-apps/worker/…/pipeline.py     runs it after transcription; copies TabNote's
-                              loudness to Note
-apps/worker/…/stages/fretboard.py  the mapper copies NoteEvent's loudness to
-                              TabNote
+apps/worker/…/pipeline.py     runs it after the fretboard mapper, on its
+                              TabNotes; copies TabNote's loudness to Note
 schema/, web/src/types/       regenerated
 
 web/src/
@@ -135,6 +133,10 @@ web/src/
   player/Player.test.tsx  finds the panel by its new name, "Guitar"
   styles.css      --guitar-* tokens replace --fret-*
 ```
+
+`NoteEvent` gains no loudness, and the mapper copies none, so
+`stages/fretboard.py` is not in this change. Amended by
+[009](../009-review-fixes/spec.md).
 
 This is 006's and 007's split again. Everything worth testing sits in pure
 modules that run on `node`, and the component owns only the renderer and the
@@ -337,12 +339,15 @@ later recalibration of confidence would change how strings swing.
 
 So the worker measures loudness directly from the guitar stem:
 
-- **Where.** In `run_pipeline`, after transcription and before the
-  fretboard mapper, by a helper module in the worker that reads the stem. It
-  is not a stage and not part of `Transcriber`. Any transcriber, including a
-  future guitar-specific one, gets loudness for free, and the transcription
-  stage's cached output does not change. That is why `CACHE_VERSION` stays
-  put.
+- **Where.** In `run_pipeline`, after the fretboard mapper, by a helper
+  module in the worker that reads the stem. It measures from the mapper's
+  `TabNote`s, which keep their onsets. It is not a stage, and not part of
+  `Transcriber` or `FretboardMapper`. Any transcriber, including a future
+  guitar-specific one, gets loudness for free. So does any mapper, with
+  nothing to copy. Notes the mapper drops are in no strum, which is right:
+  they are not in the document. The transcription stage's cached output does
+  not change, and the fretboard stage is not cached. That is why
+  `CACHE_VERSION` stays put. Amended by [009](../009-review-fixes/spec.md).
 - **Strums.** Notes are grouped first: a note whose onset is within 50 ms of
   the group's first onset joins that group. So a group spans at most 50 ms,
   as the mapper's voicings do. The window is one constant,
@@ -357,10 +362,11 @@ So the worker measures loudness directly from the guitar stem:
   0…1 and clipped.
 - **How.** Stdlib only, like `measure_rms` in `separation.py`, so it runs in
   CI without the ml extra.
-- **Contract.** `NoteEvent` and `TabNote` gain
-  `loudness: float | None = None`. Old cache entries, which lack it, still
-  load. The mapper copies it from `NoteEvent` to `TabNote`, and
-  `run_pipeline` copies it from `TabNote` to `Note`.
+- **Contract.** `TabNote` gains `loudness: float | None = None`. A mapper
+  leaves it unset. `run_pipeline` sets it, then copies it from `TabNote` to
+  `Note`. `NoteEvent` has no loudness. Cached transcriptions written under
+  008 carry `"loudness": null`, and the cache loader drops that key, so they
+  still load. Amended by [009](../009-review-fixes/spec.md).
 - **Document.** `Note` gains `loudness: float | None`, in `[0, 1]`,
   described as "How loud the note is, relative to the song's loud notes. Not
   confidence." It is optional and additive, so `SCHEMA_VERSION` stays 1. Run
@@ -486,8 +492,9 @@ jsdom has no WebGL.
     correctly;
   - the notes of one strum share one level;
   - an unreadable stem gives `None` for every note, and the job completes;
-  - the mapper copies loudness from `NoteEvent` to `TabNote`;
-  - `run_pipeline` copies it from `TabNote` to `Note`.
+  - `run_pipeline` copies loudness from `TabNote` to `Note`;
+  - a mapper that sets no loudness still yields loudness in the document.
+    Amended by [009](../009-review-fixes/spec.md).
 - **Fixtures:** `first-song.tabdoc.json` is unchanged and omits `loudness`.
   `minimal.tabdoc.json` carries an explicit `"loudness": null` on both notes,
   because its lossless round-trip test requires every emitted key, as it does

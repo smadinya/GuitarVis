@@ -152,11 +152,7 @@ class CachedTranscriber:
         self._keys = keys
 
     def transcribe(self, stem_path: Path) -> list[NoteEvent]:
-        cached = _load(
-            self._blobs,
-            self._keys.transcription,
-            lambda items: [NoteEvent(**item) for item in items],
-        )
+        cached = _load(self._blobs, self._keys.transcription, _events_from_json)
         if cached is not None:
             return cached
         events = self._inner.transcribe(stem_path)
@@ -186,6 +182,16 @@ class CachedAnalyzer:
         if not result.warnings:  # a half failed, perhaps by chance
             _store(self._blobs, self._keys.structure, _structure_to_json(result))
         return result
+
+
+def _events_from_json(items: list[dict[str, Any]]) -> list[NoteEvent]:
+    """Cached events. Entries written under spec 008 carry `"loudness": null`,
+    from when NoteEvent had the field. No transcriber set it, so dropping it
+    loses nothing, and those entries still load.
+    """
+    for item in items:
+        item.pop("loudness", None)
+    return [NoteEvent(**item) for item in items]
 
 
 def _structure_to_json(result: StructureResult) -> dict[str, Any]:

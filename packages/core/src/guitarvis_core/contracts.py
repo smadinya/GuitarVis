@@ -50,24 +50,20 @@ class NoteEvent:
 
     Deliberately not string/fret, so a guitar-specific transcription model can
     later implement Transcriber without changing anything downstream.
-
-    `loudness` is measured from the stem after transcription
-    (`guitarvis_worker.loudness`); it is not confidence.
     """
 
     onset: float
     duration: float
     midi: int
     confidence: float
-    loudness: float | None = None
 
 
 @dataclass(frozen=True)
 class TabNote:
     """Stage 4 output: a NoteEvent placed on the neck.
 
-    `loudness` is measured from the stem after transcription
-    (`guitarvis_worker.loudness`); it is not confidence.
+    A mapper leaves `loudness` unset. The pipeline measures it from the stem
+    once stage 4 returns (`guitarvis_worker.loudness`); it is not confidence.
     """
 
     onset: float
