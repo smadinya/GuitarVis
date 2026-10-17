@@ -10,8 +10,9 @@
  * redraw.
  *
  * The two views share one camera and one `OrbitControls`; the view sets what
- * the controls may do. Every number about where the camera goes is in
- * camera.ts.
+ * the controls may do. In 2D the stage also clears the modifiers from a mouse
+ * press, so a shift-drag pans as any drag does. Every number about where the
+ * camera goes is in camera.ts.
  */
 import {
   Color,
@@ -233,6 +234,7 @@ export class Stage {
     });
     this.watch(DARK, () => this.recolour());
 
+    if (box !== null) this.listen(box, "pointerdown", (event) => this.unmodify(event as PointerEvent), true);
     this.listen(this.canvas, "dblclick", (event) => this.focus(event as MouseEvent));
     this.listen(this.canvas, "webglcontextlost", () => this.onLost(true));
     this.listen(this.canvas, "webglcontextrestored", () => {
@@ -409,6 +411,35 @@ export class Stage {
     this.goTo(focusPose(this.view, hit.point, this.pose(), this.g));
   }
 
+  /**
+   * In 2D, a mouse drag with shift, ctrl or meta held pans like any other.
+   * OrbitControls would make the press a rotation, which 2D turns off. So the
+   * press stops here, and a copy without the modifiers goes to the canvas in
+   * its place; this listener lets the copy through. The drag's moves and its
+   * release reach the controls unchanged.
+   */
+  private unmodify(event: PointerEvent): void {
+    if (this.view !== "2d" || event.pointerType !== "mouse" || event.target !== this.canvas) return;
+    if (!event.shiftKey && !event.ctrlKey && !event.metaKey) return;
+    event.stopPropagation();
+    this.canvas.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        bubbles: true,
+        pointerId: event.pointerId,
+        pointerType: event.pointerType,
+        isPrimary: event.isPrimary,
+        button: event.button,
+        buttons: event.buttons,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        screenX: event.screenX,
+        screenY: event.screenY,
+        pressure: event.pressure,
+        altKey: event.altKey,
+      }),
+    );
+  }
+
   /** Until the user moves the camera, a resize re-frames the home pose. A
    * transition under way is then heading home (a double-click's marks the
    * camera touched), so it heads for the new home instead. */
@@ -490,8 +521,8 @@ export class Stage {
     return list.matches;
   }
 
-  private listen(target: EventTarget, type: string, listener: (event: Event) => void): void {
-    target.addEventListener(type, listener);
-    this.unlisten.push(() => target.removeEventListener(type, listener));
+  private listen(target: EventTarget, type: string, listener: (event: Event) => void, capture = false): void {
+    target.addEventListener(type, listener, capture);
+    this.unlisten.push(() => target.removeEventListener(type, listener, capture));
   }
 }

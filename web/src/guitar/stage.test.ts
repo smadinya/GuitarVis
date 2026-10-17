@@ -101,6 +101,41 @@ function poseOf(stage: Stage): Pose {
   return { position: camera.position.clone(), target: controls.target.clone() };
 }
 
+type Modifiers = Pick<PointerEventInit, "shiftKey" | "ctrlKey" | "metaKey">;
+
+/** A left-button mouse drag, 60 px to the right, as a browser sends it. jsdom
+ * has no pointer capture and lays nothing out, and OrbitControls scales a pan
+ * by the canvas's height, so the canvas gets both first. */
+function drag(canvas: HTMLCanvasElement, modifiers: Modifiers) {
+  canvas.setPointerCapture = vi.fn();
+  canvas.releasePointerCapture = vi.fn();
+  Object.defineProperty(canvas, "clientHeight", { configurable: true, value: 300 });
+  const send = (type: string, clientX: number, buttons: number) =>
+    canvas.dispatchEvent(
+      new PointerEvent(type, {
+        bubbles: true,
+        pointerId: 1,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons,
+        clientX,
+        clientY: 100,
+        ...modifiers,
+      }),
+    );
+  send("pointerdown", 100, 1);
+  send("pointermove", 160, 1);
+  send("pointerup", 160, 0);
+}
+
+/** Every press that reaches the canvas, where OrbitControls listens. */
+function pressesOn(canvas: HTMLCanvasElement): PointerEvent[] {
+  const presses: PointerEvent[] = [];
+  canvas.addEventListener("pointerdown", (event) => presses.push(event));
+  return presses;
+}
+
 /** A matchMedia whose queries never match, and whose listeners the test fires. */
 function stubMatchMedia() {
   const listeners = new Map<string, Set<() => void>>();
@@ -354,6 +389,41 @@ describe("Stage", () => {
 
     stage.dispose();
     expect(media.total()).toBe(0);
+  });
+
+  it("pans on a drag with shift, ctrl or meta held in 2D", () => {
+    for (const modifier of ["shiftKey", "ctrlKey", "metaKey"] as const) {
+      const { stage, canvas } = setUp({ view: "2d" });
+      const { controls } = insides(stage);
+      const presses = pressesOn(canvas);
+      const before = controls.target.clone();
+
+      drag(canvas, { [modifier]: true });
+
+      expect(controls.target.distanceTo(before)).toBeGreaterThan(1);
+      // The controls see one press, without the modifier.
+      expect(presses).toHaveLength(1);
+      expect(presses[0][modifier]).toBe(false);
+      stage.dispose();
+    }
+  });
+
+  it("leaves a shift-drag in 3D to the controls, which pan", () => {
+    const { stage, canvas } = setUp({ view: "3d" });
+    const { controls, camera } = insides(stage);
+    const presses = pressesOn(canvas);
+    const before = poseOf(stage);
+
+    drag(canvas, { shiftKey: true });
+
+    expect(controls.target.distanceTo(before.target)).toBeGreaterThan(1);
+    // A pan moves the camera with the target: the view slides, not swings.
+    const offset = camera.position.clone().sub(controls.target);
+    const was = new Vector3().copy(before.position).sub(before.target);
+    expect(offset.distanceTo(was)).toBeCloseTo(0, 6);
+    expect(presses).toHaveLength(1);
+    expect(presses[0].shiftKey).toBe(true);
+    stage.dispose();
   });
 
   it("stops drawing once disposed", () => {

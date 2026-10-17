@@ -71,17 +71,17 @@ order.
 **Files:** `web/src/guitar/stage.ts`, `web/src/guitar/stage.test.ts`,
 `docs/specs/008-3d-guitar/acceptance.md`.
 
-- [ ] **#10.** Test: dispatch the controls' `start` and `end` with no
+- [x] **#10.** Test: dispatch the controls' `start` and `end` with no
   `change`, resize the box, and expect the home pose for the new aspect. Then
   a `start`, a `change` and an `end`, a resize, and expect the camera kept.
   Code: a `gesture` flag set on `start` and cleared on `end`. `change` sets
   `touched` only while `gesture` is set. `start` still drops the tween.
   Commit: `Fixes #10.`
-- [ ] **#14.** Test: `resetView()` after a pan, resize within the 700 ms, run
+- [x] **#14.** Test: `resetView()` after a pan, resize within the 700 ms, run
   the tween out, and expect the new aspect's home. Code: in `resize()`, when
   `!touched`, set `tween.to = this.home()` if a tween runs, else
   `place(this.home())`. Commit: `Fixes #14.`
-- [ ] **#11.** Test: stub `devicePixelRatio`, change it, resize, and expect
+- [x] **#11.** Test: stub `devicePixelRatio`, change it, resize, and expect
   `setPixelRatio` with the new value, capped at `MAX_PIXEL_RATIO`. A second
   test fires the `(resolution: …dppx)` query's `change` and expects the same.
   Code: `resize()` calls
@@ -89,7 +89,7 @@ order.
   before `setSize`. A watcher follows `(resolution: ${ratio}dppx)`, sets
   itself up again for each new ratio, and is undone on dispose.
   Commit: `Fixes #11.`
-- [ ] **#20.** Test: in 2D, a shift-, ctrl- and meta-`pointerdown` (mouse,
+- [x] **#20.** Test: in 2D, a shift-, ctrl- and meta-`pointerdown` (mouse,
   left button) then a `pointermove` moves the controls' target. In 3D a
   shift-drag still pans through OrbitControls' own path, unchanged. Code: a
   capture-phase `pointerdown` listener on the canvas's box. In 2D, for a mouse
@@ -97,7 +97,7 @@ order.
   copy on the canvas with `shiftKey`, `ctrlKey` and `metaKey` false. A copy
   has no modifiers, so the listener ignores it. Answer the question in 008's
   `acceptance.md` ("fixed by 009"). Commit: `Fixes #20.`
-- [ ] `npm run test`, `npm run typecheck` and `npm run lint` pass in `web/`.
+- [x] `npm run test`, `npm run typecheck` and `npm run lint` pass in `web/`.
 
 ## Task 3: Frames (#13, #15)
 

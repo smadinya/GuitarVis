@@ -47,7 +47,7 @@ Notes: …
 - [ ] 2D opens on the whole neck, zooms and pans, and never tilts
 - [ ] 3D rotates, zooms and pans
 - [ ] Double-click, reset, and switching views work
-- [ ] Shift-, ctrl- or meta-drag does nothing in 2D (a known deviation from "any drag pans"): acceptable?
+- [ ] Shift-, ctrl- and meta-drag each pan in 2D, as any drag does (fixed by [009](../009-review-fixes/spec.md), #20)
 - [ ] The choice is remembered across a reload
 
 Reset view sits over the upper tuner buttons in 2D? …
