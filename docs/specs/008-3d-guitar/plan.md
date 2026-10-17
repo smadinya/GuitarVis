@@ -152,7 +152,11 @@ def test_loudness_travels_with_each_note() -> None:
 
     result = assign(notes)
 
-    assert {tab.midi: tab.loudness for tab in result.notes} == {48: 0.2, 52: 0.9, 55: None}
+    assert {tab.midi: tab.loudness for tab in result.notes} == {
+        48: 0.2,
+        52: 0.9,
+        55: None,
+    }
 ```
 
 In `apps/worker/tests/test_pipeline.py`:
@@ -403,21 +407,20 @@ The module docstring says why loudness is measured here and is not confidence. P
 Import `logging` and `from guitarvis_worker.loudness import measure_loudness`, and add `log = logging.getLogger(__name__)` below the imports. After stage 2's `try/except/else`, and before stage 3:
 
 ```python
-    # Loudness, for how far the guitar's strings swing. Not a stage: it reads
-    # the stem stage 1 left, so any transcriber gets it. Its failure costs
-    # only the size of the swing, so it is logged, not warned about: the
-    # document's warnings say whether the tab can be trusted, and this does
-    # not touch the tab.
-    if events:
-        try:
-            events = measure_loudness(separation.stem_path, events)
-        except Exception:  # degrade, as every stage after separation does
-            log.warning(
-                "could not measure loudness from %s; strings will swing at "
-                "the default",
-                separation.stem_path,
-                exc_info=True,
-            )
+# Loudness, for how far the guitar's strings swing. Not a stage: it reads
+# the stem stage 1 left, so any transcriber gets it. Its failure costs
+# only the size of the swing, so it is logged, not warned about: the
+# document's warnings say whether the tab can be trusted, and this does
+# not touch the tab.
+if events:
+    try:
+        events = measure_loudness(separation.stem_path, events)
+    except Exception:  # degrade, as every stage after separation does
+        log.warning(
+            "could not measure loudness from %s; strings will swing at the default",
+            separation.stem_path,
+            exc_info=True,
+        )
 ```
 
 `transcribed_note_count=len(events)` is unchanged, since measuring neither adds nor drops a note.
