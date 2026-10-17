@@ -408,7 +408,9 @@ export class Stage {
     this.goTo(focusPose(this.view, hit.point, this.pose(), this.g));
   }
 
-  /** Until the user moves the camera, a resize re-frames the home pose. */
+  /** Until the user moves the camera, a resize re-frames the home pose. A
+   * transition under way is then heading home (a double-click's marks the
+   * camera touched), so it heads for the new home instead. */
   private resize(): void {
     const box = this.canvas.parentElement;
     if (box === null) return;
@@ -418,7 +420,10 @@ export class Stage {
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    if (!this.touched && this.tween === null) this.place(this.home());
+    if (!this.touched) {
+      if (this.tween !== null) this.tween.to = this.home();
+      else this.place(this.home());
+    }
     this.wake();
   }
 

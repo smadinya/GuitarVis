@@ -280,6 +280,24 @@ describe("Stage", () => {
     stage.dispose();
   });
 
+  it("lands a transition on the new aspect's home when the box resizes during it", () => {
+    const { stage, canvas, own, tick, resize, home2d } = setUp({ view: "2d" });
+    const { controls } = insides(stage);
+    Object.defineProperty(canvas, "clientHeight", { configurable: true, value: 300 });
+    resize(840, 300);
+    controls.pan(60, 0);
+
+    stage.resetView();
+    tick(100);
+    tick(100);
+    resize(420, 300);
+    for (let i = 0; i < 8; i++) tick(100);
+
+    expectPose(stage, home2d(420, 300));
+    expect(own.pending).toBe(0);
+    stage.dispose();
+  });
+
   it("stops drawing once disposed", () => {
     const { stage, renderer, at } = setUp({ view: "3d" });
 
