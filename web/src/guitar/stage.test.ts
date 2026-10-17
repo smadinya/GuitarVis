@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { type PerspectiveCamera, Vector3 } from "three";
+import { MOUSE, type PerspectiveCamera, Vector3 } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -82,6 +82,17 @@ describe("Stage", () => {
     for (const box of boxes.splice(0)) box.remove();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("pans on a drag with any mouse button in 2D, and never rotates", () => {
+    const { stage } = setUp({ view: "2d" });
+    const { controls } = insides(stage);
+
+    expect(controls.enableRotate).toBe(false);
+    expect(controls.mouseButtons.LEFT).toBe(MOUSE.PAN);
+    expect(controls.mouseButtons.MIDDLE).toBe(MOUSE.PAN);
+    expect(controls.mouseButtons.RIGHT).toBe(MOUSE.PAN);
+    stage.dispose();
   });
 
   it("draws its own frames while the camera moves, and stops once it arrives", () => {

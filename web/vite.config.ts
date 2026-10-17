@@ -14,8 +14,11 @@ export default defineConfig({
     proxy: { "/jobs": API, "/health": API },
   },
   build: {
-    // three.js ships in the guitar's lazy chunk, about 585 kB before gzip
-    // and 150 kB after. Vite's 500 kB default would warn on every build.
+    // three.js ships in the guitar's lazy chunk, about 602 kB before gzip
+    // and 154 kB after. Vite's 500 kB default would warn on every build.
+    // The limit applies to every chunk, not only that one: the entry chunk
+    // (about 168 kB now) would not warn until it passed 650 kB, so keep an
+    // eye on it.
     chunkSizeWarningLimit: 650,
   },
   test: {

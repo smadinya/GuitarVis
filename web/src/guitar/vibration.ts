@@ -55,7 +55,10 @@ export function envelope(note: Plucked, t: number): number {
   return amplitude(note.loudness) * Math.exp(-(t - note.onset) / DECAY_SEC) * fade;
 }
 
-/** The wobble's phase at song time t, from -1 to 1, starting at rest on the pluck. */
+/**
+ * The waveform's value at song time t, sin(2πf(t − onset)), from -1 to 1. It
+ * starts at 0, at rest on the pluck.
+ */
 export function swing(note: Plucked, t: number): number {
   return Math.sin(2 * Math.PI * frequency(note.midi) * (t - note.onset));
 }

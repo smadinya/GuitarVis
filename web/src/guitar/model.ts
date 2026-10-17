@@ -132,8 +132,9 @@ export class VibratingString {
 
   /**
    * Draw the string for one instant. `amplitude` is the swing's size in mm and
-   * `swing` its phase, from -1 to 1; `opacity` is the string's emphasis, which
-   * the blur follows. The blur is there only while the string visibly moves.
+   * `swing` the waveform's value, sin(2πf(t − onset)), from -1 to 1; `opacity`
+   * is the string's emphasis, which the blur follows. The blur is there only
+   * while the string visibly moves.
    */
   shape(amplitude: number, swing: number, opacity: number): void {
     if (amplitude === 0 && this.still) return;

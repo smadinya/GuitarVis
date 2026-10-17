@@ -92,7 +92,7 @@ const CONTROLS: Record<
 > = {
   "2d": {
     rotate: false,
-    mouse: { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN },
+    mouse: { LEFT: MOUSE.PAN, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN },
     touch: { ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_PAN },
   },
   "3d": {
