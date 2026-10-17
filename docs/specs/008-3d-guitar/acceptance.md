@@ -47,7 +47,7 @@ Notes: …
 - [ ] 2D opens on the whole neck, zooms and pans, and never tilts
 - [ ] 3D rotates, zooms and pans
 - [ ] Double-click, reset, and switching views work
-- [ ] Shift-, ctrl- or meta-drag does nothing in 2D (a known deviation from "any drag pans"): acceptable?
+- [ ] Shift-, ctrl- and meta-drag each pan in 2D, as any drag does (fixed by [009](../009-review-fixes/spec.md), #20)
 - [ ] The choice is remembered across a reload
 
 Reset view sits over the upper tuner buttons in 2D? …
@@ -77,7 +77,7 @@ Notes: …
 - [ ] Dark mode: the background and dots follow the theme, and the guitar keeps its colours
 - [ ] Reduced motion: no pulse and no vibration, and the camera jumps instead of animating
 - [ ] Resizing the window during playback keeps the guitar and its dots right
-- [ ] WebGL turned off: the panel shows its message, and the tab strip and controls carry on
+- [ ] WebGL turned off: the panel shows "The guitar needs WebGL 2, which this browser does not have available.", and the tab strip and controls carry on (worded by [009](../009-review-fixes/spec.md), #19)
 
 Notes: …
 

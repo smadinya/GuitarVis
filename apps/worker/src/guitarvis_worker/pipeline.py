@@ -155,21 +155,6 @@ def run_pipeline(
         if not events:
             warnings.append("No notes were detected in the isolated guitar part.")
 
-    # Loudness, for how far the guitar's strings swing. Not a stage: it reads
-    # the stem stage 1 left, so any transcriber gets it. Its failure costs
-    # only the size of the swing, so it is logged, not warned about: the
-    # document's warnings say whether the tab can be trusted, and this does
-    # not touch the tab.
-    if events:
-        try:
-            events = measure_loudness(separation.stem_path, events)
-        except Exception:  # degrade, as every stage after separation does
-            log.warning(
-                "could not measure loudness from %s; strings will swing at the default",
-                separation.stem_path,
-                exc_info=True,
-            )
-
     # Stage 3. Optional: notes carry their own onsets, so losing the beat grid
     # costs bar lines and chord symbols, never synchronisation. Beats and
     # chords each fail independently inside `analyze` now, and each failure
@@ -206,6 +191,22 @@ def run_pipeline(
     else:
         tab_notes = fretboard.notes
         warnings.extend(fretboard.warnings)
+
+    # Loudness, for how far the guitar's strings swing. Not a stage: it reads
+    # the stem stage 1 left at the onsets of the notes stage 4 placed, so any
+    # transcriber and any mapper gets it, with nothing to copy. Its failure
+    # costs only the size of the swing, so it is logged, not warned about: the
+    # document's warnings say whether the tab can be trusted, and this does
+    # not touch the tab.
+    if tab_notes:
+        try:
+            tab_notes = measure_loudness(separation.stem_path, tab_notes)
+        except Exception:  # degrade, as every stage after separation does
+            log.warning(
+                "could not measure loudness from %s; strings will swing at the default",
+                separation.stem_path,
+                exc_info=True,
+            )
 
     # A tab that renders the wrong fret is worse than no tab: a beginner cannot
     # tell it from a hard passage. Refuse to emit one. A string or fret that

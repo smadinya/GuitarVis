@@ -14,10 +14,14 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from guitarvis_core.contracts import FretboardResult, NoteEvent, TabNote
+from guitarvis_core.contracts import (
+    VOICING_WINDOW_SEC,
+    FretboardResult,
+    NoteEvent,
+    TabNote,
+)
 from guitarvis_core.fretboard import parse_pitch
 
-VOICING_WINDOW_SEC = 0.05
 # Path totals are rounded to this many places before they are compared, so
 # that two equally good paths summed in a different order tie exactly and the
 # tie-break rule decides, not the last bit of a float.
@@ -115,7 +119,6 @@ class ViterbiFretboardMapper:
                 string=string,
                 fret=fret,
                 confidence=note.confidence,
-                loudness=note.loudness,
             )
             for voicing, choice in zip(voicings, path, strict=True)
             for note, (string, fret) in zip(voicing, choice.places, strict=True)

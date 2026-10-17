@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { WebGLRenderer } from "three";
 
+import { GUITAR_FAILED } from "../labels";
 import type { PlaybackEngine } from "../playback/engine";
 import type { Song } from "../song";
 import type { View } from "./camera";
 import { Stage, type Renderer } from "./stage";
 
-export const NO_WEBGL = "The guitar needs WebGL, which this browser has turned off.";
+/** True when WebGL is off, when only WebGL 1 exists (three needs 2), and when
+ * the context stays lost. */
+export const NO_WEBGL = "The guitar needs WebGL 2, which this browser does not have available.";
 /** Where the chosen view is remembered. */
 export const VIEW_KEY = "guitarvis.guitar-view";
 
@@ -53,8 +56,9 @@ function keepFocus(event: MouseEvent) {
 /**
  * The guitar panel. React renders its chrome: the canvas's box, the message
  * overlay, the view toggle and "Reset view". Everything per frame is the
- * Stage's, so React renders only on mount, on a view toggle, and when WebGL
- * is lost or comes back.
+ * Stage's, so React renders only on mount, on a view toggle, when WebGL stays
+ * lost or comes back, and when a draw throws. A throw's message wins over
+ * the WebGL one.
  */
 export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -65,6 +69,7 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarP
   // rebuilding the Stage.
   const viewRef = useRef(view);
   const [unavailable, setUnavailable] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -77,11 +82,42 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarP
       setUnavailable(true);
       return;
     }
-    const stage = new Stage({ canvas, overlay, song, engine, renderer, view: viewRef.current, onLost: setUnavailable });
+    let stage: Stage;
+    try {
+      stage = new Stage({
+        canvas,
+        overlay,
+        song,
+        engine,
+        renderer,
+        view: viewRef.current,
+        onLost: setUnavailable,
+        onFailed: () => setFailed(true),
+      });
+    } catch (error) {
+      // A bug, not missing WebGL: the boundary says so. The Stage has undone
+      // its own setup, and left the renderer to this effect. The boundary
+      // replaces this subtree, canvas and all, so the context goes too.
+      renderer.dispose();
+      renderer.forceContextLoss();
+      throw error;
+    }
+    // A loss or a throw the old Stage reported is not this one's to show.
+    setUnavailable(false);
+    setFailed(false);
     stageRef.current = stage;
     return () => {
       stageRef.current = null;
       stage.dispose();
+      // Release the context only once the canvas has left the page. React
+      // detaches a deleted subtree's DOM before it runs passive-effect
+      // cleanups, so on a real unmount the canvas is already detached. On a
+      // rebuild (a new song, engine or createRenderer) and on StrictMode's
+      // rehearsed unmount it stays, and the next renderer gets its context:
+      // released here, that context would come to it already lost. After
+      // dispose, nothing listens for the loss, and three's forceContextLoss
+      // needs only the context, which dispose leaves.
+      if (!canvas.isConnected) renderer.forceContextLoss();
     };
   }, [song, engine, createRenderer]);
 
@@ -97,8 +133,8 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarP
     <div className="guitar">
       <canvas ref={canvasRef} role="img" aria-label="Guitar" />
       <div ref={overlayRef} className="guitar-message" hidden />
-      {unavailable ? (
-        <p className="guitar-unavailable">{NO_WEBGL}</p>
+      {failed || unavailable ? (
+        <p className="guitar-unavailable">{failed ? GUITAR_FAILED : NO_WEBGL}</p>
       ) : (
         <>
           <div className="guitar-views" role="group" aria-label="View">

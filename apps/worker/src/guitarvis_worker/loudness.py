@@ -3,9 +3,10 @@
 Not a stage, and not `confidence`. Transcription already reports a per-note
 strength as `confidence`, and reusing it would make one number mean two things:
 a later recalibration of confidence would change how far strings swing. So the
-pipeline measures loudness itself, between transcription and the fretboard
-mapper, from the stem separation left. Any transcriber gets it, and no stage's
-cached output changes. See spec 008, *Loudness*.
+pipeline measures loudness itself, after the fretboard mapper, from the stem
+separation left and the onsets of the notes the mapper placed. Any transcriber
+and any mapper gets it with nothing to copy, and no stage's cached output
+changes. See spec 008, *Loudness*.
 
 Stdlib only, like `measure_rms` in `stages/separation.py`, so it runs in CI
 without the ml extra. It imports no stage: a stage must not, and neither may
@@ -19,69 +20,70 @@ from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
 
-from guitarvis_core.contracts import NoteEvent
-
-# A note within this long of the previous one joins its strum. This restates
-# the mapper's VOICING_WINDOW_SEC (stages/fretboard.py) because a helper may
-# not import a stage.
-STRUM_WINDOW_SEC = 0.05
+from guitarvis_core.contracts import VOICING_WINDOW_SEC, TabNote
 
 FLOOR_DB = -30.0  # this far below the reference reads as 0
 REFERENCE_PERCENTILE = 0.95  # of the song's strum levels, so one spike is not it
 
 
-def measure_loudness(stem_path: Path, events: Sequence[NoteEvent]) -> list[NoteEvent]:
-    """Each event, in the order given, with `loudness` set to 0..1.
+def measure_loudness(stem_path: Path, notes: Sequence[TabNote]) -> list[TabNote]:
+    """Each note, in the order given, with `loudness` set to 0..1.
 
-    The notes of a strum share one level, measured over the window from the
-    strum's first onset to `STRUM_WINDOW_SEC` after its last. Measured note by
-    note, a strum's later strings would catch the earlier ones still ringing
-    and read louder. Levels are RMS in dB against the 95th percentile of the
-    song's strums, with `FLOOR_DB`..0 dB mapped onto 0..1 and clipped.
+    A strum is the notes within `VOICING_WINDOW_SEC` of its first onset, as
+    the mapper groups a voicing. Its notes share one level, measured over the
+    window from that onset to `VOICING_WINDOW_SEC` after its last. Measured
+    note by note, a strum's later strings would catch the earlier ones still
+    ringing and read louder. Levels are RMS in dB against the 95th percentile
+    of the song's strums, with `FLOOR_DB`..0 dB mapped onto 0..1 and clipped.
 
     Raises when the stem cannot be measured: `EOFError`, `wave.Error` or
     `OSError` as the file demands, `ValueError` for a sample width other than
     16-bit or a stem that is silent under every note. The caller degrades.
     """
-    if not events:
+    if not notes:
         return []
 
-    groups = _strums(events)
-    levels = _levels(stem_path, [_window(events, group) for group in groups])
+    groups = _strums(notes)
+    levels = _levels(stem_path, [_window(notes, group) for group in groups])
 
     reference = sorted(levels)[math.ceil(REFERENCE_PERCENTILE * len(levels)) - 1]
     if reference == 0:
         raise ValueError("the stem is silent under every note")
 
-    measured = list(events)
+    measured = list(notes)
     for group, level in zip(groups, levels, strict=True):
         loudness = round(_scale(level, reference), 3)
         for index in group:
-            measured[index] = replace(events[index], loudness=loudness)
+            measured[index] = replace(notes[index], loudness=loudness)
     return measured
 
 
-def _strums(events: Sequence[NoteEvent]) -> list[list[int]]:
-    """Indices of `events` grouped into strums, each in onset order.
+def _strums(notes: Sequence[TabNote]) -> list[list[int]]:
+    """Indices of `notes` grouped into strums, each in onset order.
 
     A note joins the current group when it is within the window of the
-    *previous note*, so a run of closely spaced notes chains into one group.
-    The mapper anchors to a group's first note instead.
+    group's *first* note, by the mapper's rule for voicings. Anchored there, a
+    fast run cannot chain into one group, and a strum spans at most the window.
+
+    The groups are of the notes the mapper kept, so they can differ from its
+    voicings. If it dropped a voicing's first note, the rest anchor on the
+    next one, and may take in the start of the next voicing. That costs only
+    a shared swing size, in a rare case.
     """
     groups: list[list[int]] = []
-    previous = 0.0
-    for index in sorted(range(len(events)), key=lambda i: events[i].onset):
-        onset = events[index].onset
-        if groups and onset - previous <= STRUM_WINDOW_SEC:
+    first = 0.0
+    for index in sorted(range(len(notes)), key=lambda i: notes[i].onset):
+        onset = notes[index].onset
+        if groups and onset - first <= VOICING_WINDOW_SEC:
             groups[-1].append(index)
         else:
             groups.append([index])
-        previous = onset
+            first = onset
     return groups
 
 
-def _window(events: Sequence[NoteEvent], group: Sequence[int]) -> tuple[float, float]:
-    return events[group[0]].onset, events[group[-1]].onset + STRUM_WINDOW_SEC
+def _window(notes: Sequence[TabNote], group: Sequence[int]) -> tuple[float, float]:
+    return notes[group[0]].onset, notes[group[-1]].onset + VOICING_WINDOW_SEC
 
 
 def _levels(stem_path: Path, windows: Sequence[tuple[float, float]]) -> list[float]:

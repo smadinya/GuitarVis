@@ -186,6 +186,22 @@ def test_loudness_is_measured_from_the_stem(tmp_path: Path) -> None:
     assert [note.loudness for note in result.document.notes] == [1.0]
 
 
+def test_loudness_needs_nothing_from_the_mapper(tmp_path: Path) -> None:
+    # This mapper builds its TabNotes without loudness, as eval's
+    # LowestFretMapper does. The pipeline measures it from them.
+    stem = write_stem(tmp_path / "song.wav", [(1.0, 0.3, 16000)])
+
+    result = run_pipeline(
+        IngestedAudio(path=stem, title="song", duration_sec=4.0),
+        separator=StubSeparator(),  # returns the input as the stem
+        transcriber=StubTranscriber([NoteEvent(1.0, 0.5, 52, 0.8)]),
+        analyzer=StubAnalyzer(),
+        mapper=StubMapper([TabNote(1.0, 0.5, 52, 2, 2, 0.8)]),
+    )
+
+    assert [note.loudness for note in result.document.notes] == [1.0]
+
+
 def test_an_unreadable_stem_costs_loudness_and_nothing_else(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:

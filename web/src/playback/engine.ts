@@ -7,6 +7,7 @@
  * touch the element: they draw from `onFrame`, and the controls read
  * `getState` through useSyncExternalStore.
  */
+import { logError } from "../log";
 import { MediaClock, type MediaLike } from "./clock";
 
 export type Source = "mix" | "guitar";
@@ -139,7 +140,9 @@ export class PlaybackEngine {
   // --- for views and controls --------------------------------------------
 
   /** Call `listener` with the time on every frame while playing, and once
-   * after any change while paused. Every listener gets the same t. */
+   * after any change while paused or while a source loads. Every listener
+   * gets the same t. A listener that throws is logged, and the rest still
+   * get theirs. */
   onFrame(listener: (t: number) => void): () => void {
     this.frameListeners.add(listener);
     this.redraw();
@@ -158,6 +161,11 @@ export class PlaybackEngine {
     if (this.frame === null && !this.disposed) {
       this.frame = this.requestFrame(() => this.runFrame());
     }
+  }
+
+  /** Whether frames run on their own: playing, with no source loading. */
+  emittingFrames(): boolean {
+    return this.state.playing && this.pending === null && !this.disposed;
   }
 
   // --- transport ------------------------------------------------------------
@@ -265,8 +273,16 @@ export class PlaybackEngine {
   private runFrame(): void {
     this.frame = null;
     const t = this.tick();
-    for (const listener of this.frameListeners) listener(t);
-    if (this.state.playing && this.pending === null) this.redraw();
+    // One view's throw stays in that view: the others still draw, and the
+    // frames go on.
+    for (const listener of this.frameListeners) {
+      try {
+        listener(t);
+      } catch (error) {
+        logError("a view failed to draw a frame", error);
+      }
+    }
+    if (this.emittingFrames()) this.redraw();
   }
 
   /** Enforce the loop, refresh the readout, and return the time. */
