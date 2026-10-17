@@ -59,6 +59,22 @@ def test_low_e_is_the_open_sixth_string() -> None:
     assert places(assign([note(0.0, 40)])) == [(40, 0, 0)]
 
 
+def test_loudness_travels_with_each_note() -> None:
+    notes = [
+        NoteEvent(onset=0.0, duration=0.5, midi=48, confidence=0.9, loudness=0.2),
+        NoteEvent(onset=0.0, duration=0.5, midi=52, confidence=0.9, loudness=0.9),
+        NoteEvent(onset=1.0, duration=0.5, midi=55, confidence=0.9),
+    ]
+
+    result = assign(notes)
+
+    assert {tab.midi: tab.loudness for tab in result.notes} == {
+        48: 0.2,
+        52: 0.9,
+        55: None,
+    }
+
+
 def test_empty_input_gives_an_empty_result() -> None:
     result = assign([])
     assert result.notes == []

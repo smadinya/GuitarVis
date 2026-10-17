@@ -27,6 +27,7 @@
       "string": 0,
       "fret": 0,
       "confidence": 0.95,
+      "loudness": null,
       "technique": null
     },
     {
@@ -37,6 +38,7 @@
       "string": 2,
       "fret": 2,
       "confidence": 0.81,
+      "loudness": null,
       "technique": null
     }
   ],

@@ -268,8 +268,12 @@ need to see what is coming; every view receives both sets.
   grid; chord symbols above the staff.
 - **2D fretboard** — SVG, top-down neck. Active notes light up, look-ahead
   notes appear ghosted. Teaches where the hand goes; cheapest to build.
-- **3D guitar** — react-three-fiber, neck angled as the player sees it. The
-  showcase piece, and the one that can be built last without blocking anything.
+  Superseded by [008](../008-3d-guitar/spec.md): the 3D model seen square-on
+  is the 2D view.
+- **3D guitar** — plain three.js, not react-three-fiber
+  ([008](../008-3d-guitar/spec.md#rejected-alternatives)), neck angled as the
+  player sees it. The showcase piece, and the one that can be built last
+  without blocking anything.
 
 ### Layout
 
@@ -317,6 +321,7 @@ promise. A job fails outright only when there is no usable guitar audio.
 | Transcription confidence collapses in a passage | That passage shows chord symbols instead of fret numbers |
 | Guitar stem empty/near-silent | Retry with 4-stem `other`; if still empty, fail honestly: "No clear guitar part found" |
 | Fretboard mapper raises | No notes; timing and chords unaffected by it; a warning says why |
+| Loudness cannot be measured from the stem | Every note's `loudness` is null, and strings swing at the default amplitude; the worker logs it, and the document carries no warning |
 | Notes no hand could play, or outside the neck's range | Those notes dropped, never approximated; a warning gives the count |
 
 The tab document's independent, individually-omittable tracks were shaped
@@ -407,6 +412,8 @@ a different answer.
 8. **3D guitar asset** — procedural geometry (chosen default: full control,
    programmer-art risk) vs a sourced glTF model (better looking; licensing and
    file size). A good asset is a visible upgrade for a portfolio piece.
+   **Resolved by [ADR 0009](../../decisions/0009-procedural-guitar-model.md):**
+   procedural.
 9. **Simultaneous views** — one fretboard view at a time for now. Whether 3D
    and 2D should render side-by-side is best answered by using it.
 10. **Mobile/responsive scope** — the layout assumes a desktop viewport. Phone

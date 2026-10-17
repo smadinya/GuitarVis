@@ -75,6 +75,29 @@ def test_confidence_outside_zero_to_one_is_rejected() -> None:
         TabDocument.model_validate(raw)
 
 
+def test_loudness_is_optional() -> None:
+    raw = load_fixture()
+    del raw["notes"][0]["loudness"]
+
+    assert TabDocument.model_validate(raw).notes[0].loudness is None
+
+
+def test_loudness_round_trips() -> None:
+    raw = load_fixture()
+    raw["notes"][0]["loudness"] = 0.42
+
+    assert TabDocument.model_validate(raw).notes[0].loudness == 0.42
+
+
+@pytest.mark.parametrize("value", [-0.1, 1.2])
+def test_loudness_outside_zero_to_one_is_rejected(value: float) -> None:
+    raw = load_fixture()
+    raw["notes"][0]["loudness"] = value
+
+    with pytest.raises(ValidationError):
+        TabDocument.model_validate(raw)
+
+
 def test_optional_tracks_default_to_empty() -> None:
     """A degraded job omits tracks; it must not have to send empty scaffolding."""
     raw = load_fixture()

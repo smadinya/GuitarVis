@@ -63,6 +63,7 @@ outright only when there is no usable guitar audio.
 | Confidence collapses in a passage | That passage shows chord symbols, not fret numbers |
 | Guitar stem empty or near-silent | Retry with the 4-stem `other` track; if still empty, fail honestly |
 | Fretboard mapper raises | No notes; timing and chords unaffected by it; a warning says why |
+| Loudness cannot be measured from the stem | Every note's `loudness` is null, and strings swing at the default amplitude; the worker logs it, and the document carries no warning |
 | Notes no hand could play, or outside the neck's range | Those notes dropped, never approximated; a warning gives the count |
 
 When a stage fails, omit its track from the tab document and continue. Raise

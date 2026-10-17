@@ -1,5 +1,5 @@
 /**
- * The tab strip and the fretboard each read the hidden passages for their own
+ * The tab strip and the guitar each read the hidden passages for their own
  * window, by the same rule written twice. This runs both over one song built
  * so that a read narrowed to the window misses passages a note is still
  * sounding from, and pins each view to isHidden. The two copies cannot drift
@@ -8,8 +8,7 @@
 import { describe, expect, it } from "vitest";
 
 import { isHidden } from "./confidence";
-import { cursorsOf, layout as fretboardLayout } from "./fretboard/layout";
-import { neckOf } from "./fretboard/neck";
+import { cursorsOf, sounding } from "./guitar/sounding";
 import { buildSong, type Song } from "./song";
 import { PLAYHEAD_AT, PX_PER_SEC, layout as tabLayout, rowsOf } from "./tab/layout";
 import type { Note } from "./types/tabDocument";
@@ -77,19 +76,14 @@ describe("both views hide the same notes", () => {
     }
   });
 
-  it("the fretboard lights every note that isHidden leaves shown, and no other", () => {
-    const neck = neckOf(song, WIDTH);
+  it("sounding() lights every note that isHidden leaves shown, and no other", () => {
     const cursors = cursorsOf(song);
     const lit = new Set<string>();
 
-    // Each onset, where its note is sure to be lit if shown, and a steady sweep.
     for (const now of [...song.notes.map((n) => n.t), ...grid]) {
-      for (const mark of fretboardLayout(song, cursors, now, neck)) {
-        if (mark.kind === "dot") lit.add(mark.key);
-      }
+      for (const note of sounding(song, cursors, now).notes) lit.add(note.key);
     }
 
-    const expected = song.notes.filter(shown).map((n) => `dot:${n.id}`);
-    expect([...lit].sort()).toEqual(expected.sort());
+    expect([...lit].sort()).toEqual(song.notes.filter(shown).map((n) => `dot:${n.id}`).sort());
   });
 });

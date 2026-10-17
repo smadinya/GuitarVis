@@ -13,6 +13,7 @@ Stages arrive by injection: the worker decides what to run, and the stages stay
 ignorant of each other.
 """
 
+import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
@@ -37,6 +38,10 @@ from guitarvis_core.tabdoc import (
     TabDocument,
     Timing,
 )
+
+from guitarvis_worker.loudness import measure_loudness
+
+log = logging.getLogger(__name__)
 
 # The whole job's percent when each stage starts. Separation fills the band
 # up to transcription's start as it reports; `fretboard 100` marks the end.
@@ -150,6 +155,21 @@ def run_pipeline(
         if not events:
             warnings.append("No notes were detected in the isolated guitar part.")
 
+    # Loudness, for how far the guitar's strings swing. Not a stage: it reads
+    # the stem stage 1 left, so any transcriber gets it. Its failure costs
+    # only the size of the swing, so it is logged, not warned about: the
+    # document's warnings say whether the tab can be trusted, and this does
+    # not touch the tab.
+    if events:
+        try:
+            events = measure_loudness(separation.stem_path, events)
+        except Exception:  # degrade, as every stage after separation does
+            log.warning(
+                "could not measure loudness from %s; strings will swing at the default",
+                separation.stem_path,
+                exc_info=True,
+            )
+
     # Stage 3. Optional: notes carry their own onsets, so losing the beat grid
     # costs bar lines and chord symbols, never synchronisation. Beats and
     # chords each fail independently inside `analyze` now, and each failure
@@ -202,6 +222,7 @@ def run_pipeline(
                 string=tab.string,
                 fret=tab.fret,
                 confidence=tab.confidence,
+                loudness=tab.loudness,
             )
             check_invariant(note, tuning)
         except (InvariantViolation, IndexError, ValueError) as exc:

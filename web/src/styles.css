@@ -1,5 +1,5 @@
 /* Colours are tokens. The tab strip's canvas reads the --tab-* ones; the
-   fretboard's SVG uses the --fret-* ones through its classes. */
+   guitar's three.js scene reads the --guitar-* ones. */
 :root {
   color-scheme: light dark;
   --bg: #fbfaf7;
@@ -19,16 +19,11 @@
   --tab-loop: #2563eb;
   --tab-hidden: #e7e1d4;
 
-  --fret-background: #fbfaf7;
-  --fret-board: #f1ede4;
-  --fret-wire: #b4ad9f;
-  --fret-nut: #6b665d;
-  --fret-string: #8c8578;
-  --fret-inlay: #d2ccbf;
-  --fret-text: #7a7469;
-  --fret-dot: #c2410c;
-  --fret-dot-text: #ffffff;
-  --fret-chord: #1f1d1a;
+  --guitar-background: #fbfaf7;
+  --guitar-dot: #c2410c;
+  --guitar-dot-text: #ffffff;
+  --guitar-text: #7a7469;
+  --guitar-chord: #1f1d1a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -50,16 +45,11 @@
     --tab-loop: #60a5fa;
     --tab-hidden: #2b2824;
 
-    --fret-background: #171614;
-    --fret-board: #23211e;
-    --fret-wire: #57524a;
-    --fret-nut: #a39d91;
-    --fret-string: #8a8478;
-    --fret-inlay: #3d3934;
-    --fret-text: #a39d91;
-    --fret-dot: #fb923c;
-    --fret-dot-text: #171614;
-    --fret-chord: #ece8df;
+    --guitar-background: #171614;
+    --guitar-dot: #fb923c;
+    --guitar-dot-text: #171614;
+    --guitar-text: #a39d91;
+    --guitar-chord: #ece8df;
   }
 }
 
@@ -139,95 +129,99 @@ main {
   box-shadow: 0 0 0 1px var(--border);
 }
 
-/* The SVG takes its width from this box, never the other way round. */
-.fretboard {
+/* The canvas fills the box, and three.js sizes its bitmap from the box. The
+   box's size never depends on the canvas's. */
+.guitar {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2.8;
+  min-height: 260px;
+  max-height: 460px;
   margin-bottom: 12px;
   border-radius: 8px;
   overflow: hidden;
-  background: var(--fret-background);
+  background: var(--guitar-background);
   box-shadow: 0 0 0 1px var(--border);
 }
 
-.fretboard svg {
+.guitar canvas {
   display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
 }
 
-.fret-board {
-  fill: var(--fret-board);
-}
-
-.fret-wire {
-  stroke: var(--fret-wire);
-  stroke-width: 2;
-}
-
-.fret-nut {
-  stroke: var(--fret-nut);
-  stroke-width: 5;
-}
-
-/* stroke-width comes from each string's attribute: lower strings are thicker. */
-.fret-string {
-  stroke: var(--fret-string);
-}
-
-.fret-inlay {
-  fill: var(--fret-inlay);
-}
-
-.fret-label,
-.fret-number,
-.fret-dot text,
-.fret-message {
-  text-anchor: middle;
-  dominant-baseline: central;
-}
-
-.fret-label,
-.fret-number {
-  fill: var(--fret-text);
-  font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-/* Every onset is a new dot, so each pluck swells once, even on a fret that
-   was already lit. */
-.fret-dot circle {
-  fill: var(--fret-dot);
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: fret-pluck 150ms ease-out;
-}
-
-@keyframes fret-pluck {
-  from {
-    transform: scale(1.4);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fret-dot circle {
-    animation: none;
-  }
-}
-
-.fret-dot text {
-  fill: var(--fret-dot-text);
-  font: bold 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-/* A halo in the board's colour, so the strings do not strike through it. */
-.fret-message {
-  fill: var(--fret-text);
+/* A halo in the background's colour, so the strings do not strike through
+   the text. */
+.guitar-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: var(--guitar-text);
   font: 15px system-ui, sans-serif;
-  paint-order: stroke;
-  stroke: var(--fret-board);
-  stroke-width: 6px;
-  stroke-linejoin: round;
+  text-shadow:
+    0 0 3px var(--guitar-background),
+    0 0 3px var(--guitar-background),
+    0 0 3px var(--guitar-background),
+    0 0 3px var(--guitar-background);
 }
 
-.fret-message.fret-chord {
-  fill: var(--fret-chord);
+/* display: flex above would beat the hidden attribute. */
+.guitar-message[hidden] {
+  display: none;
+}
+
+.guitar-message.chord {
+  color: var(--guitar-chord);
   font: bold 32px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.guitar-views {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.guitar-reset {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+/* As .controls button. */
+.guitar button {
+  min-width: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.guitar button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Over the canvas and the message, which a lost context leaves behind. */
+.guitar-unavailable {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 16px;
+  background: var(--guitar-background);
+  color: var(--muted);
+  text-align: center;
 }
 
 .controls {

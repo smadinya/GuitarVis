@@ -96,6 +96,20 @@
         "id": {
           "type": "string"
         },
+        "loudness": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How loud the note is, relative to the song's loud notes. Not confidence."
+        },
         "midi": {
           "maximum": 127,
           "minimum": 0,

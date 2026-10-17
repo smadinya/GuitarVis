@@ -2,6 +2,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { NO_WEBGL } from "../guitar/Guitar";
 import { buildSong } from "../song";
 import { FakeMedia } from "../test/fakeMedia";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
@@ -134,13 +135,22 @@ describe("Player", () => {
     expect(strip.style.height).toMatch(/^\d+px$/);
   });
 
-  it("shows the fretboard above the tab strip", () => {
+  it("shows the guitar above the tab strip", async () => {
     mount();
 
-    const fretboard = screen.getByRole("img", { name: "Fretboard" });
+    const guitar = await screen.findByRole("img", { name: "Guitar" });
     const strip = screen.getByLabelText("Tab");
 
-    expect(fretboard.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(guitar.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("keeps playing from its controls when the guitar has no WebGL", async () => {
+    const media = mount();
+
+    await screen.findByText(NO_WEBGL); // jsdom has none
+
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    expect(media.paused).toBe(false);
   });
 
   it("shows the document's warnings", () => {

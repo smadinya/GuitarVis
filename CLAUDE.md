@@ -47,8 +47,8 @@ any default that would write specs elsewhere — see
 2. Fretboard mapper and evaluation harness
 3. API and job queue
 4. Web client: tab view and sync
-5. 2D fretboard, then 3D guitar ← **next**
-6. URL ingestion
+5. 2D fretboard, then 3D guitar
+6. URL ingestion ← **next**
 
 Phases 1–2 hold the technical risk. The rest is conventional work.
 
@@ -81,3 +81,6 @@ Phases 1–2 hold the technical risk. The rest is conventional work.
   Node is 22.22 or later.
 - `HIDE` and `FULL` in `web/src/confidence.ts` are measured
   (`docs/specs/006-tab-view-sync/calibration.md`), not tuned by eye.
+- The guitar's tests run without WebGL. Pure modules in `web/src/guitar/` run
+  on `node`, three.js included. `Guitar` and `Stage` take a fake renderer under
+  jsdom.
