@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import { isHidden } from "./confidence";
 import { cursorsOf, layout as fretboardLayout } from "./fretboard/layout";
 import { neckOf } from "./fretboard/neck";
+import { cursorsOf as soundingCursors, sounding } from "./guitar/sounding";
 import { buildSong, type Song } from "./song";
 import { PLAYHEAD_AT, PX_PER_SEC, layout as tabLayout, rowsOf } from "./tab/layout";
 import type { Note } from "./types/tabDocument";
@@ -91,5 +92,16 @@ describe("both views hide the same notes", () => {
 
     const expected = song.notes.filter(shown).map((n) => `dot:${n.id}`);
     expect([...lit].sort()).toEqual(expected.sort());
+  });
+
+  it("sounding() lights every note that isHidden leaves shown, and no other", () => {
+    const cursors = soundingCursors(song);
+    const lit = new Set<string>();
+
+    for (const now of [...song.notes.map((n) => n.t), ...grid]) {
+      for (const note of sounding(song, cursors, now).notes) lit.add(note.key);
+    }
+
+    expect([...lit].sort()).toEqual(song.notes.filter(shown).map((n) => `dot:${n.id}`).sort());
   });
 });
