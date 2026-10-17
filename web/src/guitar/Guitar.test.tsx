@@ -11,7 +11,7 @@ import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
 import { JOB_ID } from "../test/jobs";
 import type { TabDocument } from "../types/tabDocument";
 import { Guitar, NO_WEBGL, VIEW_KEY } from "./Guitar";
-import type { Renderer } from "./stage";
+import { LOST_GRACE_MS, type Renderer } from "./stage";
 
 const FIRST_SONG: TabDocument = firstSongJson;
 
@@ -62,6 +62,18 @@ function mount(
   return { engine, renderer, view, at };
 }
 
+/** Fake only the timers. The animation frames stay the stubs mount() sets. */
+function fakeTimers() {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+}
+
+/** Let `ms` pass on the faked timers. */
+function wait(ms: number) {
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
+}
+
 const button = (name: string) => screen.getByRole("button", { name });
 const overlayOf = (container: HTMLElement) => container.querySelector(".guitar-message") as HTMLElement;
 
@@ -73,6 +85,7 @@ describe("Guitar", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     localStorage.clear();
@@ -196,11 +209,16 @@ describe("Guitar", () => {
     expect(screen.queryByText(NO_WEBGL)).toBeNull();
   });
 
-  it("says so while the WebGL context is lost, and clears it once restored", () => {
+  it("says so once the WebGL context has stayed lost for the grace, and clears it once restored", () => {
+    fakeTimers();
     mount();
     const canvas = screen.getByRole("img", { name: "Guitar" });
 
     fireEvent(canvas, new Event("webglcontextlost"));
+    wait(LOST_GRACE_MS - 1);
+    expect(screen.queryByText(NO_WEBGL)).toBeNull();
+    expect(button("Reset view")).toBeTruthy();
+    wait(1);
     expect(screen.getByText(NO_WEBGL)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
 
@@ -209,12 +227,29 @@ describe("Guitar", () => {
     expect(button("Reset view")).toBeTruthy();
   });
 
+  it("keeps the guitar up through a loss that is restored within the grace", () => {
+    fakeTimers();
+    mount();
+    const canvas = screen.getByRole("img", { name: "Guitar" });
+
+    fireEvent(canvas, new Event("webglcontextlost"));
+    wait(LOST_GRACE_MS / 2);
+    expect(screen.queryByText(NO_WEBGL)).toBeNull();
+    fireEvent(canvas, new Event("webglcontextrestored"));
+    wait(LOST_GRACE_MS * 2);
+
+    expect(screen.queryByText(NO_WEBGL)).toBeNull();
+    expect(button("Reset view")).toBeTruthy();
+  });
+
   it("clears the WebGL message when a new song rebuilds the Stage", () => {
+    fakeTimers();
     const renderer = fakeRenderer();
     const createRenderer = () => renderer;
     const { engine, view } = mount(FIRST_SONG, renderer, createRenderer);
 
     fireEvent(screen.getByRole("img", { name: "Guitar" }), new Event("webglcontextlost"));
+    wait(LOST_GRACE_MS);
     expect(screen.getByText(NO_WEBGL)).toBeTruthy();
 
     // The old Stage, and its restore listener, go with the old song.
@@ -241,10 +276,12 @@ describe("Guitar", () => {
   });
 
   it("says the guitar stopped, not that WebGL is missing, when a draw throws while the context is lost", () => {
+    fakeTimers();
     vi.spyOn(console, "error").mockImplementation(() => {});
     const renderer = fakeRenderer();
     const { at } = mount(FIRST_SONG, renderer);
     fireEvent(screen.getByRole("img", { name: "Guitar" }), new Event("webglcontextlost"));
+    wait(LOST_GRACE_MS);
     expect(screen.getByText(NO_WEBGL)).toBeTruthy();
 
     renderer.render.mockImplementation(() => {

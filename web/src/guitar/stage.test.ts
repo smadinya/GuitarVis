@@ -11,7 +11,7 @@ import { JOB_ID } from "../test/jobs";
 import type { TabDocument } from "../types/tabDocument";
 import { HOME_3D, homePose, type Pose, type View } from "./camera";
 import { geometryOf } from "./geometry";
-import { Stage } from "./stage";
+import { LOST_GRACE_MS, Stage } from "./stage";
 
 const FIRST_SONG: TabDocument = firstSongJson;
 
@@ -216,6 +216,11 @@ function liveListeners() {
   return live;
 }
 
+/** Fake only the timers. The stage's frames and clock are its own, injected. */
+function fakeTimers() {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+}
+
 function expectPose(stage: Stage, pose: Pose) {
   const now = poseOf(stage);
   for (const axis of ["x", "y", "z"] as const) {
@@ -232,6 +237,7 @@ describe("Stage", () => {
 
   afterEach(() => {
     for (const box of boxes.splice(0)) box.remove();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -543,6 +549,51 @@ describe("Stage", () => {
     expect(presses).toHaveLength(1);
     expect(presses[0].shiftKey).toBe(true);
     stage.dispose();
+  });
+
+  it("reports a lost context only once it has stayed lost for the grace, and its return after that", () => {
+    fakeTimers();
+    const { stage, canvas, own, onLost } = setUp({ view: "3d" });
+
+    canvas.dispatchEvent(new Event("webglcontextlost"));
+    vi.advanceTimersByTime(LOST_GRACE_MS - 1);
+    expect(onLost).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(onLost).toHaveBeenCalledTimes(1);
+    expect(onLost).toHaveBeenLastCalledWith(true);
+
+    expect(own.pending).toBe(0);
+    canvas.dispatchEvent(new Event("webglcontextrestored"));
+    expect(onLost).toHaveBeenCalledTimes(2);
+    expect(onLost).toHaveBeenLastCalledWith(false);
+    expect(own.pending).toBe(1); // and it draws again
+    stage.dispose();
+  });
+
+  it("reports nothing for a context restored within the grace, and draws again", () => {
+    fakeTimers();
+    const { stage, canvas, own, onLost } = setUp({ view: "3d" });
+
+    canvas.dispatchEvent(new Event("webglcontextlost"));
+    vi.advanceTimersByTime(LOST_GRACE_MS / 2);
+    canvas.dispatchEvent(new Event("webglcontextrestored"));
+    vi.advanceTimersByTime(LOST_GRACE_MS * 2);
+
+    expect(onLost).not.toHaveBeenCalled();
+    expect(own.pending).toBe(1);
+    stage.dispose();
+  });
+
+  it("reports no loss once disposed during the grace", () => {
+    fakeTimers();
+    const { stage, canvas, onLost } = setUp({ view: "3d" });
+
+    canvas.dispatchEvent(new Event("webglcontextlost"));
+    stage.dispose();
+    vi.advanceTimersByTime(LOST_GRACE_MS * 2);
+
+    expect(onLost).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("stops drawing once disposed", () => {

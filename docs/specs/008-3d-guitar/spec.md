@@ -179,8 +179,12 @@ Reload the page to try again." in the panel, and the tab strip and controls
 carry on. Degrade, never fail.
 
 **No WebGL.** If the renderer cannot be created, or the context is lost and
-not restored, the panel shows "The guitar needs WebGL, which this browser has
-turned off." The tab strip and controls carry on. Degrade, never fail.
+not restored within `LOST_GRACE_MS` (1000 ms), the panel shows "The guitar
+needs WebGL 2, which this browser does not have available." A context
+restored within that time shows nothing: a GPU reset, after a driver update
+or a sleep and wake, comes back sooner. three r163 and later need WebGL 2, so
+a browser with only WebGL 1 gets the same message. The tab strip and controls
+carry on. Degrade, never fail. Amended by [009](../009-review-fixes/spec.md).
 
 ### The model
 

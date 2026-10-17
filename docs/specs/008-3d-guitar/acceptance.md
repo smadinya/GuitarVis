@@ -77,7 +77,7 @@ Notes: …
 - [ ] Dark mode: the background and dots follow the theme, and the guitar keeps its colours
 - [ ] Reduced motion: no pulse and no vibration, and the camera jumps instead of animating
 - [ ] Resizing the window during playback keeps the guitar and its dots right
-- [ ] WebGL turned off: the panel shows its message, and the tab strip and controls carry on
+- [ ] WebGL turned off: the panel shows "The guitar needs WebGL 2, which this browser does not have available.", and the tab strip and controls carry on (worded by [009](../009-review-fixes/spec.md), #19)
 
 Notes: …
 

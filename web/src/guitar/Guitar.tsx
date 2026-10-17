@@ -7,7 +7,9 @@ import type { Song } from "../song";
 import type { View } from "./camera";
 import { Stage, type Renderer } from "./stage";
 
-export const NO_WEBGL = "The guitar needs WebGL, which this browser has turned off.";
+/** True when WebGL is off, when only WebGL 1 exists (three needs 2), and when
+ * the context stays lost. */
+export const NO_WEBGL = "The guitar needs WebGL 2, which this browser does not have available.";
 /** Where the chosen view is remembered. */
 export const VIEW_KEY = "guitarvis.guitar-view";
 
@@ -54,7 +56,7 @@ function keepFocus(event: MouseEvent) {
 /**
  * The guitar panel. React renders its chrome: the canvas's box, the message
  * overlay, the view toggle and "Reset view". Everything per frame is the
- * Stage's, so React renders only on mount, on a view toggle, when WebGL is
+ * Stage's, so React renders only on mount, on a view toggle, when WebGL stays
  * lost or comes back, and when a draw throws. A throw's message wins over
  * the WebGL one.
  */

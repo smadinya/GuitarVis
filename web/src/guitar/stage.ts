@@ -12,7 +12,9 @@
  * redraw.
  *
  * A draw that throws stops the stage for good. It logs the error, disposes
- * itself and calls `onFailed`, and the engine's other views carry on.
+ * itself and calls `onFailed`, and the engine's other views carry on. A lost
+ * WebGL context is reported only if it stays lost for LOST_GRACE_MS: a GPU
+ * reset comes back sooner.
  *
  * The two views share one camera and one `OrbitControls`; the view sets what
  * the controls may do. In 2D the stage also clears the modifiers from a mouse
@@ -70,7 +72,9 @@ export interface StageOptions {
   engine: PlaybackEngine;
   renderer: Renderer;
   view: View;
-  /** Called with true when the WebGL context is lost, and false once it is back. */
+  /** Called with true once the WebGL context has stayed lost for
+   * LOST_GRACE_MS, and with false if it comes back after that. A context
+   * restored within the grace is never reported. */
   onLost: (lost: boolean) => void;
   /** Called once if a draw throws. The stage has disposed itself by then. */
   onFailed: () => void;
@@ -87,6 +91,11 @@ interface Tween {
   /** Wall-clock ms. */
   start: number;
 }
+
+/** How long a lost WebGL context may stay lost before the stage reports it.
+ * A GPU reset, after a driver update or a sleep and wake, comes back within
+ * it. */
+export const LOST_GRACE_MS = 1000;
 
 /** Past this many device pixels per CSS pixel, the cost outruns the gain. */
 const MAX_PIXEL_RATIO = 2;
@@ -185,6 +194,10 @@ export class Stage {
   private t: number;
   /** The stage's own pending animation frame. */
   private frame: number | null = null;
+  /** Reports a lost context once the grace is up. */
+  private lostTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Whether a lost context has been reported, and not its return. */
+  private lost = false;
   private disposed = false;
   /** What the overlay shows, so a frame writes to the DOM only what changed. */
   private readonly shown = { visible: false, text: "", chord: false, opacity: "" };
@@ -259,11 +272,8 @@ export class Stage {
 
     if (box !== null) this.listen(box, "pointerdown", (event) => this.unmodify(event as PointerEvent), true);
     this.listen(this.canvas, "dblclick", (event) => this.focus(event as MouseEvent));
-    this.listen(this.canvas, "webglcontextlost", () => this.onLost(true));
-    this.listen(this.canvas, "webglcontextrestored", () => {
-      this.onLost(false);
-      this.wake();
-    });
+    this.listen(this.canvas, "webglcontextlost", () => this.contextLost());
+    this.listen(this.canvas, "webglcontextrestored", () => this.contextRestored());
 
     // OrbitControls sends `start` on any press or wheel, moving or not, so a
     // gesture touches the camera only once the camera leaves where the gesture
@@ -329,6 +339,8 @@ export class Stage {
     this.disposed = true;
     if (this.frame !== null) this.cancelFrame(this.frame);
     this.frame = null;
+    if (this.lostTimer !== null) clearTimeout(this.lostTimer);
+    this.lostTimer = null;
     for (const unlisten of this.unlisten.splice(0)) unlisten();
     this.controls.dispose();
     // Disconnecting leaves an inline `cursor: auto`, which would beat the
@@ -510,6 +522,27 @@ export class Stage {
     this.palette = readPalette(this.canvas);
     this.scene.background = new Color(this.palette.background);
     this.notes.repaint();
+    this.wake();
+  }
+
+  /** Report the loss only if no restore comes within LOST_GRACE_MS. */
+  private contextLost(): void {
+    if (this.lostTimer !== null || this.lost) return;
+    this.lostTimer = setTimeout(() => {
+      this.lostTimer = null;
+      this.lost = true;
+      this.onLost(true);
+    }, LOST_GRACE_MS);
+  }
+
+  /** A restore within the grace reports nothing. Either way, draw again. */
+  private contextRestored(): void {
+    if (this.lostTimer !== null) clearTimeout(this.lostTimer);
+    this.lostTimer = null;
+    if (this.lost) {
+      this.lost = false;
+      this.onLost(false);
+    }
     this.wake();
   }
 
