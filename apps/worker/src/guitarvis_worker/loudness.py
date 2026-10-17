@@ -62,8 +62,13 @@ def _strums(notes: Sequence[TabNote]) -> list[list[int]]:
     """Indices of `notes` grouped into strums, each in onset order.
 
     A note joins the current group when it is within the window of the
-    group's *first* note, as the mapper's voicings are. Anchored there, a fast
-    run cannot chain into one group, and a strum spans at most the window.
+    group's *first* note, by the mapper's rule for voicings. Anchored there, a
+    fast run cannot chain into one group, and a strum spans at most the window.
+
+    The groups are of the notes the mapper kept, so they can differ from its
+    voicings. If it dropped a voicing's first note, the rest anchor on the
+    next one, and may take in the start of the next voicing. That costs only
+    a shared swing size, in a rare case.
     """
     groups: list[list[int]] = []
     first = 0.0
