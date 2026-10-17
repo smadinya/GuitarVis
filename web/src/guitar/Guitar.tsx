@@ -85,6 +85,8 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarP
       renderer.dispose();
       throw error;
     }
+    // A loss the old Stage reported is not this one's to show.
+    setUnavailable(false);
     stageRef.current = stage;
     return () => {
       stageRef.current = null;

@@ -202,6 +202,22 @@ describe("Guitar", () => {
     expect(button("Reset view")).toBeTruthy();
   });
 
+  it("clears the WebGL message when a new song rebuilds the Stage", () => {
+    const renderer = fakeRenderer();
+    const createRenderer = () => renderer;
+    const { engine, view } = mount(FIRST_SONG, renderer, createRenderer);
+
+    fireEvent(screen.getByRole("img", { name: "Guitar" }), new Event("webglcontextlost"));
+    expect(screen.getByText(NO_WEBGL)).toBeTruthy();
+
+    // The old Stage, and its restore listener, go with the old song.
+    view.rerender(<Guitar song={buildSong(FIRST_SONG)} engine={engine} createRenderer={createRenderer} />);
+
+    expect(screen.queryByText(NO_WEBGL)).toBeNull();
+    expect(screen.getByRole("group", { name: "View" })).toBeTruthy();
+    expect(button("Reset view")).toBeTruthy();
+  });
+
   it("shows a hidden passage's chord in the overlay, and nothing outside it", () => {
     const { view, at } = mount(HIDDEN_AM);
     const overlay = overlayOf(view.container);

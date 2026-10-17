@@ -128,7 +128,7 @@ order.
 tests. Docs: 008's `spec.md` *Rendering*, "No WebGL", and the message in
 `acceptance.md`.
 
-- [ ] **`log.ts`.** `export function logError(where: string, error: unknown):
+- [x] **`log.ts`.** `export function logError(where: string, error: unknown):
   void`, calling `console.error(\`[guitarvis] ${where}\`, error)`.
 - [ ] **#16.** Engine test: two frame listeners, the first throws; the second
   still gets `t`, the next frame is still requested, and the throw is logged.
@@ -138,7 +138,7 @@ tests. Docs: 008's `spec.md` *Rendering*, "No WebGL", and the message in
   wraps both draw paths in one guard that logs, disposes and calls `onFailed`.
   `Guitar` keeps a `failed` state and shows `GUITAR_FAILED` in the panel.
   Commit: `Fixes #16.`
-- [ ] **#17.** Tests: a lazy import that rejects shows `GUITAR_LOAD_FAILED`
+- [x] **#17.** Tests: a lazy import that rejects shows `GUITAR_LOAD_FAILED`
   (as now). A Guitar that throws on render shows `GUITAR_FAILED`. Both are
   logged. A `Stage` constructor that throws disposes the renderer, releases
   its context, and reaches the boundary. Code: `GuitarChunkError` (exported
@@ -146,7 +146,7 @@ tests. Docs: 008's `spec.md` *Rendering*, "No WebGL", and the message in
   `componentDidCatch` logs. `getDerivedStateFromError` records which message.
   In `Guitar.tsx`, `new Stage` inside the `try`. On a throw, dispose and
   release the renderer and rethrow. Commit: `Fixes #17.`
-- [ ] **#18.** Test: lose the context (the message shows after the grace),
+- [x] **#18.** Test: lose the context (the message shows after the grace),
   rebuild the Stage with a new song prop, and expect the view buttons back.
   Code: `setUnavailable(false)` after the Stage is built. Commit: `Fixes #18.`
 - [ ] **#19.** Tests with fake timers: a loss restored within 1000 ms never
