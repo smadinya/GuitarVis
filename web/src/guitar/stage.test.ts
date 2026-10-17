@@ -20,7 +20,7 @@ const boxes: HTMLElement[] = [];
 
 /** Stands in for three's WebGLRenderer: jsdom has no WebGL. */
 function fakeRenderer() {
-  return { setPixelRatio: vi.fn(), setSize: vi.fn(), render: vi.fn(), dispose: vi.fn() };
+  return { setPixelRatio: vi.fn(), setSize: vi.fn(), render: vi.fn(), dispose: vi.fn(), forceContextLoss: vi.fn() };
 }
 
 /** A Stage on a canvas inside a box, with a fake renderer. The engine's frames

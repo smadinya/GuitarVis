@@ -130,7 +130,7 @@ tests. Docs: 008's `spec.md` *Rendering*, "No WebGL", and the message in
 
 - [x] **`log.ts`.** `export function logError(where: string, error: unknown):
   void`, calling `console.error(\`[guitarvis] ${where}\`, error)`.
-- [ ] **#16.** Engine test: two frame listeners, the first throws; the second
+- [x] **#16.** Engine test: two frame listeners, the first throws; the second
   still gets `t`, the next frame is still requested, and the throw is logged.
   Stage test: a renderer whose `render` throws. The throw is logged once, the
   stage stops drawing, and `onFailed` is called once. Guitar test: the panel
@@ -149,7 +149,7 @@ tests. Docs: 008's `spec.md` *Rendering*, "No WebGL", and the message in
 - [x] **#18.** Test: lose the context (the message shows after the grace),
   rebuild the Stage with a new song prop, and expect the view buttons back.
   Code: `setUnavailable(false)` after the Stage is built. Commit: `Fixes #18.`
-- [ ] **#19.** Tests with fake timers: a loss restored within 1000 ms never
+- [x] **#19.** Tests with fake timers: a loss restored within 1000 ms never
   shows the message. A loss not restored shows it at 1000 ms. A restore after
   that clears it. Dispose clears the timer. Code: `LOST_GRACE_MS = 1000` in
   `stage.ts`. `webglcontextlost` starts the timer, `webglcontextrestored`
@@ -157,13 +157,13 @@ tests. Docs: 008's `spec.md` *Rendering*, "No WebGL", and the message in
   guitar needs WebGL 2, which this browser does not have available." Amend
   008's *Rendering*, "No WebGL", and its acceptance record's quote.
   Commit: `Fixes #19.`
-- [ ] **#12.** Tests: unmount calls `forceContextLoss` once. A rebuild on a
+- [x] **#12.** Tests: unmount calls `forceContextLoss` once. A rebuild on a
   new song does not. Under `<StrictMode>` the mount does not, and the final
   unmount does. Code: `Renderer` gains `forceContextLoss`. The fake renderers
   in `stage.test.ts` and `Guitar.test.tsx` gain it as `vi.fn()`. `Guitar`'s
   cleanup calls it after `stage.dispose()` when `!canvas.isConnected`.
   Commit: `Fixes #12.`
-- [ ] `npm run test`, `npm run typecheck` and `npm run lint` pass in `web/`.
+- [x] `npm run test`, `npm run typecheck` and `npm run lint` pass in `web/`.
 
 ## Task 5: Finish
 

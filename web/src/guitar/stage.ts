@@ -61,8 +61,9 @@ import { cursorsOf, sounding, type Cursors, type Message } from "./sounding";
 import { dotPainter, paintText, readPalette, type Palette } from "./textures";
 import { envelope, swing } from "./vibration";
 
-/** What the stage needs of three's WebGLRenderer, so a test can stand in for it. */
-export type Renderer = Pick<WebGLRenderer, "setPixelRatio" | "setSize" | "render" | "dispose">;
+/** What the guitar needs of three's WebGLRenderer, so a test can stand in for
+ * it. Guitar alone calls forceContextLoss, when its canvas leaves the page. */
+export type Renderer = Pick<WebGLRenderer, "setPixelRatio" | "setSize" | "render" | "dispose" | "forceContextLoss">;
 
 export interface StageOptions {
   canvas: HTMLCanvasElement;

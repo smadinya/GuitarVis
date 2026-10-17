@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GUITAR_FAILED } from "../labels";
@@ -24,7 +25,7 @@ const HIDDEN_AM: TabDocument = {
 
 /** Stands in for three's WebGLRenderer: jsdom has no WebGL. */
 function fakeRenderer() {
-  return { setPixelRatio: vi.fn(), setSize: vi.fn(), render: vi.fn(), dispose: vi.fn() };
+  return { setPixelRatio: vi.fn(), setSize: vi.fn(), render: vi.fn(), dispose: vi.fn(), forceContextLoss: vi.fn() };
 }
 
 /** An engine whose animation frames run only when flushed. */
@@ -205,8 +206,64 @@ describe("Guitar", () => {
     }
 
     expect(renderer.dispose).toHaveBeenCalledTimes(1);
+    expect(renderer.forceContextLoss).toHaveBeenCalledTimes(1);
     expect(screen.getByText(GUITAR_FAILED)).toBeTruthy();
     expect(screen.queryByText(NO_WEBGL)).toBeNull();
+  });
+
+  it("releases the WebGL context when the guitar unmounts, once the renderer is disposed", () => {
+    const renderer = fakeRenderer();
+    const { view } = mount(FIRST_SONG, renderer);
+    expect(renderer.forceContextLoss).not.toHaveBeenCalled();
+
+    view.unmount();
+
+    expect(renderer.forceContextLoss).toHaveBeenCalledTimes(1);
+    const [disposed] = renderer.dispose.mock.invocationCallOrder;
+    const [released] = renderer.forceContextLoss.mock.invocationCallOrder;
+    expect(disposed).toBeLessThan(released);
+  });
+
+  it("keeps the WebGL context when a new song rebuilds the Stage on the same canvas", () => {
+    const first = fakeRenderer();
+    const second = fakeRenderer();
+    const renderers = [first, second];
+    const createRenderer = () => renderers.shift() ?? fakeRenderer();
+    const { engine, view } = mount(FIRST_SONG, first, createRenderer);
+
+    view.rerender(<Guitar song={buildSong(FIRST_SONG)} engine={engine} createRenderer={createRenderer} />);
+    expect(first.dispose).toHaveBeenCalledTimes(1);
+    expect(first.forceContextLoss).not.toHaveBeenCalled();
+
+    view.unmount();
+    expect(first.forceContextLoss).not.toHaveBeenCalled();
+    expect(second.forceContextLoss).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the WebGL context through StrictMode's rehearsed unmount, and releases it on the real one", () => {
+    const song = buildSong(FIRST_SONG);
+    const { engine } = engineFor(song);
+    const made: Array<ReturnType<typeof fakeRenderer>> = [];
+    const createRenderer = () => {
+      const renderer = fakeRenderer();
+      made.push(renderer);
+      return renderer;
+    };
+
+    const view = render(
+      <StrictMode>
+        <Guitar song={song} engine={engine} createRenderer={createRenderer} />
+      </StrictMode>,
+    );
+    // Mounted, unmounted and mounted again, on one canvas.
+    expect(made).toHaveLength(2);
+    expect(made[0].dispose).toHaveBeenCalledTimes(1);
+    expect(made[0].forceContextLoss).not.toHaveBeenCalled();
+    expect(made[1].forceContextLoss).not.toHaveBeenCalled();
+
+    view.unmount();
+    expect(made[0].forceContextLoss).not.toHaveBeenCalled();
+    expect(made[1].forceContextLoss).toHaveBeenCalledTimes(1);
   });
 
   it("says so once the WebGL context has stayed lost for the grace, and clears it once restored", () => {

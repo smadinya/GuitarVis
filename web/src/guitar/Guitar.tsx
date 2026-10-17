@@ -96,8 +96,10 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarP
       });
     } catch (error) {
       // A bug, not missing WebGL: the boundary says so. The Stage has undone
-      // its own setup, and left the renderer to this effect.
+      // its own setup, and left the renderer to this effect. The boundary
+      // replaces this subtree, canvas and all, so the context goes too.
       renderer.dispose();
+      renderer.forceContextLoss();
       throw error;
     }
     // A loss or a throw the old Stage reported is not this one's to show.
@@ -107,6 +109,15 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarP
     return () => {
       stageRef.current = null;
       stage.dispose();
+      // Release the context only once the canvas has left the page. React
+      // detaches a deleted subtree's DOM before it runs passive-effect
+      // cleanups, so on a real unmount the canvas is already detached. On a
+      // rebuild (a new song, engine or createRenderer) and on StrictMode's
+      // rehearsed unmount it stays, and the next renderer gets its context:
+      // released here, that context would come to it already lost. After
+      // dispose, nothing listens for the loss, and three's forceContextLoss
+      // needs only the context, which dispose leaves.
+      if (!canvas.isConnected) renderer.forceContextLoss();
     };
   }, [song, engine, createRenderer]);
 
