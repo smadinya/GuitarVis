@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
-import { Fretboard } from "../fretboard/Fretboard";
 import type { MediaLike } from "../playback/clock";
 import { PlaybackEngine } from "../playback/engine";
 import type { Song } from "../song";
@@ -9,6 +8,10 @@ import { Controls } from "./Controls";
 import { useTransportKeys } from "./keys";
 import { Warnings } from "./Warnings";
 
+/** three.js is about 150 kB gzipped, so the guitar is its own chunk, fetched
+ * when a song first shows: the upload page never downloads it. */
+const Guitar = lazy(() => import("../guitar/Guitar").then((module) => ({ default: module.Guitar })));
+
 export interface PlayerProps {
   song: Song;
   jobId: string;
@@ -16,8 +19,8 @@ export interface PlayerProps {
   createMedia: () => MediaLike;
 }
 
-/** One engine per song; every view subscribes to it. The fretboard sits
- * above the tab strip; the 3D guitar will be one more onFrame listener. */
+/** One engine per song; every view subscribes to it. The guitar sits above
+ * the tab strip; each is one more onFrame listener. */
 export function Player({ song, jobId, createMedia }: PlayerProps) {
   const [engine, setEngine] = useState<PlaybackEngine | null>(null);
 
@@ -33,7 +36,9 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
   return (
     <section className="player">
       <Warnings warnings={song.warnings} />
-      <Fretboard song={song} engine={engine} />
+      <Suspense fallback={<div className="guitar" />}>
+        <Guitar song={song} engine={engine} />
+      </Suspense>
       <TabStrip song={song} engine={engine} />
       <Controls engine={engine} />
     </section>

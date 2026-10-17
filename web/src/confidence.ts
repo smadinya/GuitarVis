@@ -1,6 +1,6 @@
 /**
  * The confidence rule, shared by every view so that it cannot drift between
- * them. Phase 5's fretboards import this module unchanged.
+ * them. The guitar imports this module unchanged.
  *
  * The thresholds are measured, not chosen by eye. Where they came from, and
  * what they do to real songs, is recorded in
