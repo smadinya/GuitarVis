@@ -4,6 +4,7 @@ Every stage is stubbed. What is under test is what happens when one of them
 fails: the design's promise is that only "no usable guitar audio" fails a job.
 """
 
+import logging
 import math
 from collections.abc import Sequence
 from pathlib import Path
@@ -23,7 +24,9 @@ from guitarvis_core.contracts import (
 )
 from guitarvis_core.tabdoc import Beat, Chord, TabDocument, Timing
 from guitarvis_worker.pipeline import PipelineResult, StageProgress, run_pipeline
+from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
 from guitarvis_worker.timeouts import JobTimedOut
+from stem_fixture import write_stem
 
 
 class StubSeparator:
@@ -167,6 +170,35 @@ def test_loudness_reaches_the_document(tmp_path: Path) -> None:
     )
 
     assert doc.notes[0].loudness == 0.4
+
+
+def test_loudness_is_measured_from_the_stem(tmp_path: Path) -> None:
+    stem = write_stem(tmp_path / "song.wav", [(1.0, 0.3, 16000)])
+
+    result = run_pipeline(
+        IngestedAudio(path=stem, title="song", duration_sec=4.0),
+        separator=StubSeparator(),  # returns the input as the stem
+        transcriber=StubTranscriber([NoteEvent(1.0, 0.5, 52, 0.8)]),
+        analyzer=StubAnalyzer(),
+        mapper=ViterbiFretboardMapper(),
+    )
+
+    assert [note.loudness for note in result.document.notes] == [1.0]
+
+
+def test_an_unreadable_stem_costs_loudness_and_nothing_else(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.WARNING, logger="guitarvis_worker.pipeline"):
+        doc = run(  # audio() writes an empty file, which is no wav
+            tmp_path,
+            transcriber=StubTranscriber([NoteEvent(1.0, 0.5, 52, 0.8)]),
+            mapper=ViterbiFretboardMapper(),
+        )
+
+    assert [note.loudness for note in doc.notes] == [None]
+    assert doc.warnings == []
+    assert "loudness" in caplog.text
 
 
 EVERY_STAGE_STARTS = [

@@ -317,6 +317,7 @@ promise. A job fails outright only when there is no usable guitar audio.
 | Transcription confidence collapses in a passage | That passage shows chord symbols instead of fret numbers |
 | Guitar stem empty/near-silent | Retry with 4-stem `other`; if still empty, fail honestly: "No clear guitar part found" |
 | Fretboard mapper raises | No notes; timing and chords unaffected by it; a warning says why |
+| Loudness cannot be measured from the stem | Every note's `loudness` is null, and strings swing at the default amplitude; the worker logs it, and the document carries no warning |
 | Notes no hand could play, or outside the neck's range | Those notes dropped, never approximated; a warning gives the count |
 
 The tab document's independent, individually-omittable tracks were shaped
