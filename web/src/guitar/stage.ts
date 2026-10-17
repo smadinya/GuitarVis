@@ -3,11 +3,11 @@
  *
  * Each engine frame runs the spec's *Rendering* steps: what sounds now, the
  * dots for it, each string's swing, the overlay's text, and a draw. The engine
- * emits frames while the song plays and one after each change while paused.
- * The camera and a dot's pulse need frames of their own while paused, so the
- * stage requests them itself, at the engine's last time, and stops once
- * nothing moves. It never calls `engine.redraw()`, which would make every view
- * redraw.
+ * emits frames while the song plays. While paused, or while an audio source
+ * loads even with Play pressed, it emits one after each change. The camera and
+ * a dot's pulse need frames of their own then, so the stage requests them
+ * itself, at the engine's last time, and stops once nothing moves. It never
+ * calls `engine.redraw()`, which would make every view redraw.
  *
  * The two views share one camera and one `OrbitControls`; the view sets what
  * the controls may do. In 2D the stage also clears the modifiers from a mouse
@@ -323,10 +323,10 @@ export class Stage {
     return moving || pulsing;
   }
 
-  /** Ask for one frame of the stage's own. The engine draws every frame while
-   * the song plays, so then there is no need. */
+  /** Ask for one frame of the stage's own. While the engine emits frames it
+   * draws every one, so then there is no need. */
   private wake(): void {
-    if (this.disposed || this.frame !== null || this.engine.getState().playing) return;
+    if (this.disposed || this.frame !== null || this.engine.emittingFrames()) return;
     this.frame = this.requestFrame(() => {
       this.frame = null;
       if (this.draw(this.t)) this.wake();

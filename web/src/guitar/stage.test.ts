@@ -25,8 +25,9 @@ const boxes: HTMLElement[] = [];
 function setUp({ view }: { view: View }) {
   const song = buildSong(FIRST_SONG);
   const engineFrames = new FakeFrames();
+  const media = new FakeMedia();
   const engine = new PlaybackEngine({
-    media: new FakeMedia(),
+    media,
     jobId: JOB_ID,
     duration: song.duration,
     requestFrame: engineFrames.request,
@@ -87,7 +88,7 @@ function setUp({ view }: { view: View }) {
   };
   /** The 2D home pose at the box's aspect `width / height`. */
   const home2d = (width: number, height: number) => homePose("2d", geometryOf(song), width / height);
-  return { stage, canvas, own, engine, renderer, tick, at, resize, home2d };
+  return { stage, canvas, own, engine, media, renderer, tick, at, resize, home2d };
 }
 
 /** The stage's camera and controls, which only a test reaches into. */
@@ -206,13 +207,28 @@ describe("Stage", () => {
   });
 
   it("leaves the drawing to the engine's frames while the song plays", () => {
-    const { stage, own, engine } = setUp({ view: "3d" });
+    const { stage, own, engine, media } = setUp({ view: "3d" });
+    media.loadMetadata();
 
     engine.play();
     expect(engine.getState().playing).toBe(true);
     stage.setView("2d");
 
     expect(own.pending).toBe(0);
+    stage.dispose();
+  });
+
+  it("draws its own frames while the audio loads, even with Play pressed", () => {
+    const { stage, own, engine, renderer, tick } = setUp({ view: "3d" });
+
+    engine.play(); // before the metadata: the engine emits no frames yet
+    expect(engine.getState().playing).toBe(true);
+    stage.setView("2d");
+
+    expect(own.pending).toBe(1);
+    const before = renderer.render.mock.calls.length;
+    tick(16);
+    expect(renderer.render.mock.calls.length).toBe(before + 1);
     stage.dispose();
   });
 

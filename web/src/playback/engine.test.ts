@@ -597,6 +597,30 @@ describe("the end, and frames", () => {
     expect(frames.pending).toBe(0);
   });
 
+  it("emits frames only while playing with the source loaded", () => {
+    const { media, engine } = setup();
+    expect(engine.emittingFrames()).toBe(false); // paused
+
+    engine.play(); // before the metadata: playing, while the source loads
+    expect(engine.getState().playing).toBe(true);
+    expect(engine.emittingFrames()).toBe(false);
+
+    media.loadMetadata(200); // and the song resumes
+    expect(engine.emittingFrames()).toBe(true);
+
+    engine.pause();
+    expect(engine.emittingFrames()).toBe(false);
+  });
+
+  it("emits no frames once disposed", () => {
+    const { engine } = playingAt(5);
+    expect(engine.emittingFrames()).toBe(true);
+
+    engine.dispose();
+
+    expect(engine.emittingFrames()).toBe(false);
+  });
+
   it("gives every frame listener the same time", () => {
     const { engine, frames, play } = playingAt(5);
     const other: number[] = [];
