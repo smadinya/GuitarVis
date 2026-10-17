@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GUITAR_FAILED } from "../labels";
@@ -222,6 +222,55 @@ describe("Guitar", () => {
 
     expect(screen.queryByText(NO_WEBGL)).toBeNull();
     expect(screen.getByRole("group", { name: "View" })).toBeTruthy();
+    expect(button("Reset view")).toBeTruthy();
+  });
+
+  it("says the guitar stopped when a draw throws, in place of its buttons", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const renderer = fakeRenderer();
+    renderer.render.mockImplementation(() => {
+      throw new Error("a bug in the draw");
+    });
+    const { at } = mount(FIRST_SONG, renderer);
+
+    act(() => at(1));
+
+    expect(screen.getByText(GUITAR_FAILED)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "View" })).toBeNull();
+  });
+
+  it("says the guitar stopped, not that WebGL is missing, when a draw throws while the context is lost", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const renderer = fakeRenderer();
+    const { at } = mount(FIRST_SONG, renderer);
+    fireEvent(screen.getByRole("img", { name: "Guitar" }), new Event("webglcontextlost"));
+    expect(screen.getByText(NO_WEBGL)).toBeTruthy();
+
+    renderer.render.mockImplementation(() => {
+      throw new Error("a bug in the draw");
+    });
+    act(() => at(1));
+
+    expect(screen.getByText(GUITAR_FAILED)).toBeTruthy();
+    expect(screen.queryByText(NO_WEBGL)).toBeNull();
+  });
+
+  it("brings the guitar back when a new song rebuilds the Stage after a failure", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const broken = fakeRenderer();
+    broken.render.mockImplementation(() => {
+      throw new Error("a bug in the draw");
+    });
+    const renderers = [broken, fakeRenderer()];
+    const createRenderer = () => renderers.shift() ?? fakeRenderer();
+    const { engine, view, at } = mount(FIRST_SONG, broken, createRenderer);
+    act(() => at(1));
+    expect(screen.getByText(GUITAR_FAILED)).toBeTruthy();
+
+    view.rerender(<Guitar song={buildSong(FIRST_SONG)} engine={engine} createRenderer={createRenderer} />);
+
+    expect(screen.queryByText(GUITAR_FAILED)).toBeNull();
     expect(button("Reset view")).toBeTruthy();
   });
 

@@ -11,6 +11,9 @@
  * once a frame. It never calls `engine.redraw()`, which would make every view
  * redraw.
  *
+ * A draw that throws stops the stage for good. It logs the error, disposes
+ * itself and calls `onFailed`, and the engine's other views carry on.
+ *
  * The two views share one camera and one `OrbitControls`; the view sets what
  * the controls may do. In 2D the stage also clears the modifiers from a mouse
  * press, so a shift-drag pans as any drag does. Every number about where the
@@ -30,6 +33,7 @@ import {
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
+import { logError } from "../log";
 import type { PlaybackEngine } from "../playback/engine";
 import type { Song } from "../song";
 import {
@@ -68,6 +72,8 @@ export interface StageOptions {
   view: View;
   /** Called with true when the WebGL context is lost, and false once it is back. */
   onLost: (lost: boolean) => void;
+  /** Called once if a draw throws. The stage has disposed itself by then. */
+  onFailed: () => void;
   /** Wall-clock ms: performance.now(), injectable for tests. */
   now?: () => number;
   requestFrame?: (callback: () => void) => number;
@@ -150,6 +156,7 @@ export class Stage {
   private readonly engine: PlaybackEngine;
   private readonly renderer: Renderer;
   private readonly onLost: (lost: boolean) => void;
+  private readonly onFailed: () => void;
   private readonly now: () => number;
   private readonly requestFrame: (callback: () => void) => number;
   private readonly cancelFrame: (id: number) => void;
@@ -164,7 +171,6 @@ export class Stage {
   private readonly raycaster = new Raycaster();
   /** Undo every listener and observer the stage added. */
   private readonly unlisten: Array<() => void> = [];
-  private readonly stop: () => void;
 
   private view: View;
   private palette: Palette;
@@ -190,6 +196,7 @@ export class Stage {
     this.engine = options.engine;
     this.renderer = options.renderer;
     this.onLost = options.onLost;
+    this.onFailed = options.onFailed;
     this.now = options.now ?? (() => performance.now());
     this.requestFrame = options.requestFrame ?? ((callback) => requestAnimationFrame(() => callback()));
     this.cancelFrame = options.cancelFrame ?? ((id) => cancelAnimationFrame(id));
@@ -212,7 +219,21 @@ export class Stage {
     this.overlay.style.opacity = "";
 
     this.camera = new PerspectiveCamera(FOV, PANEL_ASPECT, NEAR, FAR);
+    // The controls listen on the canvas from here on. If a later step throws,
+    // the stage undoes all it set up, so nothing is left listening. The
+    // renderer is still the caller's then, to dispose.
     this.controls = new OrbitControls(this.camera, this.canvas);
+    try {
+      this.connect();
+    } catch (error) {
+      this.release();
+      throw error;
+    }
+  }
+
+  /** The constructor's second half: the controls, the camera's first pose,
+   * and every listener, observer and frame. */
+  private connect(): void {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = DAMPING;
     this.controls.zoomToCursor = true;
@@ -272,11 +293,12 @@ export class Stage {
 
     // The stage's own frame, if pending, draws at this `t`. Either may run
     // first in the browser's frame, so cancelling it here would not do.
-    this.stop = this.engine.onFrame((t) => {
-      this.t = t;
-      if (this.frame !== null) return;
-      if (this.draw(t)) this.wake();
-    });
+    this.unlisten.push(
+      this.engine.onFrame((t) => {
+        this.t = t;
+        if (this.frame === null) this.frameAt(t);
+      }),
+    );
   }
 
   /** Switch views, and move to the new view's home. */
@@ -297,8 +319,14 @@ export class Stage {
 
   dispose(): void {
     if (this.disposed) return;
+    this.release();
+    this.renderer.dispose();
+  }
+
+  /** Undo all the stage set up, except the renderer: its frames, listeners
+   * and observers, the controls and the model. */
+  private release(): void {
     this.disposed = true;
-    this.stop();
     if (this.frame !== null) this.cancelFrame(this.frame);
     this.frame = null;
     for (const unlisten of this.unlisten.splice(0)) unlisten();
@@ -308,7 +336,20 @@ export class Stage {
     this.canvas.style.removeProperty("cursor");
     this.notes.dispose();
     this.model.dispose();
-    this.renderer.dispose();
+  }
+
+  /** Draw at `t`, and ask for more frames while anything moves. Both kinds of
+   * frame draw through here. A throw stops the guitar for good: the stage
+   * logs it, disposes itself and says so. It goes no further, so the engine's
+   * other views carry on. */
+  private frameAt(t: number): void {
+    try {
+      if (this.draw(t)) this.wake();
+    } catch (error) {
+      logError("the guitar failed to draw", error);
+      this.dispose();
+      this.onFailed();
+    }
   }
 
   /** One frame at song time `t`. Returns whether anything is still moving. */
@@ -334,7 +375,7 @@ export class Stage {
     if (this.disposed || this.frame !== null || this.engine.emittingFrames()) return;
     this.frame = this.requestFrame(() => {
       this.frame = null;
-      if (this.draw(this.t)) this.wake();
+      this.frameAt(this.t);
     });
   }
 

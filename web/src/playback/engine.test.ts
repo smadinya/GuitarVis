@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { FakeFrames, FakeMedia } from "../test/fakeMedia";
 import { MAX_FAILURES, PlaybackEngine } from "./engine";
@@ -632,6 +632,26 @@ describe("the end, and frames", () => {
     frames.flush();
 
     expect(seen).toEqual(other.slice(-seen.length));
+  });
+
+  it("goes on to the next listener, and the next frame, when one throws", () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { engine, frames, play } = playingAt(5);
+    engine.onFrame(() => {
+      throw new Error("a bug in one view");
+    });
+    const seen: number[] = [];
+    engine.onFrame((t) => seen.push(t));
+
+    try {
+      play(0.5);
+
+      expect(seen).toEqual([5.5]);
+      expect(frames.pending).toBe(1);
+      expect(logged).toHaveBeenCalledTimes(1);
+    } finally {
+      logged.mockRestore();
+    }
   });
 
   it("updates the time readout about four times a second, not every frame", () => {

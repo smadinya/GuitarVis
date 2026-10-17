@@ -18,6 +18,11 @@ const FIRST_SONG: TabDocument = firstSongJson;
 /** Every box made, removed after each test. */
 const boxes: HTMLElement[] = [];
 
+/** Stands in for three's WebGLRenderer: jsdom has no WebGL. */
+function fakeRenderer() {
+  return { setPixelRatio: vi.fn(), setSize: vi.fn(), render: vi.fn(), dispose: vi.fn() };
+}
+
 /** A Stage on a canvas inside a box, with a fake renderer. The engine's frames
  * and the stage's own are separate queues, both flushed by hand, and the
  * stage's wall clock moves only when the test says. The box has no size until
@@ -34,7 +39,9 @@ function setUp({ view }: { view: View }) {
     cancelFrame: engineFrames.cancel,
   });
   const own = new FakeFrames();
-  const renderer = { setPixelRatio: vi.fn(), setSize: vi.fn(), render: vi.fn(), dispose: vi.fn() };
+  const renderer = fakeRenderer();
+  const onLost = vi.fn();
+  const onFailed = vi.fn();
 
   const box = document.createElement("div");
   const canvas = document.createElement("canvas");
@@ -64,7 +71,8 @@ function setUp({ view }: { view: View }) {
     engine,
     renderer,
     view,
-    onLost: () => {},
+    onLost,
+    onFailed,
     now: () => wall,
     requestFrame: own.request,
     cancelFrame: own.cancel,
@@ -88,7 +96,22 @@ function setUp({ view }: { view: View }) {
   };
   /** The 2D home pose at the box's aspect `width / height`. */
   const home2d = (width: number, height: number) => homePose("2d", geometryOf(song), width / height);
-  return { stage, canvas, overlay, own, engine, engineFrames, media, renderer, tick, at, resize, home2d };
+  return {
+    stage,
+    canvas,
+    overlay,
+    own,
+    engine,
+    engineFrames,
+    media,
+    renderer,
+    onLost,
+    onFailed,
+    tick,
+    at,
+    resize,
+    home2d,
+  };
 }
 
 /** The stage's camera and controls, which only a test reaches into. */
@@ -160,6 +183,37 @@ function stubMatchMedia() {
       return [...listeners.values()].reduce((sum, set) => sum + set.size, 0);
     },
   };
+}
+
+/** Every DOM listener added from now on and not removed since. */
+function liveListeners() {
+  const live: Array<{ target: EventTarget; type: string; listener: unknown; capture: boolean }> = [];
+  const captures = (options?: boolean | EventListenerOptions) =>
+    typeof options === "boolean" ? options : options?.capture === true;
+  const add = EventTarget.prototype.addEventListener;
+  const remove = EventTarget.prototype.removeEventListener;
+  vi.spyOn(EventTarget.prototype, "addEventListener").mockImplementation(function (
+    this: EventTarget,
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
+    options?: boolean | AddEventListenerOptions,
+  ) {
+    live.push({ target: this, type, listener, capture: captures(options) });
+    add.call(this, type, listener, options);
+  });
+  vi.spyOn(EventTarget.prototype, "removeEventListener").mockImplementation(function (
+    this: EventTarget,
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
+    options?: boolean | EventListenerOptions,
+  ) {
+    const i = live.findIndex(
+      (l) => l.target === this && l.type === type && l.listener === listener && l.capture === captures(options),
+    );
+    if (i !== -1) live.splice(i, 1);
+    remove.call(this, type, listener, options);
+  });
+  return live;
 }
 
 function expectPose(stage: Stage, pose: Pose) {
@@ -500,5 +554,92 @@ describe("Stage", () => {
 
     expect(renderer.render.mock.calls.length).toBe(calls);
     expect(renderer.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops for good when a draw in an engine frame throws, and the engine's other views carry on", () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { stage, engine, renderer, onFailed, tick, at } = setUp({ view: "3d" });
+    renderer.render.mockImplementation(() => {
+      throw new Error("a bug in the draw");
+    });
+    const seen: number[] = [];
+    engine.onFrame((t) => seen.push(t)); // after the stage's own listener
+
+    at(1);
+    expect(logged).toHaveBeenCalledTimes(1);
+    expect(onFailed).toHaveBeenCalledTimes(1);
+    expect(renderer.dispose).toHaveBeenCalledTimes(1);
+    expect(seen.at(-1)).toBe(1);
+
+    const renders = renderer.render.mock.calls.length;
+    stage.setView("2d"); // a camera move, which would draw frames of its own
+    tick(16);
+    at(2);
+    expect(renderer.render.mock.calls.length).toBe(renders);
+    expect(seen.at(-1)).toBe(2);
+    expect(logged).toHaveBeenCalledTimes(1);
+    expect(onFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it("undoes what it set up when its constructor throws, and leaves the renderer to its owner", () => {
+    const media = stubMatchMedia();
+    let observing = 0;
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {
+          observing += 1;
+        }
+        disconnect() {
+          observing = 0;
+        }
+      },
+    );
+    const song = buildSong(FIRST_SONG);
+    const engine = new PlaybackEngine({ media: new FakeMedia(), jobId: JOB_ID, duration: song.duration });
+    // The constructor subscribes to the engine last, after everything else.
+    vi.spyOn(engine, "onFrame").mockImplementation(() => {
+      throw new Error("a bug in the Stage");
+    });
+    const box = document.createElement("div");
+    const canvas = document.createElement("canvas");
+    const overlay = document.createElement("div");
+    box.append(canvas, overlay);
+    document.body.append(box);
+    boxes.push(box);
+    const renderer = fakeRenderer();
+    const live = liveListeners();
+
+    expect(
+      () =>
+        new Stage({ canvas, overlay, song, engine, renderer, view: "3d", onLost: vi.fn(), onFailed: vi.fn() }),
+    ).toThrow("a bug in the Stage");
+
+    expect(live).toEqual([]);
+    expect(media.total()).toBe(0);
+    expect(observing).toBe(0);
+    expect(renderer.dispose).not.toHaveBeenCalled();
+    engine.dispose();
+  });
+
+  it("stops for good when a draw in its own frame throws", () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { stage, own, renderer, onFailed, tick, at } = setUp({ view: "3d" });
+    stage.setView("2d");
+    expect(own.pending).toBe(1);
+    renderer.render.mockImplementation(() => {
+      throw new Error("a bug in the draw");
+    });
+
+    tick(16);
+    expect(logged).toHaveBeenCalledTimes(1);
+    expect(onFailed).toHaveBeenCalledTimes(1);
+    expect(own.pending).toBe(0);
+
+    const renders = renderer.render.mock.calls.length;
+    tick(16);
+    at(2);
+    expect(renderer.render.mock.calls.length).toBe(renders);
+    expect(onFailed).toHaveBeenCalledTimes(1);
   });
 });

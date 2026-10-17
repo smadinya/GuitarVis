@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { WebGLRenderer } from "three";
 
+import { GUITAR_FAILED } from "../labels";
 import type { PlaybackEngine } from "../playback/engine";
 import type { Song } from "../song";
 import type { View } from "./camera";
@@ -53,8 +54,9 @@ function keepFocus(event: MouseEvent) {
 /**
  * The guitar panel. React renders its chrome: the canvas's box, the message
  * overlay, the view toggle and "Reset view". Everything per frame is the
- * Stage's, so React renders only on mount, on a view toggle, and when WebGL
- * is lost or comes back.
+ * Stage's, so React renders only on mount, on a view toggle, when WebGL is
+ * lost or comes back, and when a draw throws. A throw's message wins over
+ * the WebGL one.
  */
 export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -65,6 +67,7 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarP
   // rebuilding the Stage.
   const viewRef = useRef(view);
   const [unavailable, setUnavailable] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -79,14 +82,25 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarP
     }
     let stage: Stage;
     try {
-      stage = new Stage({ canvas, overlay, song, engine, renderer, view: viewRef.current, onLost: setUnavailable });
+      stage = new Stage({
+        canvas,
+        overlay,
+        song,
+        engine,
+        renderer,
+        view: viewRef.current,
+        onLost: setUnavailable,
+        onFailed: () => setFailed(true),
+      });
     } catch (error) {
-      // A bug, not missing WebGL: the boundary says so.
+      // A bug, not missing WebGL: the boundary says so. The Stage has undone
+      // its own setup, and left the renderer to this effect.
       renderer.dispose();
       throw error;
     }
-    // A loss the old Stage reported is not this one's to show.
+    // A loss or a throw the old Stage reported is not this one's to show.
     setUnavailable(false);
+    setFailed(false);
     stageRef.current = stage;
     return () => {
       stageRef.current = null;
@@ -106,8 +120,8 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarP
     <div className="guitar">
       <canvas ref={canvasRef} role="img" aria-label="Guitar" />
       <div ref={overlayRef} className="guitar-message" hidden />
-      {unavailable ? (
-        <p className="guitar-unavailable">{NO_WEBGL}</p>
+      {failed || unavailable ? (
+        <p className="guitar-unavailable">{failed ? GUITAR_FAILED : NO_WEBGL}</p>
       ) : (
         <>
           <div className="guitar-views" role="group" aria-label="View">
