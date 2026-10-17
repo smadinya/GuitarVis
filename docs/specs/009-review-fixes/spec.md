@@ -61,7 +61,11 @@ Amends 008's *Loudness*, "Strums".
 so the measurement is unchanged. Any transcriber still gets loudness, which
 was 008's reason to measure outside the stages, and now any mapper does too,
 with nothing to copy. Notes the mapper drops leave the strum groups, which is
-better: they are not in the document.
+better: they are not in the document. A strum can then differ from the
+mapper's voicing. If the mapper drops a voicing's first note, the rest anchor
+on the next note kept, and can take in the start of the next voicing. Only a
+swing size is shared, in a rare case, so the helper does not try to rebuild
+the voicings.
 
 `NoteEvent` loses `loudness`. Nothing would set it, and an unset field that
 claims to be "measured from the stem" invites the same mistake again. Cached
@@ -99,7 +103,8 @@ new ratio.
 while shift, ctrl or meta is held, and rotation is off in 2D, so the drag was
 dropped. 3D teaches shift-drag to pan, so the habit comes with the user to
 2D. In 2D, a capture-phase `pointerdown` listener on the canvas's box catches
-a mouse press with a modifier held. It stops that event and sends a copy to
+a mouse or pen press with a modifier held. OrbitControls treats every pointer
+but touch as a mouse. It stops that event and sends a copy to
 the canvas with the modifiers cleared. OrbitControls then starts a pan, and
 the drag's moves and its release reach it unchanged.
 

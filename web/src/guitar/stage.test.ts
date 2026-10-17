@@ -125,12 +125,13 @@ function poseOf(stage: Stage): Pose {
   return { position: camera.position.clone(), target: controls.target.clone() };
 }
 
-type Modifiers = Pick<PointerEventInit, "shiftKey" | "ctrlKey" | "metaKey">;
+type Press = Pick<PointerEventInit, "shiftKey" | "ctrlKey" | "metaKey" | "pointerType">;
 
-/** A left-button mouse drag, 60 px to the right, as a browser sends it. jsdom
- * has no pointer capture and lays nothing out, and OrbitControls scales a pan
- * by the canvas's height, so the canvas gets both first. */
-function drag(canvas: HTMLCanvasElement, modifiers: Modifiers) {
+/** A left-button drag, 60 px to the right, as a browser sends it: a mouse's
+ * unless `press` says otherwise. jsdom has no pointer capture and lays nothing
+ * out, and OrbitControls scales a pan by the canvas's height, so the canvas
+ * gets both first. */
+function drag(canvas: HTMLCanvasElement, press: Press) {
   canvas.setPointerCapture = vi.fn();
   canvas.releasePointerCapture = vi.fn();
   Object.defineProperty(canvas, "clientHeight", { configurable: true, value: 300 });
@@ -145,7 +146,7 @@ function drag(canvas: HTMLCanvasElement, modifiers: Modifiers) {
         buttons,
         clientX,
         clientY: 100,
-        ...modifiers,
+        ...press,
       }),
     );
   send("pointerdown", 100, 1);
@@ -531,6 +532,21 @@ describe("Stage", () => {
       expect(presses[0][modifier]).toBe(false);
       stage.dispose();
     }
+  });
+
+  it("pans on a pen drag with shift held in 2D, as OrbitControls treats a pen as a mouse", () => {
+    const { stage, canvas } = setUp({ view: "2d" });
+    const { controls } = insides(stage);
+    const presses = pressesOn(canvas);
+    const before = controls.target.clone();
+
+    drag(canvas, { shiftKey: true, pointerType: "pen" });
+
+    expect(controls.target.distanceTo(before)).toBeGreaterThan(1);
+    expect(presses).toHaveLength(1);
+    expect(presses[0].shiftKey).toBe(false);
+    expect(presses[0].pointerType).toBe("pen");
+    stage.dispose();
   });
 
   it("leaves a shift-drag in 3D to the controls, which pan", () => {

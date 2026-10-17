@@ -18,7 +18,7 @@
  *
  * The two views share one camera and one `OrbitControls`; the view sets what
  * the controls may do. In 2D the stage also clears the modifiers from a mouse
- * press, so a shift-drag pans as any drag does. Every number about where the
+ * or pen press, so a shift-drag pans as any drag does. Every number about where the
  * camera goes is in camera.ts.
  */
 import {
@@ -471,14 +471,15 @@ export class Stage {
   }
 
   /**
-   * In 2D, a mouse drag with shift, ctrl or meta held pans like any other.
-   * OrbitControls would make the press a rotation, which 2D turns off. So the
-   * press stops here, and a copy without the modifiers goes to the canvas in
-   * its place; this listener lets the copy through. The drag's moves and its
-   * release reach the controls unchanged.
+   * In 2D, a mouse or pen drag with shift, ctrl or meta held pans like any
+   * other. OrbitControls treats every pointer but touch as a mouse, and would
+   * make the press a rotation, which 2D turns off. So the press stops here,
+   * and a copy without the modifiers goes to the canvas in its place; this
+   * listener lets the copy through. The drag's moves and its release reach
+   * the controls unchanged.
    */
   private unmodify(event: PointerEvent): void {
-    if (this.view !== "2d" || event.pointerType !== "mouse" || event.target !== this.canvas) return;
+    if (this.view !== "2d" || event.pointerType === "touch" || event.target !== this.canvas) return;
     if (!event.shiftKey && !event.ctrlKey && !event.metaKey) return;
     event.stopPropagation();
     this.canvas.dispatchEvent(
