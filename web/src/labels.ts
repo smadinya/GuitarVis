@@ -6,6 +6,9 @@
 
 export const EMPTY_MESSAGE = "No notes to show";
 export const UNCLEAR_LABEL = "unclear passage";
+/** In the guitar's place when its code could not be fetched. A reload is the
+ * only retry: the failed fetch is remembered until the page is. */
+export const GUITAR_LOAD_FAILED = "The guitar could not load. Reload the page to try again.";
 
 /** Pitch classes from C, spelled with sharps as the chord symbols are. */
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];

@@ -5,6 +5,7 @@ import { PlaybackEngine } from "../playback/engine";
 import type { Song } from "../song";
 import { TabStrip } from "../tab/TabStrip";
 import { Controls } from "./Controls";
+import { GuitarBoundary } from "./GuitarBoundary";
 import { useTransportKeys } from "./keys";
 import { Warnings } from "./Warnings";
 
@@ -36,9 +37,11 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
   return (
     <section className="player">
       <Warnings warnings={song.warnings} />
-      <Suspense fallback={<div className="guitar" />}>
-        <Guitar song={song} engine={engine} />
-      </Suspense>
+      <GuitarBoundary>
+        <Suspense fallback={<div className="guitar" />}>
+          <Guitar song={song} engine={engine} />
+        </Suspense>
+      </GuitarBoundary>
       <TabStrip song={song} engine={engine} />
       <Controls engine={engine} />
     </section>
