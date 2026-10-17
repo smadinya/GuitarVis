@@ -202,6 +202,7 @@ def run_pipeline(
                 string=tab.string,
                 fret=tab.fret,
                 confidence=tab.confidence,
+                loudness=tab.loudness,
             )
             check_invariant(note, tuning)
         except (InvariantViolation, IndexError, ValueError) as exc:

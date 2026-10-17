@@ -159,6 +159,16 @@ def test_produces_a_valid_document(tmp_path: Path) -> None:
     assert doc.timing.tempo_bpm_avg == 120.0
 
 
+def test_loudness_reaches_the_document(tmp_path: Path) -> None:
+    doc = run(
+        tmp_path,
+        transcriber=StubTranscriber([NoteEvent(1.0, 0.5, 52, 0.8)]),
+        mapper=StubMapper([TabNote(1.0, 0.5, 52, 2, 2, 0.8, loudness=0.4)]),
+    )
+
+    assert doc.notes[0].loudness == 0.4
+
+
 EVERY_STAGE_STARTS = [
     ("separation", 0),
     ("transcription", 40),

@@ -115,6 +115,7 @@ class ViterbiFretboardMapper:
                 string=string,
                 fret=fret,
                 confidence=note.confidence,
+                loudness=note.loudness,
             )
             for voicing, choice in zip(voicings, path, strict=True)
             for note, (string, fret) in zip(voicing, choice.places, strict=True)

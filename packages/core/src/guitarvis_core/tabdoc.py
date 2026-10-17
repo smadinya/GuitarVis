@@ -85,6 +85,14 @@ class Note(Strict):
     string: int = Field(ge=0, description="0 is the lowest string.")
     fret: int = Field(ge=0)
     confidence: float = Field(ge=0, le=1)
+    loudness: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+        description=(
+            "How loud the note is, relative to the song's loud notes. Not confidence."
+        ),
+    )
     technique: Technique | None = None
 
 

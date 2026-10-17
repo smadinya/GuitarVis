@@ -224,6 +224,19 @@ def test_a_transcription_miss_then_hit(tmp_path: Path) -> None:
     assert (first.calls, second.calls) == (1, 0)
 
 
+def test_a_transcription_cached_before_loudness_still_loads(tmp_path: Path) -> None:
+    blobs = InMemoryBlobStore()
+    old = [{"onset": 1.0, "duration": 0.5, "midi": 52, "confidence": 0.8}]
+    blobs.put_bytes(KEYS.transcription, json.dumps(old).encode())
+    inner = CountingTranscriber()
+
+    events = CachedTranscriber(inner, blobs, KEYS).transcribe(tmp_path)
+
+    assert events == EVENTS
+    assert events[0].loudness is None
+    assert inner.calls == 0
+
+
 def test_an_empty_transcription_is_cached_too(tmp_path: Path) -> None:
     blobs = InMemoryBlobStore()
     CachedTranscriber(CountingTranscriber(events=[]), blobs, KEYS).transcribe(tmp_path)

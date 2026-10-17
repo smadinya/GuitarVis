@@ -37,6 +37,10 @@ export interface Note {
   dur: number;
   fret: number;
   id: string;
+  /**
+   * How loud the note is, relative to the song's loud notes. Not confidence.
+   */
+  loudness?: number | null;
   midi: number;
   /**
    * 0 is the lowest string.
