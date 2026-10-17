@@ -42,6 +42,29 @@ describe("frets", () => {
     expect(g.boardEnd).toBeCloseTo(g.wireX[20] - 10, 9);
     expect(g.boardEnd).toBeCloseTo(-455.26, 2);
   });
+
+  it("ignores a negative fret, and counts from the highest of the rest", () => {
+    expect(geometryOf(songWith([-3])).frets).toBe(20);
+    expect(geometryOf(songWith([-3, 22])).frets).toBe(22);
+  });
+
+  it("runs `along` from 0 at the nut to 1 at the end, and holds there past either", () => {
+    expect(g.along(0)).toBe(0);
+    expect(g.along(g.boardEnd / 2)).toBeCloseTo(0.5, 9);
+    expect(g.along(g.boardEnd)).toBe(1);
+    expect(g.along(1)).toBe(0);
+    expect(g.along(100)).toBe(0);
+    expect(g.along(2 * g.boardEnd)).toBe(1);
+    expect(g.along(-1000)).toBe(1);
+  });
+
+  it("makes the fingerboard 1.7 × (22 + 6.5a) mm either side of the centre", () => {
+    expect(g.halfWidth(0)).toBeCloseTo(37.4, 9);
+    expect(g.halfWidth(g.boardEnd / 2)).toBeCloseTo(42.925, 9);
+    expect(g.halfWidth(g.boardEnd)).toBeCloseTo(48.45, 9);
+    expect(g.halfWidth(100)).toBeCloseTo(37.4, 9);
+    expect(g.halfWidth(2 * g.boardEnd)).toBeCloseTo(48.45, 9);
+  });
 });
 
 describe("marks", () => {
@@ -65,6 +88,14 @@ describe("marks", () => {
       expect(at.x).toBe(OPEN_X);
       expect((at.y - y0) / (top.y - y0)).toBeCloseTo(OPEN_X / top.x, 9);
       expect(open).toBe(true);
+    }
+  });
+
+  it("lifts an open ring 1 mm off the line from the nut, 2.8 mm up, to its post's top", () => {
+    for (let s = 0; s < 6; s++) {
+      const { at } = g.mark(s, 0);
+      const { top } = g.tuners[s];
+      expect((at.z - LIFT - 2.8) / (top.z - 2.8)).toBeCloseTo(OPEN_X / top.x, 9);
     }
   });
 
@@ -97,6 +128,38 @@ describe("strings", () => {
     expect(g.stringY(5, g.boardEnd)).toBeCloseTo(-41.65, 9);
   });
 
+  it("holds the strings 2.8 + 1.6a mm above the board, whatever the string", () => {
+    expect(g.stringZ(0)).toBeCloseTo(2.8, 9);
+    expect(g.stringZ(g.boardEnd / 2)).toBeCloseTo(3.6, 9);
+    expect(g.stringZ(g.boardEnd)).toBeCloseTo(4.4, 9);
+    expect(g.stringZ(100)).toBeCloseTo(2.8, 9);
+    expect(g.stringZ(2 * g.boardEnd)).toBeCloseTo(4.4, 9);
+    expect(g.stringY(0, g.boardEnd / 2)).toBeCloseTo(35.7, 9);
+    expect(g.stringY(2, 0)).toBeCloseTo(29.75 / 5, 9);
+  });
+
+  it("puts a lone string on the centreline, with a post, a dot and a gauge", () => {
+    const one = geometryOf(songWith([], ["E2"]));
+    expect(one.strings).toBe(1);
+    expect(one.stringY(0, 0)).toBe(0);
+    expect(one.stringY(0, one.boardEnd)).toBe(0);
+    expect(one.tuners.map((t) => [t.side, t.post.x])).toEqual([[1, 50]]);
+    expect(one.mark(0, 3).r).toBeGreaterThan(0);
+    expect(Number.isFinite(one.mark(0, 3).r)).toBe(true);
+    expect(one.mark(0, 0).r).toBeCloseTo(29.155, 9);
+    expect(one.gauges).toEqual([0.26]);
+    expect(one.wound).toEqual([true]);
+  });
+
+  it("repeats the thickest gauge below the sixth string from the top", () => {
+    const seven = geometryOf(songWith([], ["B1", "E2", "A2", "D3", "G3", "B3", "E4"]));
+    expect(seven.gauges).toEqual([0.62, 0.62, 0.52, 0.43, 0.36, 0.3, 0.26]);
+    expect(seven.wound).toEqual([true, true, true, true, false, false, false]);
+    const eight = geometryOf(songWith([], ["F#1", "B1", "E2", "A2", "D3", "G3", "B3", "E4"]));
+    expect(eight.gauges).toEqual([0.62, 0.62, 0.62, 0.52, 0.43, 0.36, 0.3, 0.26]);
+    expect(eight.wound).toEqual([true, true, true, true, false, false, false, false]);
+  });
+
   it("winds the lower half, and makes each string thinner than the one below", () => {
     expect(g.wound).toEqual([true, true, true, false, false, false]);
     expect(g.gauges).toEqual(GAUGES);
@@ -118,6 +181,12 @@ describe("tuners", () => {
   it("tilts the headstock back, so a post further from the nut sits lower", () => {
     expect(g.tuners[2].top.z).toBeLessThan(g.tuners[0].top.z);
     expect(g.tuners[0].top.z).toBeLessThan(0);
+  });
+
+  it("has no tuners, gauges or winding on a song with no strings", () => {
+    const none = geometryOf(songWith([], []));
+    expect(none.strings).toBe(0);
+    expect([none.labels, none.tuners, none.gauges, none.wound]).toEqual([[], [], [], []]);
   });
 });
 
