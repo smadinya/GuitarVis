@@ -77,7 +77,14 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer }: GuitarP
       setUnavailable(true);
       return;
     }
-    const stage = new Stage({ canvas, overlay, song, engine, renderer, view: viewRef.current, onLost: setUnavailable });
+    let stage: Stage;
+    try {
+      stage = new Stage({ canvas, overlay, song, engine, renderer, view: viewRef.current, onLost: setUnavailable });
+    } catch (error) {
+      // A bug, not missing WebGL: the boundary says so.
+      renderer.dispose();
+      throw error;
+    }
     stageRef.current = stage;
     return () => {
       stageRef.current = null;

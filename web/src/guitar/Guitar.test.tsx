@@ -2,7 +2,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { GUITAR_FAILED } from "../labels";
 import { PlaybackEngine } from "../playback/engine";
+import { GuitarBoundary } from "../player/GuitarBoundary";
 import { buildSong, type Song } from "../song";
 import { FakeFrames, FakeMedia } from "../test/fakeMedia";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
@@ -156,6 +158,35 @@ describe("Guitar", () => {
     expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
     expect(screen.queryByRole("group", { name: "View" })).toBeNull();
     expect(screen.getByRole("img", { name: "Guitar" })).toBeTruthy();
+  });
+
+  it("disposes the renderer when the Stage throws, and leaves the error to the boundary, not to WebGL", () => {
+    // React raises a caught error as an error event first. Handling it keeps
+    // jsdom from printing it as uncaught.
+    const swallow = (event: ErrorEvent) => event.preventDefault();
+    window.addEventListener("error", swallow);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const song = buildSong(FIRST_SONG);
+    const { engine } = engineFor(song);
+    // The Stage's constructor subscribes to the engine last.
+    vi.spyOn(engine, "onFrame").mockImplementation(() => {
+      throw new Error("a bug in the Stage");
+    });
+    const renderer = fakeRenderer();
+
+    try {
+      render(
+        <GuitarBoundary>
+          <Guitar song={song} engine={engine} createRenderer={() => renderer} />
+        </GuitarBoundary>,
+      );
+    } finally {
+      window.removeEventListener("error", swallow);
+    }
+
+    expect(renderer.dispose).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(GUITAR_FAILED)).toBeTruthy();
+    expect(screen.queryByText(NO_WEBGL)).toBeNull();
   });
 
   it("says so while the WebGL context is lost, and clears it once restored", () => {

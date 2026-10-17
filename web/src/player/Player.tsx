@@ -5,13 +5,20 @@ import { PlaybackEngine } from "../playback/engine";
 import type { Song } from "../song";
 import { TabStrip } from "../tab/TabStrip";
 import { Controls } from "./Controls";
-import { GuitarBoundary } from "./GuitarBoundary";
+import { GuitarBoundary, GuitarChunkError } from "./GuitarBoundary";
 import { useTransportKeys } from "./keys";
 import { Warnings } from "./Warnings";
 
 /** three.js is about 150 kB gzipped, so the guitar is its own chunk, fetched
- * when a song first shows: the upload page never downloads it. */
-const Guitar = lazy(() => import("../guitar/Guitar").then((module) => ({ default: module.Guitar })));
+ * when a song first shows: the upload page never downloads it. A fetch that
+ * fails is marked as such, so the boundary can tell it from a bug. */
+const Guitar = lazy(() =>
+  import("../guitar/Guitar")
+    .catch((error: unknown) => {
+      throw new GuitarChunkError(error);
+    })
+    .then((module) => ({ default: module.Guitar })),
+);
 
 export interface PlayerProps {
   song: Song;
