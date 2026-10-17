@@ -344,12 +344,14 @@ So the worker measures loudness directly from the guitar stem:
   stage's cached output does not change. That is why `CACHE_VERSION` stays
   put.
 - **Strums.** Notes are grouped first: a note whose onset is within 50 ms of
-  the previous one joins its group. This is the mapper's
-  `VOICING_WINDOW_SEC`, restated in the helper with a comment pointing at it,
-  because the helper may not import a stage. Every note in a group shares one
-  level, measured over the window from the group's first onset to 50 ms after
-  its last. Measured note by note, a strum's later strings would catch the
-  earlier ones still ringing and read louder.
+  the group's first onset joins that group. So a group spans at most 50 ms,
+  as the mapper's voicings do. The window is one constant,
+  `VOICING_WINDOW_SEC` in `guitarvis_core.contracts`, and the mapper and the
+  helper both import it. Every note in a group shares one level, measured
+  over the window from the group's first onset to 50 ms after its last.
+  Measured note by note, a strum's later strings would catch the earlier ones
+  still ringing and read louder. Amended by
+  [009](../009-review-fixes/spec.md).
 - **What.** That window's RMS level, in decibels, relative to the 95th
   percentile of all the song's group levels, mapped from −30 dB…0 dB onto
   0…1 and clipped.

@@ -45,6 +45,17 @@ def test_a_strums_notes_share_one_level(tmp_path: Path) -> None:
     assert level(measured[0]) < level(measured[3])
 
 
+def test_a_strum_is_anchored_to_its_first_onset(tmp_path: Path) -> None:
+    # Each onset is within 50 ms of the one before, but 1.08 is not within
+    # 50 ms of 1.00. Chained, a fast passage would become one strum.
+    stem = write_stem(tmp_path / "stem.wav", [(1.0, 0.08, 2000), (1.08, 0.3, 16000)])
+
+    measured = measure_loudness(stem, [event(1.0), event(1.04), event(1.08)])
+
+    assert measured[0].loudness == measured[1].loudness
+    assert level(measured[1]) < level(measured[2])
+
+
 def test_notes_more_than_50ms_apart_are_measured_apart(tmp_path: Path) -> None:
     stem = write_stem(tmp_path / "stem.wav", [(1.0, 0.1, 2000), (1.1, 0.3, 16000)])
 

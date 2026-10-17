@@ -19,12 +19,7 @@ from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
 
-from guitarvis_core.contracts import NoteEvent
-
-# A note within this long of the previous one joins its strum. This restates
-# the mapper's VOICING_WINDOW_SEC (stages/fretboard.py) because a helper may
-# not import a stage.
-STRUM_WINDOW_SEC = 0.05
+from guitarvis_core.contracts import VOICING_WINDOW_SEC, NoteEvent
 
 FLOOR_DB = -30.0  # this far below the reference reads as 0
 REFERENCE_PERCENTILE = 0.95  # of the song's strum levels, so one spike is not it
@@ -33,11 +28,12 @@ REFERENCE_PERCENTILE = 0.95  # of the song's strum levels, so one spike is not i
 def measure_loudness(stem_path: Path, events: Sequence[NoteEvent]) -> list[NoteEvent]:
     """Each event, in the order given, with `loudness` set to 0..1.
 
-    The notes of a strum share one level, measured over the window from the
-    strum's first onset to `STRUM_WINDOW_SEC` after its last. Measured note by
-    note, a strum's later strings would catch the earlier ones still ringing
-    and read louder. Levels are RMS in dB against the 95th percentile of the
-    song's strums, with `FLOOR_DB`..0 dB mapped onto 0..1 and clipped.
+    A strum is the notes within `VOICING_WINDOW_SEC` of its first onset, as
+    the mapper groups a voicing. Its notes share one level, measured over the
+    window from that onset to `VOICING_WINDOW_SEC` after its last. Measured
+    note by note, a strum's later strings would catch the earlier ones still
+    ringing and read louder. Levels are RMS in dB against the 95th percentile
+    of the song's strums, with `FLOOR_DB`..0 dB mapped onto 0..1 and clipped.
 
     Raises when the stem cannot be measured: `EOFError`, `wave.Error` or
     `OSError` as the file demands, `ValueError` for a sample width other than
@@ -65,23 +61,23 @@ def _strums(events: Sequence[NoteEvent]) -> list[list[int]]:
     """Indices of `events` grouped into strums, each in onset order.
 
     A note joins the current group when it is within the window of the
-    *previous note*, so a run of closely spaced notes chains into one group.
-    The mapper anchors to a group's first note instead.
+    group's *first* note, as the mapper's voicings are. Anchored there, a fast
+    run cannot chain into one group, and a strum spans at most the window.
     """
     groups: list[list[int]] = []
-    previous = 0.0
+    first = 0.0
     for index in sorted(range(len(events)), key=lambda i: events[i].onset):
         onset = events[index].onset
-        if groups and onset - previous <= STRUM_WINDOW_SEC:
+        if groups and onset - first <= VOICING_WINDOW_SEC:
             groups[-1].append(index)
         else:
             groups.append([index])
-        previous = onset
+            first = onset
     return groups
 
 
 def _window(events: Sequence[NoteEvent], group: Sequence[int]) -> tuple[float, float]:
-    return events[group[0]].onset, events[group[-1]].onset + STRUM_WINDOW_SEC
+    return events[group[0]].onset, events[group[-1]].onset + VOICING_WINDOW_SEC
 
 
 def _levels(stem_path: Path, windows: Sequence[tuple[float, float]]) -> list[float]:

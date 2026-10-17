@@ -37,6 +37,13 @@ class PipelineError(Exception):
         self.reason = reason
 
 
+# Notes within this long of a group's first onset sound together: one voicing
+# to the fretboard mapper, one strum to the loudness measurement. Anchored to
+# the first onset, so a fast run cannot chain into one group. It lives here
+# because a helper may not import a stage, and both need the same window.
+VOICING_WINDOW_SEC = 0.05
+
+
 @dataclass(frozen=True)
 class NoteEvent:
     """Stage 2 output: a pitch in time, with no opinion about fingering.
