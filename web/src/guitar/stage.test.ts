@@ -101,6 +101,31 @@ function poseOf(stage: Stage): Pose {
   return { position: camera.position.clone(), target: controls.target.clone() };
 }
 
+/** A matchMedia whose queries never match, and whose listeners the test fires. */
+function stubMatchMedia() {
+  const listeners = new Map<string, Set<() => void>>();
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: false,
+    addEventListener(_type: string, listener: () => void) {
+      listeners.set(query, (listeners.get(query) ?? new Set()).add(listener));
+    },
+    removeEventListener(_type: string, listener: () => void) {
+      listeners.get(query)?.delete(listener);
+    },
+  }));
+  return {
+    fire(query: string) {
+      for (const listener of [...(listeners.get(query) ?? [])]) listener();
+    },
+    count(query: string) {
+      return listeners.get(query)?.size ?? 0;
+    },
+    total() {
+      return [...listeners.values()].reduce((sum, set) => sum + set.size, 0);
+    },
+  };
+}
+
 function expectPose(stage: Stage, pose: Pose) {
   const now = poseOf(stage);
   for (const axis of ["x", "y", "z"] as const) {
@@ -296,6 +321,39 @@ describe("Stage", () => {
     expectPose(stage, home2d(420, 300));
     expect(own.pending).toBe(0);
     stage.dispose();
+  });
+
+  it("reads the pixel ratio again on every resize, up to 2", () => {
+    vi.stubGlobal("devicePixelRatio", 1);
+    const { stage, renderer, resize } = setUp({ view: "3d" });
+    resize(840, 300);
+    expect(renderer.setPixelRatio).toHaveBeenLastCalledWith(1);
+
+    vi.stubGlobal("devicePixelRatio", 1.5); // the browser zooms in
+    resize(560, 200);
+    expect(renderer.setPixelRatio).toHaveBeenLastCalledWith(1.5);
+    vi.stubGlobal("devicePixelRatio", 3);
+    resize(280, 100);
+    expect(renderer.setPixelRatio).toHaveBeenLastCalledWith(2);
+    stage.dispose();
+  });
+
+  it("follows a pixel ratio that changes with no resize, as on another monitor", () => {
+    const media = stubMatchMedia();
+    vi.stubGlobal("devicePixelRatio", 1);
+    const { stage, renderer, resize } = setUp({ view: "3d" });
+    resize(840, 300);
+
+    vi.stubGlobal("devicePixelRatio", 1.5);
+    media.fire("(resolution: 1dppx)");
+    expect(renderer.setPixelRatio).toHaveBeenLastCalledWith(1.5);
+    expect(media.count("(resolution: 1dppx)")).toBe(0);
+    vi.stubGlobal("devicePixelRatio", 3);
+    media.fire("(resolution: 1.5dppx)");
+    expect(renderer.setPixelRatio).toHaveBeenLastCalledWith(2);
+
+    stage.dispose();
+    expect(media.total()).toBe(0);
   });
 
   it("stops drawing once disposed", () => {

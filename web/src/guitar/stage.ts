@@ -81,6 +81,8 @@ interface Tween {
 
 /** Past this many device pixels per CSS pixel, the cost outruns the gain. */
 const MAX_PIXEL_RATIO = 2;
+/** Device pixels per CSS pixel now. Browser zoom changes it. */
+const deviceRatio = () => window.devicePixelRatio || 1;
 const DAMPING = 0.08;
 /** OrbitControls' own test for a move: a squared distance, in mm². */
 const EPS = 1e-6;
@@ -217,8 +219,6 @@ export class Stage {
     // After the controls, whose constructor points the camera at the origin.
     this.place(this.home());
 
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO));
-
     const box = this.canvas.parentElement;
     if (box !== null && typeof ResizeObserver !== "undefined") {
       const observer = new ResizeObserver(() => this.resize());
@@ -226,6 +226,7 @@ export class Stage {
       this.unlisten.push(() => observer.disconnect());
     }
     this.resize();
+    this.followRatio();
     this.still = this.watch(REDUCED_MOTION, (matches) => {
       this.still = matches;
       this.wake();
@@ -417,6 +418,7 @@ export class Stage {
     const width = box.clientWidth;
     const height = box.clientHeight;
     if (width === 0 || height === 0) return;
+    this.renderer.setPixelRatio(Math.min(deviceRatio(), MAX_PIXEL_RATIO));
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
@@ -456,6 +458,26 @@ export class Stage {
       overlay.style.opacity = opacity;
       shown.opacity = opacity;
     }
+  }
+
+  /** Resize when the pixel ratio changes with no change of size, as when the
+   * window moves to another monitor. A query matches one ratio, so each change
+   * sets up the query for the new ratio. */
+  private followRatio(): void {
+    if (typeof matchMedia !== "function") return;
+    let stop = () => {};
+    const follow = () => {
+      const list = matchMedia(`(resolution: ${deviceRatio()}dppx)`);
+      const listener = () => {
+        stop();
+        follow();
+        this.resize();
+      };
+      list.addEventListener("change", listener);
+      stop = () => list.removeEventListener("change", listener);
+    };
+    follow();
+    this.unlisten.push(() => stop());
   }
 
   /** Follow a media query, if the browser has them. Returns whether it matches now. */
