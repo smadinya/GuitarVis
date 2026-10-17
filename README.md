@@ -1,13 +1,13 @@
 # GuitarVis
 
 Takes a recording of a song, isolates the guitar, transcribes what it plays,
-and renders the result as tablature you can play along with — in three synced
-views: scrolling tab, a 2D fretboard, and a 3D guitar.
+and renders the result as tablature you can play along with — a scrolling tab
+strip and a guitar shown in 2D or 3D, synced to the audio.
 
-**Status: phase 4 of 6 done.** Upload a song in the browser, watch it
-process, and play it back with a scrolling tab strip in sync with the audio:
-slowed down, looped, or with the guitar isolated. The 2D fretboard and the
-3D guitar (phase 5) are next.
+**Status: phase 5 of 6 done.** Upload a song in the browser, watch it
+process, and play it back with a scrolling tab strip and a guitar above it, in
+sync with the audio: slowed down, looped, or with the guitar isolated. URL
+ingestion (phase 6) is next.
 
 ## How it works
 

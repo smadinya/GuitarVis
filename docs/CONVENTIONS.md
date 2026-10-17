@@ -46,9 +46,9 @@ Rules that outlive any one change. The reasoning lives in
   `web/src/confidence.ts` come from
   [calibration.md](specs/006-tab-view-sync/calibration.md). After a
   transcriber change, run `make eval ARGS=--full` and revisit them.
-- Canvas for the tab strip, and three.js for the guitar, which draws both the
-  2D and the 3D view and is loaded lazily. A four-minute song has thousands of
-  notes, and SVG nodes at that count stutter.
+- Canvas for the tab strip: a four-minute song has thousands of notes, and
+  SVG nodes at that count stutter. The guitar is three.js, which draws both
+  the 2D and the 3D view and is loaded lazily.
 
 ## The tab document
 

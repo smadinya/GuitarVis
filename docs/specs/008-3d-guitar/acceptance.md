@@ -14,9 +14,27 @@ without the run.
 - Machine, OS and browser: …
 - Songs: title, length, and the frets they reach
 
+Use a song this database has never seen. The api dedupes uploads by content
+hash and returns any job that has not failed (`_LIVE` in
+`packages/jobs/src/guitarvis_jobs/postgres.py`; `create_job` in
+`apps/api/src/guitarvis_api/routes.py`), and the compose volumes keep old jobs
+across restarts. So a song processed before this branch comes back as its old
+document, with no `loudness`, and so does a song you re-upload after changing
+the loudness constants. To reuse a song, delete its row from the `jobs` table
+first (a job's `title` is the upload's file name without its extension):
+
+```
+docker compose exec postgres psql -U guitarvis -d guitarvis -c "DELETE FROM jobs WHERE title = '<song title>'"
+```
+
+That is enough. The stage cache is keyed by content hash, so the rerun skips
+separation and transcription and measures loudness fresh. To check the default
+amplitude on purpose, re-upload a song processed before this branch.
+
 ## End to end
 
-- [ ] At 1× and at 0.5×, dots and vibration match the audio and the tab strip
+- [ ] At 1×, dots and vibration match the audio and the tab strip
+- [ ] At 0.5×, dots and vibration match the audio and the tab strip
 - [ ] A repeated pluck on one fret shows each pluck
 - [ ] Loud and quiet notes look different, and the default amplitude for an old document looks natural
 - [ ] The vibration helps more than it distracts
@@ -29,6 +47,7 @@ Notes: …
 - [ ] 2D opens on the whole neck, zooms and pans, and never tilts
 - [ ] 3D rotates, zooms and pans
 - [ ] Double-click, reset, and switching views work
+- [ ] Shift-, ctrl- or meta-drag does nothing in 2D (a known deviation from "any drag pans"): acceptable?
 - [ ] The choice is remembered across a reload
 
 Reset view sits over the upper tuner buttons in 2D? …

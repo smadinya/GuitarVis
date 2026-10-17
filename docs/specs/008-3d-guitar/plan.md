@@ -1704,6 +1704,8 @@ Run `make services`, `make migrate`, `make api`, `make worker` and `make web`. `
 
 If a constant changes, re-run `npm --prefix web test`, since some tests pin these values, and note the change in the record's last line. The spec's *Risks* name the levers: cap the pixel ratio at 1.5, then reshape strings every other frame for frame rate; a taller panel or a larger `WIDE` for text size; the amplitude constants for distraction; the loudness window and range for loudness.
 
+After changing the loudness constants, delete the song's job row (or use a new song) before re-uploading, or the api returns the old document and the change never reaches the browser.
+
 - [ ] **Step 3: Commit the record**
 
 ```bash
