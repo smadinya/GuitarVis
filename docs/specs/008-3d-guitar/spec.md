@@ -171,7 +171,10 @@ which would make every view redraw.
 
 **Loading.** three.js is about 150 kB gzipped. `Player` loads `Guitar` with
 `React.lazy`, so the upload page never downloads it. While it loads, the
-panel shows at its final height, empty.
+panel shows at its final height, empty. If the chunk fails to load, an error
+boundary in the player (`GuitarBoundary`) shows "The guitar could not load.
+Reload the page to try again." in the panel, and the tab strip and controls
+carry on. Degrade, never fail.
 
 **No WebGL.** If the renderer cannot be created, or the context is lost and
 not restored, the panel shows "The guitar needs WebGL, which this browser has
@@ -483,9 +486,11 @@ jsdom has no WebGL.
   - an unreadable stem gives `None` for every note, and the job completes;
   - the mapper copies loudness from `NoteEvent` to `TabNote`;
   - `run_pipeline` copies it from `TabNote` to `Note`.
-- **Fixtures:** `minimal.tabdoc.json` and `first-song.tabdoc.json`
-  unchanged. They have no loudness, so they test the fallback. Add a note
-  with loudness to a test-local document where a test needs one.
+- **Fixtures:** `first-song.tabdoc.json` is unchanged and omits `loudness`.
+  `minimal.tabdoc.json` carries an explicit `"loudness": null` on both notes,
+  because its lossless round-trip test requires every emitted key, as it does
+  for `technique: null`. Between them they test the fallback. Add a note with
+  loudness to a test-local document where a test needs one.
 
 ### Manual acceptance
 
