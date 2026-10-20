@@ -22,8 +22,10 @@ DROP_D = ("D2", "A2", "D3", "G3", "B3", "E4")
 SEVEN_STRING = ("B1", "E2", "A2", "D3", "G3", "B3", "E4")
 
 
-def note(onset: float, midi: int, confidence: float = 0.9) -> NoteEvent:
-    return NoteEvent(onset=onset, duration=0.5, midi=midi, confidence=confidence)
+def note(
+    onset: float, midi: int, confidence: float = 0.9, duration: float = 0.5
+) -> NoteEvent:
+    return NoteEvent(onset=onset, duration=duration, midi=midi, confidence=confidence)
 
 
 def chord(onset: float, *midis: int) -> list[NoteEvent]:
@@ -130,7 +132,7 @@ def test_a_phrase_inside_one_box_does_not_move_the_hand() -> None:
     # frets of the index finger on the 5th, so the hand never moves; pulled
     # toward the nut, the same phrase went to B1, B3 and so on.
     midis = [60, 62, 67, 69, 72]
-    result = assign([note(i * 0.25, m) for i, m in enumerate(midis)])
+    result = assign([note(i * 0.25, m, duration=0.25) for i, m in enumerate(midis)])
     assert places(result) == [
         (60, 3, 5),
         (62, 3, 7),
