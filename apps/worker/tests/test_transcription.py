@@ -86,8 +86,8 @@ def test_default_settings_are_010s_tuned_values() -> None:
         frame_threshold=0.4,
         minimum_note_length_ms=93.0,
         melodia_trick=False,
-        ghost_ratio=0.7,
-        ghost_alone_only=False,
+        ghost_ratio=0.8,
+        ghost_alone_only=True,
     )
     assert BasicPitchTranscriber().settings == TranscriptionSettings()
 
