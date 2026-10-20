@@ -42,7 +42,8 @@ log = logging.getLogger(__name__)
 # Bump by hand whenever a stage's output for the same input would change: a
 # new model, a changed threshold, a fixed bug. Nothing enforces it. Forget,
 # and audio processed before the change keeps being served the old result.
-CACHE_VERSION = 1
+# 2: spec 010's tuned transcription settings and harmonic-ghost rule.
+CACHE_VERSION = 2
 
 
 @dataclass(frozen=True)

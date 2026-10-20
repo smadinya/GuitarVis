@@ -226,7 +226,7 @@ def test_settings_key_is_stable_and_distinguishes() -> None:
     assert len(key) == 12
     assert int(key, 16) >= 0
     assert key != settings_key(TranscriptionSettings(onset_threshold=0.4))
-    assert key != settings_key(TranscriptionSettings(melodia_trick=False))
+    assert key != settings_key(TranscriptionSettings(melodia_trick=True))
 
 
 def test_settings_key_covers_every_field() -> None:

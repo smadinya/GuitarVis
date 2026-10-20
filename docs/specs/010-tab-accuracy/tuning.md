@@ -353,3 +353,181 @@ from 50.3% to 58.3%. Note F1 (0.777) and precision (0.734) do not move: stage
   to the digit with the new defaults.
 
 Stage 4 meets conditions 1, 2, 3 and 8 on test.
+
+## Stage 2 sweeps
+
+Commit `6b2136b`, dev split, full mode, with stage 4's tuned costs. Each
+distinct set of transcription settings is one basic-pitch pass over the 300
+dev excerpts, about three minutes, cached under `~/.cache/guitarvis/sweep`.
+
+In every row of every sweep, oracle_comp is 83.0, oracle_solo 50.8 and
+oracle_ovl 7.4. Oracle mode never hears the audio. Those columns are left out
+of the tables.
+
+The `defaults` row is stage 4 as shipped with basic-pitch's own decoding:
+onset 0.5, frame 0.3, 127.7 ms, melodia on, no ghost rule. It gives the
+before-numbers for every rule below, and it is stage 4's chosen row to the
+digit. Task 10 added two settings fields, so its transcriptions were made
+again under a new cache key. All 300 are byte-identical to the ones stage 4's
+sweeps used.
+
+### The rule
+
+- Maximise obj2, the mean of f1_comp and f1_solo.
+- Precision must rise: prec_comp above 0.728, prec_solo above 0.773.
+- Reject a row below a before-number: oracle_comp 83.0, oracle_solo 50.8,
+  full_comp 77.0, full_solo 39.9, f1_comp 0.709, f1_solo 0.810, prec_comp
+  0.728, prec_solo 0.773.
+- Reject a row whose full_ovl is above 17.7.
+- Rows are compared as printed. A tie on obj2 goes to the row nearer
+  basic-pitch's defaults.
+- Between the two ghost forms, each at its own best ratio, take the higher
+  full_solo. Within 0.5 points, take the plain rule,
+  `ghost_alone_only=false`. No rule, `ghost_ratio=none`, stays a candidate.
+
+### Sweep 1: decoding
+
+```bash
+make sweep ARGS="--full --transcription melodia_trick=true,false --transcription frame_threshold=0.3,0.35,0.4 --transcription minimum_note_length_ms=58,93,127.7"
+```
+
+| melodia_trick | frame_threshold | minimum_note_length_ms | full_comp | full_solo | f1_comp | f1_solo | prec_comp | prec_solo | full_ovl | obj4 | obj2 | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| defaults |  |  | 77.0 | 39.9 | 0.709 | 0.810 | 0.728 | 0.773 | 17.7 | 58.5 | 0.759 | before-numbers |
+| true | 0.3 | 58 | 75.0 | 37.4 | 0.717 | 0.767 | 0.657 | 0.658 | 19.4 | 56.2 | 0.742 | rejected: full_comp, full_solo, f1_solo, prec_comp, prec_solo below; full_ovl above |
+| true | 0.3 | 93 | 76.7 | 39.1 | 0.727 | 0.806 | 0.700 | 0.729 | 18.5 | 57.9 | 0.766 | rejected: full_comp, full_solo, f1_solo, prec_comp, prec_solo below; full_ovl above |
+| true | 0.3 | 127.7 | 77.0 | 39.9 | 0.709 | 0.810 | 0.728 | 0.773 | 17.7 | 58.5 | 0.759 | the defaults again |
+| true | 0.35 | 58 | 76.9 | 35.3 | 0.731 | 0.801 | 0.693 | 0.711 | 14.2 | 56.1 | 0.766 | rejected: full_comp, full_solo, f1_solo, prec_comp, prec_solo below |
+| true | 0.35 | 93 | 78.5 | 40.0 | 0.732 | 0.832 | 0.732 | 0.777 | 13.7 | 59.2 | 0.782 | admissible |
+| true | 0.35 | 127.7 | 78.3 | 42.5 | 0.705 | 0.823 | 0.755 | 0.811 | 12.7 | 60.4 | 0.764 | rejected: f1_comp below |
+| true | 0.4 | 58 | 79.4 | 37.3 | 0.738 | 0.825 | 0.721 | 0.753 | 9.6 | 58.3 | 0.781 | rejected: full_solo, prec_comp, prec_solo below |
+| true | 0.4 | 93 | 79.9 | 40.5 | 0.730 | 0.846 | 0.756 | 0.809 | 8.8 | 60.2 | 0.788 | admissible |
+| true | 0.4 | 127.7 | 78.3 | 40.1 | 0.695 | 0.827 | 0.775 | 0.836 | 8.8 | 59.2 | 0.761 | rejected: f1_comp below |
+| false | 0.3 | 58 | 75.6 | 31.4 | 0.727 | 0.795 | 0.691 | 0.705 | 15.9 | 53.5 | 0.761 | rejected: full_comp, full_solo, f1_solo, prec_comp, prec_solo below |
+| false | 0.3 | 93 | 77.2 | 35.5 | 0.731 | 0.827 | 0.728 | 0.772 | 15.3 | 56.3 | 0.779 | rejected: full_solo, prec_solo below; prec_comp not above |
+| false | 0.3 | 127.7 | 77.1 | 36.0 | 0.705 | 0.818 | 0.750 | 0.807 | 14.7 | 56.5 | 0.762 | rejected: full_solo, f1_comp below |
+| false | 0.35 | 58 | 77.7 | 32.7 | 0.738 | 0.820 | 0.721 | 0.746 | 11.9 | 55.2 | 0.779 | rejected: full_solo, prec_comp, prec_solo below |
+| false | 0.35 | 93 | 79.2 | 39.4 | 0.735 | 0.844 | 0.755 | 0.807 | 11.8 | 59.3 | 0.789 | rejected: full_solo below |
+| false | 0.35 | 127.7 | 78.3 | 40.0 | 0.701 | 0.825 | 0.773 | 0.835 | 11.1 | 59.1 | 0.763 | rejected: f1_comp below |
+| false | 0.4 | 58 | 78.8 | 37.4 | 0.743 | 0.838 | 0.745 | 0.779 | 8.7 | 58.1 | 0.790 | rejected: full_solo below |
+| false | 0.4 | 93 | 79.4 | 41.2 | 0.732 | 0.853 | 0.776 | 0.831 | 8.1 | 60.3 | 0.793 | **chosen** |
+| false | 0.4 | 127.7 | 78.2 | 41.1 | 0.692 | 0.826 | 0.792 | 0.853 | 8.1 | 59.7 | 0.759 | rejected: f1_comp below |
+
+Three rows are admissible. The rule picks `melodia_trick=false,
+frame_threshold=0.4, minimum_note_length_ms=93`, at 0.793. The next is the
+same row with melodia on, at 0.788.
+
+- Every 58 ms row is below full_solo's before-number. That includes the
+  spec's starting point, melodia off at 0.4 and 58 ms, which scores 0.790
+  with full_solo at 37.4.
+- Every 127.7 ms row but the defaults is below f1_comp's before-number.
+  Precision rises in those rows while F1 falls, so comp recall falls.
+- No row at frame 0.3 is admissible.
+
+### Sweep 2: onset
+
+The winner's other three values, fixed:
+
+```bash
+make sweep ARGS="--full --transcription melodia_trick=false --transcription frame_threshold=0.4 --transcription minimum_note_length_ms=93 --transcription onset_threshold=0.4,0.5,0.6"
+```
+
+| onset_threshold | full_comp | full_solo | f1_comp | f1_solo | prec_comp | prec_solo | full_ovl | obj4 | obj2 | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|
+| defaults | 77.0 | 39.9 | 0.709 | 0.810 | 0.728 | 0.773 | 17.7 | 58.5 | 0.759 | before-numbers |
+| 0.4 | 80.2 | 43.6 | 0.708 | 0.823 | 0.698 | 0.775 | 9.2 | 61.9 | 0.766 | rejected: f1_comp, prec_comp below |
+| 0.5 | 79.4 | 41.2 | 0.732 | 0.853 | 0.776 | 0.831 | 8.1 | 60.3 | 0.793 | **chosen** |
+| 0.6 | 77.5 | 37.2 | 0.724 | 0.872 | 0.833 | 0.873 | 8.3 | 57.4 | 0.798 | rejected: full_solo below |
+
+0.6 has the best obj2, 0.798, but solo string accuracy falls to 37.2. 0.4
+is below f1_comp and prec_comp. `onset_threshold` stays at 0.5. Its row
+repeats sweep 1's to the digit.
+
+### Sweep 3: harmonic ghosts
+
+All four decoding values, fixed:
+
+```bash
+make sweep ARGS="--full --transcription melodia_trick=false --transcription frame_threshold=0.4 --transcription minimum_note_length_ms=93 --transcription onset_threshold=0.5 --transcription ghost_ratio=none,0.5,0.6,0.7,0.8 --transcription ghost_alone_only=false,true"
+```
+
+| ghost_ratio | ghost_alone_only | full_comp | full_solo | f1_comp | f1_solo | prec_comp | prec_solo | full_ovl | obj4 | obj2 | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| defaults |  | 77.0 | 39.9 | 0.709 | 0.810 | 0.728 | 0.773 | 17.7 | 58.5 | 0.759 | before-numbers |
+| none | false | 79.4 | 41.2 | 0.732 | 0.853 | 0.776 | 0.831 | 8.1 | 60.3 | 0.793 | admissible |
+| none | true | 79.4 | 41.2 | 0.732 | 0.853 | 0.776 | 0.831 | 8.1 | 60.3 | 0.793 | admissible |
+| 0.5 | false | 79.1 | 41.6 | 0.732 | 0.854 | 0.777 | 0.833 | 8.1 | 60.3 | 0.793 | admissible |
+| 0.5 | true | 79.4 | 41.6 | 0.732 | 0.854 | 0.776 | 0.833 | 8.1 | 60.5 | 0.793 | admissible |
+| 0.6 | false | 79.0 | 43.5 | 0.732 | 0.857 | 0.782 | 0.839 | 7.9 | 61.2 | 0.795 | plain rule's best: ties 0.7, nearer the defaults |
+| 0.6 | true | 79.4 | 42.9 | 0.733 | 0.857 | 0.777 | 0.838 | 8.0 | 61.1 | 0.795 | admissible |
+| 0.7 | false | 77.8 | 50.3 | 0.728 | 0.862 | 0.790 | 0.849 | 7.6 | 64.0 | 0.795 | admissible; ties 0.6 |
+| 0.7 | true | 79.1 | 47.7 | 0.733 | 0.861 | 0.779 | 0.846 | 8.1 | 63.4 | 0.797 | admissible |
+| 0.8 | false | 75.7 | 51.7 | 0.719 | 0.864 | 0.796 | 0.854 | 7.5 | 63.7 | 0.792 | rejected: full_comp below |
+| 0.8 | true | 79.2 | 48.5 | 0.733 | 0.862 | 0.781 | 0.850 | 8.1 | 63.8 | 0.798 | **chosen**: alone-only's best |
+
+The two `ghost_ratio=none` rows are the same settings under two cache keys,
+transcribed separately. Their 300 transcriptions are byte-identical, and
+both repeat sweep 2's chosen row.
+
+- **The plain rule.** At 0.8 it is below full_comp, at 75.7: chords hold
+  real octaves, as the research found. 0.6 and 0.7 tie on obj2 at 0.795.
+  The tie goes to 0.6, the row nearer basic-pitch's defaults: a lower ratio
+  drops fewer notes, and basic-pitch's own output drops none. 0.6 is also
+  the spec's value for this form. Its full_solo is 43.5.
+- **The alone-only rule.** Its best is 0.8, at 0.798, the best obj2 in the
+  sweep. Its full_solo is 48.5.
+- **Between the forms.** 48.5 against 43.5 is 5.0 points, so the alone-only
+  rule at 0.8 is chosen. It beats no rule on obj2, 0.798 against 0.793.
+
+The plain rule's tie decided the form. Had it gone to 0.7, that row's
+full_solo of 50.3 would have beaten 48.5 by 1.8 points, and the plain rule
+at 0.7 would have been chosen. It has a lower obj2 (0.795) and a lower
+full_comp (77.8 against 79.2).
+
+### The chosen values
+
+| field | basic-pitch's default | spec's starting point | chosen |
+|---|---|---|---|
+| `onset_threshold` | 0.5 | 0.5 | 0.5 |
+| `frame_threshold` | 0.3 | 0.4 | **0.4** |
+| `minimum_note_length_ms` | 127.7 | about 58 | **93** |
+| `melodia_trick` | on | off | **off** |
+| `ghost_ratio` | no rule | 0.6 plain, or 0.8 alone-only | **0.8** |
+| `ghost_alone_only` | — | | **true** |
+
+On dev, against the before-numbers:
+
+| | full_comp | full_solo | f1_comp | f1_solo | prec_comp | prec_solo | full_ovl | obj2 |
+|---|---|---|---|---|---|---|---|---|
+| before, stage 4 and basic-pitch's decoding | 77.0 | 39.9 | 0.709 | 0.810 | 0.728 | 0.773 | 17.7 | 0.759 |
+| tuned decoding, no ghost rule | 79.4 | 41.2 | 0.732 | 0.853 | 0.776 | 0.831 | 8.1 | 0.793 |
+| chosen | 79.2 | 48.5 | 0.733 | 0.862 | 0.781 | 0.850 | 8.1 | 0.798 |
+
+With the new defaults, `make sweep ARGS=--full` prints the chosen row again,
+to the digit. `CACHE_VERSION` goes from 1 to 2.
+
+**The choice is provisional.** `frame_threshold` and `melodia_trick` reach
+production only through the real-song review (spec, *Stage 2 · decoding*),
+so this choice waits on Task 12's sign-off. A setting the review rejects goes
+back to basic-pitch's default. Without the ghost rule, sweep 1 shows what
+that would cost on dev. Melodia back on (`true, 0.4, 93`) is still
+admissible, at 0.788. Frame back at 0.3 (`false, 0.3, 93`) is not: full_solo
+falls to 35.5, and precision does not rise.
+
+### Tests that read the old defaults
+
+- `test_default_settings_are_basic_pitchs_own` is now
+  `test_default_settings_are_010s_tuned_values`, and pins the chosen values.
+- `test_keys_are_versioned_and_per_upload` pins `CACHE_VERSION` at 2. Its
+  other-version probe uses version 1.
+- Four tests name the values they run with instead of reading the defaults.
+  Their expectations are unchanged.
+  - `test_ghosts_are_kept_by_default` is now
+    `test_ghosts_are_kept_when_the_rule_is_off`, with `ghost_ratio=None`.
+  - The eval's `EchoTranscriber` names basic-pitch's own settings, which
+    `test_full_mode_prints_and_records_precision_by_confidence` checks are
+    recorded.
+  - `test_full_results_record_the_transcription_settings` passes
+    `frame_threshold=0.3`, the value it checks.
+  - `test_settings_key_is_stable_and_distinguishes` probes
+    `melodia_trick=True`, now the non-default value.

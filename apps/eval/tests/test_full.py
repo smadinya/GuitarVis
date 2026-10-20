@@ -84,7 +84,16 @@ class EchoTranscriber:
     def __init__(self, events: list[NoteEvent]) -> None:
         self.events = events
         self.seen: list[Path] = []
-        self.settings = TranscriptionSettings()  # which main() records
+        # Which main() records. basic-pitch's own values, named rather than
+        # defaulted, so tuning the defaults does not move what is checked.
+        self.settings = TranscriptionSettings(
+            onset_threshold=0.5,
+            frame_threshold=0.3,
+            minimum_note_length_ms=127.7,
+            melodia_trick=True,
+            ghost_ratio=None,
+            ghost_alone_only=False,
+        )
 
     def transcribe(self, stem_path: Path) -> list[NoteEvent]:
         self.seen.append(stem_path)

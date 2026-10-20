@@ -31,7 +31,12 @@ _MIDI_MAX = 127
 
 @dataclass(frozen=True)
 class TranscriptionSettings:
-    """basic-pitch's decoding settings, defaulted to its own predict() defaults.
+    """basic-pitch's decoding settings and the ghost rule.
+
+    The defaults were tuned for spec 010 on GuitarSet's dev split; see
+    docs/specs/010-tab-accuracy/tuning.md. basic-pitch's own predict()
+    defaults are onset 0.5, frame 0.3, 127.7 ms, melodia on, and no ghost
+    rule.
 
     Evaluation results record the values they ran with, so a change here shows
     up in the eval/results/ history next to the number it moved. The two
@@ -42,11 +47,11 @@ class TranscriptionSettings:
     """
 
     onset_threshold: float = 0.5
-    frame_threshold: float = 0.3
-    minimum_note_length_ms: float = 127.7
-    melodia_trick: bool = True
-    ghost_ratio: float | None = None
-    ghost_alone_only: bool = False
+    frame_threshold: float = 0.4
+    minimum_note_length_ms: float = 93.0
+    melodia_trick: bool = False
+    ghost_ratio: float | None = 0.8
+    ghost_alone_only: bool = True
 
     def __post_init__(self) -> None:
         for name in ("onset_threshold", "frame_threshold"):

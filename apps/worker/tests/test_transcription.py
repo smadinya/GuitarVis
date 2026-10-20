@@ -79,8 +79,16 @@ def test_min_confidence_stays_conservative() -> None:
     assert MIN_CONFIDENCE <= 0.2
 
 
-def test_default_settings_are_basic_pitchs_own() -> None:
-    assert TranscriptionSettings() == TranscriptionSettings(0.5, 0.3, 127.7, True)
+def test_default_settings_are_010s_tuned_values() -> None:
+    # Tuned on GuitarSet's dev split: docs/specs/010-tab-accuracy/tuning.md.
+    assert TranscriptionSettings() == TranscriptionSettings(
+        onset_threshold=0.5,
+        frame_threshold=0.4,
+        minimum_note_length_ms=93.0,
+        melodia_trick=False,
+        ghost_ratio=0.8,
+        ghost_alone_only=True,
+    )
     assert BasicPitchTranscriber().settings == TranscriptionSettings()
 
 
@@ -221,9 +229,10 @@ def test_survivors_keep_their_order() -> None:
     assert drop_ghosts(events, 0.6, alone_only=False) == [later, BASE]
 
 
-def test_ghosts_are_kept_by_default() -> None:
+def test_ghosts_are_kept_when_the_rule_is_off() -> None:
     raw = [(1.0, 1.5, 52, 0.8, None), (1.0, 1.5, 64, 0.4, None)]
-    events = StubTranscriber(raw).transcribe(Path("x.wav"))
+    settings = TranscriptionSettings(ghost_ratio=None)
+    events = StubTranscriber(raw, settings=settings).transcribe(Path("x.wav"))
     assert [event.midi for event in events] == [52, 64]
 
 

@@ -50,7 +50,7 @@ def test_full_results_record_the_transcription_settings(tmp_path: Path) -> None:
         excerpts=[],
         out_dir=tmp_path / "full",
         today=date(2026, 10, 8),
-        transcription=TranscriptionSettings(),
+        transcription=TranscriptionSettings(frame_threshold=0.3),
     )
     oracle = write_results(
         mode="oracle",
