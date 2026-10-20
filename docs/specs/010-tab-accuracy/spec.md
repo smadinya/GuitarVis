@@ -1,7 +1,7 @@
 # Tab Accuracy — Design
 
 **Date:** 2026-10-19
-**Status:** Approved design, pre-implementation
+**Status:** Implemented
 **Parent spec:** [001-guitarvis-design](../001-guitarvis-design/spec.md)
 **Builds on:** [004-fretboard-mapper](../004-fretboard-mapper/spec.md);
 [006-tab-view-sync](../006-tab-view-sync/spec.md) for the confidence thresholds
