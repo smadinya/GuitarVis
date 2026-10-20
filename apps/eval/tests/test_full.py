@@ -324,6 +324,8 @@ def test_full_mode_prints_and_records_precision_by_confidence(
         "frame_threshold": 0.3,
         "minimum_note_length_ms": 127.7,
         "melodia_trick": True,
+        "ghost_ratio": None,
+        "ghost_alone_only": False,
     }
     summary = payload["summary"]
     assert summary["all"]["precision_by_confidence"]["0.9"] == {

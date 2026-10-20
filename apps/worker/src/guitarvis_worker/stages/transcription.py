@@ -10,14 +10,20 @@ can implement the same interface later. This is the single upgrade point the
 staged architecture exists to protect.
 """
 
+from bisect import bisect_left, bisect_right
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from guitarvis_core.contracts import NoteEvent
+from guitarvis_core.contracts import VOICING_WINDOW_SEC, NoteEvent
 
 MIN_CONFIDENCE = 0.1  # near-noise only; faint notes must survive to render faintly
+
+# A harmonic ghost sits an octave, an octave and a fifth, or two octaves above
+# its base, and often starts a frame or two before it.
+GHOST_INTERVALS = (12, 19, 24)
+GHOST_LEAD_SEC = 0.05
 
 _MIDI_MIN = 0
 _MIDI_MAX = 127
@@ -30,12 +36,17 @@ class TranscriptionSettings:
     Evaluation results record the values they ran with, so a change here shows
     up in the eval/results/ history next to the number it moved. The two
     thresholds are on the model's 0..1 activation scale.
+
+    `ghost_ratio` switches on drop_ghosts, a rule against an artifact of this
+    model: None leaves it off, which is basic-pitch's own output.
     """
 
     onset_threshold: float = 0.5
     frame_threshold: float = 0.3
     minimum_note_length_ms: float = 127.7
     melodia_trick: bool = True
+    ghost_ratio: float | None = None
+    ghost_alone_only: bool = False
 
     def __post_init__(self) -> None:
         for name in ("onset_threshold", "frame_threshold"):
@@ -47,6 +58,58 @@ class TranscriptionSettings:
                 "minimum_note_length_ms cannot be negative, "
                 f"not {self.minimum_note_length_ms}"
             )
+        if self.ghost_ratio is not None and not 0 < self.ghost_ratio <= 1:
+            raise ValueError(f"ghost_ratio must be in (0, 1], not {self.ghost_ratio}")
+
+
+def drop_ghosts(
+    events: Sequence[NoteEvent], ratio: float, *, alone_only: bool
+) -> list[NoteEvent]:
+    """Drop basic-pitch's harmonic ghosts, keeping the order of the rest.
+
+    A note is a ghost when some other note, its base, is a GHOST_INTERVALS
+    distance below it, is sounding at its onset (the ghost may start
+    GHOST_LEAD_SEC before the base), and has a confidence the ghost's is
+    under `ratio` times. With `alone_only`, every other note starting within
+    VOICING_WINDOW_SEC of the ghost must be one of its bases too, so a
+    chord's real octave stays.
+
+    Bases are judged against every note passed in, never against the
+    survivors: a weak E4 over a weak E3 over a strong E2 loses both.
+
+    This is an artifact of basic-pitch, so it lives here and not in a stage
+    that sees any transcriber's output. A future Transcriber should not
+    inherit it.
+    """
+    by_pitch: dict[int, list[int]] = {}
+    for index, event in enumerate(events):
+        by_pitch.setdefault(event.midi, []).append(index)
+    by_onset = sorted(range(len(events)), key=lambda index: events[index].onset)
+    onsets = [events[index].onset for index in by_onset]
+
+    def is_base(base: NoteEvent, ghost: NoteEvent) -> bool:
+        return (
+            base.onset - GHOST_LEAD_SEC <= ghost.onset <= base.onset + base.duration
+            and ghost.confidence < ratio * base.confidence
+        )
+
+    def is_ghost(index: int) -> bool:
+        ghost = events[index]
+        bases = {
+            other
+            for interval in GHOST_INTERVALS
+            for other in by_pitch.get(ghost.midi - interval, ())
+            if is_base(events[other], ghost)
+        }
+        if not bases:
+            return False
+        if not alone_only:
+            return True
+        first = bisect_left(onsets, ghost.onset - VOICING_WINDOW_SEC)
+        last = bisect_right(onsets, ghost.onset + VOICING_WINDOW_SEC)
+        return all(other == index or other in bases for other in by_onset[first:last])
+
+    return [event for index, event in enumerate(events) if not is_ghost(index)]
 
 
 class BasicPitchTranscriber:
@@ -76,6 +139,13 @@ class BasicPitchTranscriber:
                     midi=pitch,
                     confidence=confidence,
                 )
+            )
+
+        if self.settings.ghost_ratio is not None:
+            events = drop_ghosts(
+                events,
+                self.settings.ghost_ratio,
+                alone_only=self.settings.ghost_alone_only,
             )
 
         events.sort(key=lambda event: (event.onset, event.midi))
