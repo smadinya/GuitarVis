@@ -12,7 +12,11 @@ import pytest
 from guitarvis_core.contracts import FretboardResult, NoteEvent
 from guitarvis_core.fretboard import check_invariant
 from guitarvis_core.tabdoc import STANDARD_TUNING, Note
-from guitarvis_worker.stages.fretboard import MapperCosts, ViterbiFretboardMapper
+from guitarvis_worker.stages.fretboard import (
+    MapperCosts,
+    ViterbiFretboardMapper,
+    _Fingering,
+)
 
 DROP_D = ("D2", "A2", "D3", "G3", "B3", "E4")
 SEVEN_STRING = ("B1", "E2", "A2", "D3", "G3", "B3", "E4")
@@ -101,9 +105,10 @@ def test_a_note_after_a_barre_stays_in_position() -> None:
 
 
 def test_an_open_string_does_not_reset_the_hand_position() -> None:
-    # A phrase at frets 12-15 stays there. Swapping one note for an open low E
-    # must not make the jump down to 7th position free: the hand is still at
-    # the 12th fret when the open string rings.
+    # A phrase at frets 12-16 stays there. Swapping one note for an open low E
+    # must not make the jump down to 7th position free: the hand is still up
+    # the neck when the open string rings, so every other note is placed
+    # exactly as it was.
     phrase = [77, 71, 72, 71, 72, 74]
     with_open = [77, 71, 40, 71, 72, 74]
 
@@ -111,13 +116,68 @@ def test_an_open_string_does_not_reset_the_hand_position() -> None:
         return places(assign([note(i * 0.5, m) for i, m in enumerate(midis)]))
 
     baseline = run(phrase)
-    assert [fret for _, _, fret in baseline] == [13, 12, 13, 12, 13, 15]
+    assert all(12 <= fret <= 16 for _, _, fret in baseline)
 
     result = run(with_open)
     assert result[2] == (40, 0, 0)
     assert [p for i, p in enumerate(result) if i != 2] == [
         p for i, p in enumerate(baseline) if i != 2
     ]
+
+
+def test_a_phrase_inside_one_box_does_not_move_the_hand() -> None:
+    # The fifth-position A minor pentatonic box. Every note sits within four
+    # frets of the index finger on the 5th, so the hand never moves; pulled
+    # toward the nut, the same phrase went to B1, B3 and so on.
+    midis = [60, 62, 67, 69, 72]
+    result = assign([note(i * 0.25, m) for i, m in enumerate(midis)])
+    assert places(result) == [
+        (60, 3, 5),
+        (62, 3, 7),
+        (67, 4, 8),
+        (69, 5, 5),
+        (72, 5, 8),
+    ]
+
+
+def shape(frets: tuple[int, int] | None) -> _Fingering:
+    """A fingering whose fretted notes run over `frets` (lowest, highest), or
+    one with every string open when `frets` is None. Only its position and
+    top matter to the hand."""
+    if frets is None:
+        return _Fingering(places=((0, 0),), cost=0.0, position=None, top=None)
+    low, high = frets
+    return _Fingering(places=((0, low), (1, high)), cost=0.0, position=low, top=high)
+
+
+@pytest.mark.parametrize(
+    ("hand", "frets", "cost", "landing"),
+    [
+        (5, (6, 8), 0.0, 5),  # inside the box 5-8: stays
+        (5, (7, 9), 1.0, 6),  # one fret short: moves one
+        (9, (5, 6), 4.0, 5),  # below the box: down to the lowest fret
+        (None, (7, 9), 0.0, 7),  # from nowhere: free, on the lowest fret
+        (5, None, 0.0, 5),  # all open: the hand stays
+        (None, None, 0.0, None),  # all open before any fretting
+    ],
+)
+def test_the_hand_moves_only_as_far_as_the_shape_needs(
+    hand: int | None,
+    frets: tuple[int, int] | None,
+    cost: float,
+    landing: int | None,
+) -> None:
+    assert ViterbiFretboardMapper()._transition(hand, shape(frets)) == (cost, landing)
+
+
+@pytest.mark.parametrize("hand", [3, 7])
+def test_a_shape_wider_than_the_box_puts_the_index_finger_on_its_lowest_fret(
+    hand: int,
+) -> None:
+    # Frets 5-9 are five wide, one more than the box. The index finger holds
+    # the lowest fret whichever side the hand came from, and the move is
+    # costed to there.
+    assert ViterbiFretboardMapper()._transition(hand, shape((5, 9))) == (2.0, 5)
 
 
 def test_notes_inside_the_window_share_a_voicing() -> None:
@@ -245,6 +305,7 @@ def test_an_exact_tie_goes_to_the_lower_frets() -> None:
         {"beam": 0},
         {"max_span": -1},
         {"max_fret": -1},
+        {"hand_window": 0},
         {"move_weight": -1.0},
         {"span_weight": -0.5},
         {"height_weight": -0.1},

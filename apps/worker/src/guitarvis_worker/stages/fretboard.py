@@ -3,7 +3,9 @@
 Notes within 50ms of a voicing's first note group into that voicing; each
 voicing has a set of playable fingerings filtered by physical constraints; a
 Viterbi pass minimises total cost, dominated by hand-position movement between
-consecutive voicings because real players stay put.
+consecutive voicings because real players stay put. The hand is the index
+finger's fret and covers `hand_window` frets, so it moves only when a voicing
+does not fit under it.
 
 Testable without audio: feed note sequences, assert fingerings. Every note it
 emits must satisfy guitarvis_core.fretboard.check_invariant — a note that
@@ -43,6 +45,7 @@ class MapperCosts:
     open_bonus: float = 0.3
     max_fret: int = 20
     max_span: int = 4
+    hand_window: int = 4
     beam: int = 50
 
     def __post_init__(self) -> None:
@@ -52,6 +55,9 @@ class MapperCosts:
             raise ValueError(f"beam must be at least 1, not {self.beam}")
         if self.max_span < 0 or self.max_fret < 0:
             raise ValueError("max_span and max_fret cannot be negative")
+        # The hand covers at least the fret under the index finger.
+        if self.hand_window < 1:
+            raise ValueError(f"hand_window must be at least 1, not {self.hand_window}")
         weights = (
             self.move_weight,
             self.span_weight,
@@ -69,6 +75,7 @@ class _Fingering:
     places: tuple[tuple[int, int], ...]
     cost: float
     position: int | None  # lowest fretted fret; None when every string is open
+    top: int | None  # highest fretted fret; None when every string is open
 
     @property
     def order_key(self) -> tuple[float, int, tuple[int, ...]]:
@@ -181,7 +188,7 @@ class ViterbiFretboardMapper:
         fretted = [fret for _, fret in places if fret > 0]
         open_strings = len(places) - len(fretted)
         if not fretted:
-            return _Fingering(places, -self.costs.open_bonus * open_strings, None)
+            return _Fingering(places, -self.costs.open_bonus * open_strings, None, None)
 
         low, high = min(fretted), max(fretted)
         span = high - low
@@ -197,30 +204,44 @@ class ViterbiFretboardMapper:
             + self.costs.height_weight * low
             - self.costs.open_bonus * open_strings
         )
-        return _Fingering(places, cost, low)
+        return _Fingering(places, cost, low, high)
 
-    def _move(self, hand: int | None, after: _Fingering) -> float:
-        """Hand movement from where the hand is to `after`. An all-open
-        voicing needs no fretting, so the hand stays put and nothing moves.
-        Before the first fretted voicing the hand is nowhere, and getting
-        anywhere is free."""
-        if hand is None or after.position is None:
-            return 0.0
-        return self.costs.move_weight * abs(hand - after.position)
+    def _transition(
+        self, hand: int | None, after: _Fingering
+    ) -> tuple[float, int | None]:
+        """The cost of moving the hand to play `after`, and where it lands.
+
+        The hand is the index finger's fret and covers `hand_window` frets.
+        A shape that fits under it costs nothing; otherwise the hand moves the
+        shortest way that makes it fit. A shape wider than the box puts the
+        index finger on its lowest fret. An all-open voicing needs no
+        fretting, so the hand stays put. Before the first fretted voicing the
+        hand is nowhere: arriving is free, and the index finger lands on the
+        lowest fret, not on a lower one that would also fit.
+        """
+        if after.position is None or after.top is None:
+            return 0.0, hand
+        low, high = after.position, after.top
+        if hand is None:
+            return 0.0, low
+        landing = min(max(hand, min(high - (self.costs.hand_window - 1), low)), low)
+        return self.costs.move_weight * abs(hand - landing), landing
 
     def _viterbi(self, fingerings: Sequence[Sequence[_Fingering]]) -> list[_Fingering]:
         """The cheapest fingering per voicing, over the whole sequence.
 
-        A state is a fingering plus where the hand is. A fretted fingering
-        puts the hand at its position; an all-open one leaves it where it
-        was, so an open fingering holds one state per hand position it can be
-        reached from. Without that, an open note would forget the hand and
+        A state is a fingering plus where the hand lands. The hand is the
+        index finger's fret and covers `hand_window` frets, so a fingering
+        reached from different hand positions can land the hand in different
+        places, and holds one state per landing. An all-open fingering leaves
+        the hand where it was, and holds one state per hand position it can
+        be reached from. Without that, an open note would forget the hand and
         make the next jump free.
         """
         if not fingerings:
             return []
 
-        # States are (fingering index, hand position), sorted so that index
+        # States are (fingering index, hand landing), sorted so that index
         # order follows order_key. Among equal (rounded) totals, the final
         # `min` takes the lowest-fret fingering of the last voicing, and
         # strict `<` gives each state its lowest-fret predecessor: ties break
@@ -235,11 +256,8 @@ class ViterbiFretboardMapper:
             best: dict[tuple[int, int | None], tuple[float, int]] = {}
             for before, (_, hand) in enumerate(states):
                 for index, option in enumerate(current):
-                    landing = hand if option.position is None else option.position
-                    total = round(
-                        totals[before] + self._move(hand, option) + option.cost,
-                        COST_PLACES,
-                    )
+                    move, landing = self._transition(hand, option)
+                    total = round(totals[before] + move + option.cost, COST_PLACES)
                     key = (index, landing)
                     if key not in best or total < best[key][0]:
                         best[key] = (total, before)
