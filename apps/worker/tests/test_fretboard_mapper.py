@@ -218,6 +218,23 @@ def test_the_first_voicing_pays_for_its_open_strings_too() -> None:
     assert places(assign(chord(0.0, 64, 72))) == [(64, 3, 9), (72, 5, 8)]
 
 
+def test_a_tie_after_a_move_goes_to_the_lower_frets() -> None:
+    # G#2 and C4 after F2: C4 at the 5th fret moves the hand one fret (0.5 + 1),
+    # and at the 1st fret stretches the hand three (1.5). Both total 1.5, and
+    # the lower frets win.
+    result = assign([note(0.0, 41), *chord(1.0, 44, 60)])
+    assert places(result) == [(41, 0, 1), (44, 0, 4), (60, 4, 1)]
+
+
+def test_a_tie_with_an_open_string_goes_to_the_lower_frets() -> None:
+    # F#3, G3 and C4: the open G with the hand at the 9th fret costs 0.5 for
+    # the span and 1.0 for the open string; the first-position shape costs 1.5
+    # for its stretch. Equal totals: the lower frets win, and the open string
+    # up the neck does not.
+    result = assign(chord(0.0, 54, 55, 60))
+    assert places(result) == [(54, 2, 4), (55, 3, 0), (60, 4, 1)]
+
+
 def shape(frets: tuple[int, int] | None, charged_opens: int = 0) -> _Fingering:
     """A fingering whose fretted notes run over `frets` (lowest, highest), or
     one with every string open when `frets` is None. Only its position, top

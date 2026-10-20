@@ -91,10 +91,17 @@ class _Fingering:
     charged_opens: int
 
     @property
-    def order_key(self) -> tuple[float, int, tuple[int, ...]]:
-        """Cheapest first, then lower frets, then lower strings: determinism."""
+    def tie_key(self) -> tuple[int, tuple[int, ...]]:
+        """Lower frets first, then lower strings: how equal paths are told
+        apart, so the result is deterministic."""
         frets = sum(fret for _, fret in self.places)
         strings = tuple(string for string, _ in self.places)
+        return (frets, strings)
+
+    @property
+    def order_key(self) -> tuple[float, int, tuple[int, ...]]:
+        """Cheapest first, then by `tie_key`: which fingerings the beam keeps."""
+        frets, strings = self.tie_key
         return (self.cost, frets, strings)
 
 
@@ -171,7 +178,14 @@ class ViterbiFretboardMapper:
     def _fingerings(
         self, voicing: Sequence[NoteEvent], open_pitches: Sequence[int]
     ) -> list[_Fingering]:
-        """The `beam` cheapest playable fingerings of one voicing."""
+        """The `beam` cheapest playable fingerings of one voicing, in tie order.
+
+        The beam keeps the cheapest by `order_key`. The kept fingerings are
+        then ordered by `tie_key` alone, because `cost` is only part of what
+        a fingering costs (an open string is charged by where the hand
+        lands), so two paths of equal total need not share a `cost`. The
+        search breaks ties by index, so index order must be tie order.
+        """
         if len(voicing) > len(open_pitches):
             return []  # more notes than strings: nothing to enumerate
 
@@ -195,7 +209,9 @@ class ViterbiFretboardMapper:
 
         extend([], set())
         found.sort(key=lambda fingering: fingering.order_key)
-        return found[: self.costs.beam]
+        kept = found[: self.costs.beam]
+        kept.sort(key=lambda fingering: fingering.tie_key)
+        return kept
 
     def _score(
         self, places: tuple[tuple[int, int], ...], forced: tuple[bool, ...]
@@ -274,11 +290,14 @@ class ViterbiFretboardMapper:
         if not fingerings:
             return []
 
-        # States are (fingering index, hand landing), sorted so that index
-        # order follows order_key. Among equal (rounded) totals, the final
-        # `min` takes the lowest-fret fingering of the last voicing, and
-        # strict `<` gives each state its lowest-fret predecessor: ties break
-        # toward lower frets, latest voicing first.
+        # States are (fingering index, hand landing), sorted by index and then
+        # by landing, with a hand that is nowhere (None) first. A voicing's
+        # fingerings are in `tie_key` order, so index order is tie order: of
+        # equal (rounded) totals, the final `min` takes the first state of the
+        # last voicing, which is its lowest-fret fingering and, within one
+        # fingering, its lowest landing; strict `<` gives each state its first
+        # predecessor, by the same order. Ties break toward lower frets, then
+        # lower strings, then a lower hand, latest voicing first.
         #
         # The first voicing is reached from no hand, which costs nothing to
         # move but still charges its open strings where the hand lands.
