@@ -108,9 +108,9 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
   - summary keys `"overlaps"` and `"baseline_overlaps"`, each
     `{"count", "notes", "per_1000"}`.
 
-- [ ] **Step 0: Commit the spec folder.**
+- [x] **Step 0: Commit the spec folder.**
   `git add docs/specs/010-tab-accuracy && git commit -m "docs: 010 spec, research, future notes and plan"`
-- [ ] **Step 1: Write the failing tests** in `test_oracle.py`. The helper
+- [x] **Step 1: Write the failing tests** in `test_oracle.py`. The helper
   builds `TabNote(onset, duration, midi=60, string=s, fret=0, confidence=1.0)`.
   - `test_a_note_on_a_string_still_sounding_is_an_overlap`: string 3 at
     (0.0, 1.0) and (0.5, 0.5) gives `Overlaps(count=1, notes=2)`.
@@ -133,10 +133,10 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
 
   In `test_full.py`, extend `test_score_full_with_stub_stages`: it now asserts
   `score.overlaps is not None` and `score.baseline_overlaps is None`.
-- [ ] **Step 2: Run and watch them fail.**
+- [x] **Step 2: Run and watch them fail.**
   `uv run pytest apps/eval/tests/test_oracle.py apps/eval/tests/test_full.py -q`
   fails with ImportError on `Overlaps`.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   - `same_string_overlaps` sorts by `(onset, string)` and keeps each
     string's last end. A note counts when its onset is earlier than that end
     minus `tolerance`.
@@ -147,17 +147,17 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
   - The README gains one bullet: placed notes starting on a string whose
     previous note still sounds more than 30 ms later, per 1000 placed notes.
     The truth scores zero.
-- [ ] **Step 4: Run** the two test files (they pass), then `make check`
+- [x] **Step 4: Run** the two test files (they pass), then `make check`
   (passes).
-- [ ] **Step 5: Commit** `feat(eval): count notes placed on a string still sounding`
-- [ ] **Step 6: Before-numbers on `test`.**
+- [x] **Step 5: Commit** `feat(eval): count notes placed on a string still sounding`
+- [x] **Step 6: Before-numbers on `test`.**
   - The tree must be clean. Run `uv sync --extra eval-full`, then
     `make eval` and `make eval ARGS=--full`.
   - Expected: two new files in `eval/results/`, `-oracle-test.json` and
     `-full-test.json`, both with `"dirty": false`. Oracle string accuracy
     should match the committed 54.0%. Full-mode note F1 should be 0.777.
   - Commit both: `docs(eval): 010's before-numbers on test`
-- [ ] **Step 7: Before-numbers on `dev`, and the timing baseline.**
+- [x] **Step 7: Before-numbers on `dev`, and the timing baseline.**
   - Run `make eval ARGS="--split dev --out $HOME/.cache/guitarvis/010-before"`,
     then the same with `--full`.
   - Create `tuning.md` with a *Dev before-numbers* table. Its columns are:
@@ -185,13 +185,13 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
 - Produces: *the round procedure*, which Tasks 9 and 12 rerun with
   `R=stage4` and `R=stage2`.
 
-- [ ] **Step 1: Bring the stack up.**
+- [x] **Step 1: Bring the stack up.**
   - Run `uv sync --extra eval-full`, which includes `ml`. Syncing `ml`
     alone would remove `mir_eval`.
   - Run `make services` and `make migrate`, then `make api`, `make worker`
     and `make web`, each in the background.
   - Check `curl -sf localhost:8000/health` returns 200.
-- [ ] **Step 2: Run the round.** Run it in the background. Each job takes
+- [x] **Step 2: Run the round.** Run it in the background. Each job takes
   minutes, because separation dominates.
 
   Jobs dedupe on the file's content hash, so each round uploads a copy whose
@@ -210,7 +210,7 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
   done
   node web/scripts/confidence-report.ts tmp/010/$R/*.json
   ```
-- [ ] **Step 3: Write `real-songs.md`.**
+- [x] **Step 3: Write `real-songs.md`.**
   - What it is: spec 010's review, songs in the gitignored `tmp/`, nothing
     committed but numbers.
   - A *Before* table, one row per song:
@@ -240,7 +240,7 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
     which returns the transition cost and where the hand lands. It replaces
     `_move`. `_viterbi` keys states on the landing it returns.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - `test_a_phrase_inside_one_box_does_not_move_the_hand`:
     - MIDI `[60, 62, 67, 69, 72]`, 0.25 s apart, each `note()` 0.25 s long.
     - Output: `[(60,3,5), (62,3,7), (67,4,8), (69,5,5), (72,5,8)]`, the
@@ -263,10 +263,10 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
       note sits between frets 12 and 16.
     - The box now puts B4 at G16, not B12. That is a debatable choice,
       recorded in future.md's *A cost for changing strings*.
-- [ ] **Step 2: Run and watch them fail.**
+- [x] **Step 2: Run and watch them fail.**
   `uv run pytest apps/worker/tests/test_fretboard_mapper.py -q`: the new
   tests fail; the rewritten one passes.
-- [ ] **Step 3: Implement `_transition`.** The landing rule is the spec's:
+- [x] **Step 3: Implement `_transition`.** The landing rule is the spec's:
 
   ```python
   if after.position is None:
@@ -280,9 +280,9 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
 
   Validate `hand_window >= 1` in `__post_init__`. Update the module and
   `_viterbi` docstrings: the hand is the index finger's fret.
-- [ ] **Step 4: Run.** The whole mapper test file and `uv run pytest apps/worker`
+- [x] **Step 4: Run.** The whole mapper test file and `uv run pytest apps/worker`
   pass. Today's other tests are unaffected, as checked against the spike.
-- [ ] **Step 5: Commit** `feat(worker): the fretting hand covers a box of frets`
+- [x] **Step 5: Commit** `feat(worker): the fretting hand covers a box of frets`
 
 ### Task 4: Open strings cost something up the neck
 
@@ -302,7 +302,7 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
     For an all-open fingering that is `max(0, hand - open_reach)` with
     `hand or 0`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - `test_a_scale_in_fifth_position_uses_no_open_strings`:
     - MIDI `[60, 62, 64, 67, 69, 72]`, 0.25 s apart, 0.25 s long.
     - Output: `[(60,3,5), (62,3,7), (64,4,5), (67,4,8), (69,5,5), (72,5,8)]`.
@@ -326,18 +326,18 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
   - Update `test_costs_that_could_never_place_a_note_are_refused`: drop
     `open_bonus`, and add `{"open_weight": -0.1}`, `{"open_reach": -1}` and
     `{"hand_window": 0}`.
-- [ ] **Step 2: Run and watch them fail.** The fifth- and twelfth-position
+- [x] **Step 2: Run and watch them fail.** The fifth- and twelfth-position
   tests fail on the open e.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   - `_fingerings` computes `forced` from each note's candidate count and
     passes it to `_score`.
   - `_score` drops the open-bonus term.
   - `_transition` adds the open cost on the landing hand.
   - `MapperCosts` docstring and validation are updated.
-- [ ] **Step 4: Run** the mapper tests and `uv run pytest apps/eval`. The
+- [x] **Step 4: Run** the mapper tests and `uv run pytest apps/eval`. The
   eval's oracle tests use the mapper, and `test_score_oracle_on_an_open_e_minor_chord`
   must still pass.
-- [ ] **Step 5: Commit** `feat(worker): open strings cost something up the neck`
+- [x] **Step 5: Commit** `feat(worker): open strings cost something up the neck`
 
 ### Task 5: Ringing strings
 
@@ -352,7 +352,7 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
     It returns `ring_weight` × the number of strings in `after` whose note in
     `before` ends later than `onset + ring_tolerance`.
 
-- [ ] **Step 1: Write the failing tests.** Use `NoteEvent` directly, since
+- [x] **Step 1: Write the failing tests.** Use `NoteEvent` directly, since
   `note()` fixes the duration at 0.5.
   - `test_a_note_still_ringing_keeps_its_string`: G3 (55) at 0.0 lasting
     1.0 s, then A3 (57) at 0.5 lasting 0.5 s, gives `[(55,3,0), (57,2,7)]`.
@@ -366,14 +366,14 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
     - G3 at 0.0 lasting 10 s, then 55, 57, 59, 60 at 0.5, 1.0, 1.5 and 2.0,
       each 0.4 s.
     - All five notes are placed, and `assert_invariant` holds.
-- [ ] **Step 2: Run and watch them fail.** The first test fails, with A3 at
+- [x] **Step 2: Run and watch them fail.** The first test fails, with A3 at
   G2.
-- [ ] **Step 3: Implement.** `assign` passes the kept voicings to `_viterbi`.
+- [x] **Step 3: Implement.** `assign` passes the kept voicings to `_viterbi`.
   The transition adds `_ring(voicings[k-1], <the state's previous fingering>, voicings[k][0].onset, option)`.
   The previous fingering is the state's fingering index, so no new state is
   needed.
-- [ ] **Step 4: Run** the mapper tests and `uv run pytest apps/worker apps/eval`.
-- [ ] **Step 5: Commit** `feat(worker): a string still ringing is busy`
+- [x] **Step 4: Run** the mapper tests and `uv run pytest apps/worker apps/eval`.
+- [x] **Step 5: Commit** `feat(worker): a string still ringing is busy`
 
 ### Task 6: Skipped strings in a chord
 
@@ -384,15 +384,15 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
   more notes, `_score` adds
   `gap_weight * (max(strings) - min(strings) + 1 - len(places))`.
 
-- [ ] **Step 1: Write the failing test.**
+- [x] **Step 1: Write the failing test.**
   `test_a_power_chord_keeps_to_adjacent_strings`: C3, G3 and C4
   (48, 55, 60) at one onset give `[(48,1,3), (55,2,5), (60,3,5)]`, the C5
   shape. Today it is A3, open G and B1, skipping the D string.
-- [ ] **Step 2: Run and watch it fail.**
-- [ ] **Step 3: Implement**, and add `gap_weight` to the validation test's
+- [x] **Step 2: Run and watch it fail.**
+- [x] **Step 3: Implement**, and add `gap_weight` to the validation test's
   parameters as `{"gap_weight": -0.1}`.
-- [ ] **Step 4: Run** `uv run pytest apps/worker apps/eval`, then `make check`.
-- [ ] **Step 5: Commit** `feat(worker): chords prefer adjacent strings`
+- [x] **Step 4: Run** `uv run pytest apps/worker apps/eval`, then `make check`.
+- [x] **Step 5: Commit** `feat(worker): chords prefer adjacent strings`
 
 ### Task 7: The transcriber's settings, made explicit
 
@@ -416,7 +416,7 @@ Output does not change, so `CACHE_VERSION` stays where it is.
   - `write_results(..., transcription: TranscriptionSettings | None = None)`,
     which writes `"transcription_settings"` only when given.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - `test_default_settings_are_basic_pitchs_own`:
     `TranscriptionSettings() == TranscriptionSettings(0.5, 0.3, 127.7, True)`.
   - `test_settings_reach_predict`:
@@ -433,12 +433,12 @@ Output does not change, so `CACHE_VERSION` stays where it is.
     `transcription=TranscriptionSettings()` writes
     `payload["transcription_settings"]["frame_threshold"] == 0.3`. The
     oracle-mode payload has no such key.
-- [ ] **Step 2: Run and watch them fail** with an ImportError.
-- [ ] **Step 3: Implement.**
+- [x] **Step 2: Run and watch them fail** with an ImportError.
+- [x] **Step 3: Implement.**
   - `_predict` passes the four settings to `predict()`.
   - `__main__` passes `transcriber.settings` in full mode.
-- [ ] **Step 4: Run** `uv run pytest apps/worker apps/eval`, then `make check`.
-- [ ] **Step 5: Commit** `feat(worker): transcription settings are explicit and recorded`
+- [x] **Step 4: Run** `uv run pytest apps/worker apps/eval`, then `make check`.
+- [x] **Step 5: Commit** `feat(worker): transcription settings are explicit and recorded`
 
 ### Task 8: The sweep
 
@@ -498,7 +498,7 @@ Output does not change, so `CACHE_VERSION` stays where it is.
 
     Transcriptions are cached under `<cache>/<settings_key>/`.
 
-- [ ] **Step 1: Write the failing tests** in `test_sweep.py`.
+- [x] **Step 1: Write the failing tests** in `test_sweep.py`.
   - The JAMS files come from `guitarset_fixture.write_jams`.
   - Full mode uses `EchoTranscriber` from `test_full.py`; move it to a
     shared helper if importing it is awkward.
@@ -522,14 +522,14 @@ Output does not change, so `CACHE_VERSION` stays where it is.
     `--cost gap_weight=0,0.6`, three data rows.
   - `test_main_never_writes_results`: the out tree is unchanged after a run.
   - In `test_full.py`: `test_score_full_without_an_analyzer_scores_no_chords`.
-- [ ] **Step 2: Run and watch them fail.**
-- [ ] **Step 3: Implement.**
+- [x] **Step 2: Run and watch them fail.**
+- [x] **Step 3: Implement.**
   - Reuse `score_oracle`, with `LowestFretMapper` as the baseline.
   - Reuse `score_full(analyzer=None)` and `summarize`.
   - The sweep reads columns out of `summarize`'s `comp` and `solo` groups.
-- [ ] **Step 4: Run** `uv run pytest apps/eval`, then `make check`. Confirm
+- [x] **Step 4: Run** `uv run pytest apps/eval`, then `make check`. Confirm
   `make -n check` does not mention `sweep`.
-- [ ] **Step 5: Commit** `feat(eval): a dev-only sweep for tuning`
+- [x] **Step 5: Commit** `feat(eval): a dev-only sweep for tuning`
 
 ### Task 9: Tune and measure stage 4
 
@@ -537,30 +537,30 @@ Output does not change, so `CACHE_VERSION` stays where it is.
 `docs/specs/010-tab-accuracy/tuning.md` and `real-songs.md`, and a
 committed results file pair.
 
-- [ ] **Step 1: Coarse sweep.** Run it in full mode, so the transcriptions
+- [x] **Step 1: Coarse sweep.** Run it in full mode, so the transcriptions
   cache once:
 
   ```bash
   make sweep ARGS="--full --cost hand_window=3,4,5 --cost open_weight=0.1,0.2,0.4 --cost open_reach=3,4,5"
   ```
-- [ ] **Step 2: Fix the winners and sweep the rest.**
+- [x] **Step 2: Fix the winners and sweep the rest.**
   - `--cost ring_weight=0,1,2,4 --cost ring_tolerance=0.05,0.1,0.15,0.2`
   - Then `--cost gap_weight=0,0.15,0.3,0.6 --cost height_weight=0,0.05 --cost span_weight=0.25,0.5,1`
-- [ ] **Step 3: Choose by the spec's rule.**
+- [x] **Step 3: Choose by the spec's rule.**
   - Maximise `obj4`.
   - Reject any row where a column falls below the dev before-numbers from
     Task 1: oracle comp and solo, full comp and solo, f1 comp and solo.
   - `oracle_ovl` and `full_ovl` must be below their before-values.
   - Record each sweep's table and the choice in `tuning.md`.
-- [ ] **Step 4: Set the defaults** to the chosen values, then run
+- [x] **Step 4: Set the defaults** to the chosen values, then run
   `uv run pytest apps/worker apps/eval`.
   - A musical test that fails at the chosen values is a conflict. Prefer the
     best row that keeps it.
   - If none does, record the conflict in `tuning.md` and stop for the user.
   - Never edit a test's expected fingering to fit the numbers.
-- [ ] **Step 5: Time** the Task 1 benchmark again and record it. It must be
+- [x] **Step 5: Time** the Task 1 benchmark again and record it. It must be
   under 2 s.
-- [ ] **Step 6: Commit** `feat(worker): tuned mapper costs`, then on a clean
+- [x] **Step 6: Commit** `feat(worker): tuned mapper costs`, then on a clean
   tree run `make eval` and `make eval ARGS=--full` on `test`.
   - Check conditions 1–3 and 8 of the spec's *When it is done* against
     Task 1's files: string accuracy rises in comp and in solo in both modes,
@@ -569,7 +569,7 @@ committed results file pair.
   - Commit both results and `tuning.md`:
     `docs(eval): 010 stage 4 on test`
   - If a condition fails, stop for the user. Stage 2 can still proceed.
-- [ ] **Step 7: Real-song round `R=stage4`.** Run Task 2's procedure. Stage 4
+- [x] **Step 7: Real-song round `R=stage4`.** Run Task 2's procedure. Stage 4
   isn't cached, so a new upload re-maps it.
   - Add a *Stage 4* table to `real-songs.md`, with the same columns plus a
     *Before* link per song.
@@ -601,7 +601,7 @@ Off by default: output is unchanged until Task 11 sets it.
   - `transcribe` applies the rule after the `MIN_CONFIDENCE` filter, when
     `ghost_ratio` is not None.
 
-- [ ] **Step 1: Write the failing tests.** Each test calls `drop_ghosts`
+- [x] **Step 1: Write the failing tests.** Each test calls `drop_ghosts`
   directly, with the base E3 (52) at 1.0 lasting 0.5 s at confidence 0.8.
   - `test_a_weak_octave_above_a_sounding_note_is_dropped`: E4 (64) at 1.0 with
     confidence 0.4, ratio 0.6: dropped.
@@ -619,10 +619,10 @@ Off by default: output is unchanged until Task 11 sets it.
   - `test_ghosts_are_kept_by_default`: `StubTranscriber` with the default
     settings returns both notes.
   - Validation: `ghost_ratio=0` and `1.5` are refused.
-- [ ] **Step 2: Run and watch them fail.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run** `uv run pytest apps/worker apps/eval`, then `make check`.
-- [ ] **Step 5: Commit** `feat(worker): an optional rule against basic-pitch's harmonic ghosts`
+- [x] **Step 2: Run and watch them fail.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run** `uv run pytest apps/worker apps/eval`, then `make check`.
+- [x] **Step 5: Commit** `feat(worker): an optional rule against basic-pitch's harmonic ghosts`
 
 ### Task 11: Tune and measure stage 2
 
@@ -630,16 +630,16 @@ Off by default: output is unchanged until Task 11 sets it.
 `apps/worker/src/guitarvis_worker/caching.py` (`CACHE_VERSION = 2`),
 `tuning.md`, and a committed results file pair.
 
-- [ ] **Step 1: Decoding sweep.**
+- [x] **Step 1: Decoding sweep.**
 
   ```bash
   make sweep ARGS="--full --transcription melodia_trick=true,false --transcription frame_threshold=0.3,0.35,0.4 --transcription minimum_note_length_ms=58,93,127.7"
   ```
 
   Then add `--transcription onset_threshold=0.4,0.5,0.6` around the winner.
-- [ ] **Step 2: Ghost sweep** on the best decoding:
+- [x] **Step 2: Ghost sweep** on the best decoding:
   `--transcription ghost_ratio=none,0.5,0.6,0.7,0.8 --transcription ghost_alone_only=false,true`.
-- [ ] **Step 3: Choose by the spec's rule.**
+- [x] **Step 3: Choose by the spec's rule.**
   - Maximise `obj2`, with `prec_comp` and `prec_solo` above the defaults
     row.
   - No column may fall below the defaults row, which is stage 4 shipped and
@@ -648,14 +648,14 @@ Off by default: output is unchanged until Task 11 sets it.
   - Between the two ghost forms, take the higher `full_solo`. Within 0.5
     points, take `ghost_alone_only=false`.
   - Record the tables and the choice in `tuning.md`.
-- [ ] **Step 4: Set the defaults and bump the cache.** Set the
+- [x] **Step 4: Set the defaults and bump the cache.** Set the
   `TranscriptionSettings` defaults, and bump `CACHE_VERSION` to 2 with a
   comment naming 010.
   - Update `test_default_settings_are_basic_pitchs_own`: rename it
     `test_default_settings_are_010s_tuned_values` and pin the new values.
   - Run `uv run pytest apps/worker apps/eval`.
   - Commit `feat(worker): tuned transcription settings`.
-- [ ] **Step 5: Measure on `test`.** On a clean tree, run `make eval ARGS=--full`
+- [x] **Step 5: Measure on `test`.** On a clean tree, run `make eval ARGS=--full`
   and `make eval`.
   - Check conditions 4–6 and 8 against Task 9's files, or Task 1's if
     stage 4 did not ship: precision rises,
@@ -669,13 +669,13 @@ Off by default: output is unchanged until Task 11 sets it.
 
 **Files:** `real-songs.md`
 
-- [ ] **Step 1: Round `R=stage2`.** Run Task 2's procedure. The
+- [x] **Step 1: Round `R=stage2`.** Run Task 2's procedure. The
   `CACHE_VERSION` bump forces a fresh transcription.
-- [ ] **Step 2: Write the comparison.** Add a *Stage 2* table, linking all
+- [x] **Step 2: Write the comparison.** Add a *Stage 2* table, linking all
   three rounds per song. Flag any song whose note count fell by more than a
   third from the stage-4 round, or whose share of hidden notes rose by more
   than 10 points. Those are the frame-threshold risk the spec names.
-- [ ] **Step 3: Stop and ask the user** to open the three links per song and
+- [x] **Step 3: Stop and ask the user** to open the three links per song and
   sign off.
   - **If they reject a setting:** revert that field's default to
     basic-pitch's, re-run Task 11's Steps 4–5 for the reduced change, and
@@ -689,21 +689,21 @@ Off by default: output is unchanged until Task 11 sets it.
 **Files:** `web/src/confidence.ts`,
 `docs/specs/006-tab-view-sync/calibration.md`
 
-- [ ] **Step 1: Read the thresholds** that Task 11's full-mode `make eval`
+- [x] **Step 1: Read the thresholds** that Task 11's full-mode `make eval`
   printed: `HIDE` and `FULL` under the 006 rule.
   - **If either is 0 or "not supported", or differs from today's 0.5 / 0.6
     by more than 0.1:** stop, show the user the bands table, and apply what
     they decide.
-- [ ] **Step 2: Add *After 010*** to `calibration.md`.
+- [x] **Step 2: Add *After 010*** to `calibration.md`.
   - The bands table from Task 11's `-full-test.json`, cited by file name.
   - The chosen values, with the rule column as in *Chosen values*.
   - The real-song report from Task 12, run under the new thresholds with
     `node web/scripts/confidence-report.ts tmp/010/stage2/*.json`.
-- [ ] **Step 3: Update `confidence.ts`.** Set `HIDE` and `FULL` (even if
+- [x] **Step 3: Update `confidence.ts`.** Set `HIDE` and `FULL` (even if
   unchanged), and point their doc comments at the new section.
-- [ ] **Step 4: Run** `cd web && npm run test && npm run typecheck && npm run lint`,
+- [x] **Step 4: Run** `cd web && npm run test && npm run typecheck && npm run lint`,
   then `make check`.
-- [ ] **Step 5: Commit** `docs(eval): recalibrate the note thresholds after 010`
+- [x] **Step 5: Commit** `docs(eval): recalibrate the note thresholds after 010`
 
 ### Task 14: Docs and the PR
 
@@ -714,7 +714,7 @@ Off by default: output is unchanged until Task 11 sets it.
 - `docs/specs/010-tab-accuracy/spec.md` (Status)
 - `CLAUDE.md` (Commands)
 
-- [ ] **Step 1: Update 001's stage 4 bullet list.** The terms become:
+- [x] **Step 1: Update 001's stage 4 bullet list.** The terms become:
   - fret span;
   - hand movement out of a four-fret box;
   - open strings up the neck;
@@ -722,13 +722,13 @@ Off by default: output is unchanged until Task 11 sets it.
   - skipped strings in a chord.
 
   Add "Amended by [010](../010-tab-accuracy/spec.md)".
-- [ ] **Step 2: Annotate 004.** Its two cost sections each get one line,
+- [x] **Step 2: Annotate 004.** Its two cost sections each get one line,
   "Amended by 010: …", naming what changed. 004's text stays as written,
   since it is history.
-- [ ] **Step 3: Update the Commands.** Add `make sweep` to the Commands line
+- [x] **Step 3: Update the Commands.** Add `make sweep` to the Commands line
   in `CLAUDE.md`. Set 010's Status to `Implemented`.
-- [ ] **Step 4: Run** `make check`, after `make services`.
-- [ ] **Step 5: Commit** `docs: 010 in the design spec, 004 and CLAUDE.md`.
+- [x] **Step 4: Run** `make check`, after `make services`.
+- [x] **Step 5: Commit** `docs: 010 in the design spec, 004 and CLAUDE.md`.
   Then push with `git push -u origin 010-tab-accuracy` and open the PR from
   `.github/pull_request_template.md`.
   - **Spec:** `docs/specs/010-tab-accuracy/spec.md`.
