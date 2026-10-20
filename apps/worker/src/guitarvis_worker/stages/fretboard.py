@@ -395,14 +395,20 @@ class ViterbiFretboardMapper:
         for k in range(1, len(fingerings)):
             current = fingerings[k]
             onset = voicings[k][0].onset
+            # The ring depends on the two fingerings, not on the hand, so it
+            # is worked out once per pair rather than once per hand state.
+            rings = [
+                [self._ring(voicings[k - 1], held, onset, option) for option in current]
+                for held in fingerings[k - 1]
+            ]
             best: dict[tuple[int, int | None], tuple[float, int]] = {}
             for before, (held_index, hand) in enumerate(states):
-                held = fingerings[k - 1][held_index]
+                ring_from = rings[held_index]
                 for index, option in enumerate(current):
                     move, landing = self._transition(hand, option)
-                    ring = self._ring(voicings[k - 1], held, onset, option)
                     total = round(
-                        totals[before] + move + ring + option.cost, COST_PLACES
+                        totals[before] + move + ring_from[index] + option.cost,
+                        COST_PLACES,
                     )
                     key = (index, landing)
                     if key not in best or total < best[key][0]:
