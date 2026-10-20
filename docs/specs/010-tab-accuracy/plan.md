@@ -270,10 +270,10 @@ onnxruntime; mir_eval in eval-full; Node 22 for `web/scripts/confidence-report.t
 
   ```python
   if after.position is None:
-      return 0.0, hand                       # all open: the hand stays
+      return 0.0, hand  # all open: the hand stays
   low, high = after.position, after.top
   if hand is None:
-      return 0.0, low                        # arriving from nowhere is free
+      return 0.0, low  # arriving from nowhere is free
   landing = min(max(hand, min(high - (self.costs.hand_window - 1), low)), low)
   return self.costs.move_weight * abs(hand - landing), landing
   ```
