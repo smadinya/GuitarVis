@@ -5,7 +5,8 @@ voicing has a set of playable fingerings filtered by physical constraints; a
 Viterbi pass minimises total cost, dominated by hand-position movement between
 consecutive voicings because real players stay put. The hand is the index
 finger's fret and covers `hand_window` frets, so it moves only when a voicing
-does not fit under it.
+does not fit under it. An open string costs more the further up the neck the
+hand sits, unless its note has no other place to be played.
 
 Testable without audio: feed note sequences, assert fingerings. Every note it
 emits must satisfy guitarvis_core.fretboard.check_invariant — a note that
@@ -37,12 +38,21 @@ class MapperCosts:
 
     Evaluation results record the values they ran with, so a change here shows
     up in the eval/results/ history next to the number it moved.
+
+    The hand is the index finger's fret and covers `hand_window` frets; moving
+    it costs `move_weight` per fret. Within a fingering, `span_weight` charges
+    per fret of stretch and `height_weight` per fret of height, which pulls the
+    tab toward the nut (zero: nothing does). An open string is free while the
+    hand sits at or below `open_reach`, and above it costs `open_weight` per
+    fret of the hand's height. A note with no other place to be played is
+    exempt, so the lowest string's open note never drags a phrase down.
     """
 
     move_weight: float = 1.0
     span_weight: float = 0.5
-    height_weight: float = 0.1
-    open_bonus: float = 0.3
+    height_weight: float = 0.0
+    open_reach: int = 4
+    open_weight: float = 0.2
     max_fret: int = 20
     max_span: int = 4
     hand_window: int = 4
@@ -53,8 +63,8 @@ class MapperCosts:
         # drop loop in assign() relies on a lone note always being playable.
         if self.beam < 1:
             raise ValueError(f"beam must be at least 1, not {self.beam}")
-        if self.max_span < 0 or self.max_fret < 0:
-            raise ValueError("max_span and max_fret cannot be negative")
+        if self.max_span < 0 or self.max_fret < 0 or self.open_reach < 0:
+            raise ValueError("max_span, max_fret and open_reach cannot be negative")
         # The hand covers at least the fret under the index finger.
         if self.hand_window < 1:
             raise ValueError(f"hand_window must be at least 1, not {self.hand_window}")
@@ -62,7 +72,7 @@ class MapperCosts:
             self.move_weight,
             self.span_weight,
             self.height_weight,
-            self.open_bonus,
+            self.open_weight,
         )
         if any(weight < 0 for weight in weights):
             raise ValueError("cost weights cannot be negative")
@@ -76,6 +86,9 @@ class _Fingering:
     cost: float
     position: int | None  # lowest fretted fret; None when every string is open
     top: int | None  # highest fretted fret; None when every string is open
+    # Open strings whose note could be played elsewhere. They are charged by
+    # where the hand lands, so the cost waits for the transition.
+    charged_opens: int
 
     @property
     def order_key(self) -> tuple[float, int, tuple[int, ...]]:
@@ -163,11 +176,12 @@ class ViterbiFretboardMapper:
             return []  # more notes than strings: nothing to enumerate
 
         per_note = [self._candidates(note, open_pitches) for note in voicing]
+        forced = tuple(len(candidates) == 1 for candidates in per_note)
         found: list[_Fingering] = []
 
         def extend(chosen: list[tuple[int, int]], used: set[int]) -> None:
             if len(chosen) == len(per_note):
-                fingering = self._score(tuple(chosen))
+                fingering = self._score(tuple(chosen), forced)
                 if fingering is not None:
                     found.append(fingering)
                 return
@@ -183,12 +197,24 @@ class ViterbiFretboardMapper:
         found.sort(key=lambda fingering: fingering.order_key)
         return found[: self.costs.beam]
 
-    def _score(self, places: tuple[tuple[int, int], ...]) -> _Fingering | None:
-        """The cost of one fingering, or None when no hand can hold it."""
+    def _score(
+        self, places: tuple[tuple[int, int], ...], forced: tuple[bool, ...]
+    ) -> _Fingering | None:
+        """The cost of one fingering, or None when no hand can hold it.
+
+        `forced[i]` says note i has exactly one candidate. If that one is an
+        open string every fingering plays it open, so charging for it would
+        only drag the rest of the phrase toward the nut. The exemption is
+        that, and not "the lowest string": E2 on a seven-string has two places.
+        """
         fretted = [fret for _, fret in places if fret > 0]
-        open_strings = len(places) - len(fretted)
+        charged_opens = sum(
+            1
+            for (_, fret), only in zip(places, forced, strict=True)
+            if fret == 0 and not only
+        )
         if not fretted:
-            return _Fingering(places, -self.costs.open_bonus * open_strings, None, None)
+            return _Fingering(places, 0.0, None, None, charged_opens)
 
         low, high = min(fretted), max(fretted)
         span = high - low
@@ -199,12 +225,8 @@ class ViterbiFretboardMapper:
         if sum(1 for fret in fretted if fret > low) > FINGERS_BEYOND_BARRE:
             return None
 
-        cost = (
-            self.costs.span_weight * span
-            + self.costs.height_weight * low
-            - self.costs.open_bonus * open_strings
-        )
-        return _Fingering(places, cost, low, high)
+        cost = self.costs.span_weight * span + self.costs.height_weight * low
+        return _Fingering(places, cost, low, high, charged_opens)
 
     def _transition(
         self, hand: int | None, after: _Fingering
@@ -218,14 +240,25 @@ class ViterbiFretboardMapper:
         fretting, so the hand stays put. Before the first fretted voicing the
         hand is nowhere: arriving is free, and the index finger lands on the
         lowest fret, not on a lower one that would also fit.
+
+        The fingering's charged open strings cost `open_weight` per fret that
+        the landing hand sits above `open_reach`. A hand that is nowhere is
+        at the nut.
         """
         if after.position is None or after.top is None:
-            return 0.0, hand
-        low, high = after.position, after.top
-        if hand is None:
-            return 0.0, low
-        landing = min(max(hand, min(high - (self.costs.hand_window - 1), low)), low)
-        return self.costs.move_weight * abs(hand - landing), landing
+            move, landing = 0.0, hand
+        else:
+            low, high = after.position, after.top
+            if hand is None:
+                move, landing = 0.0, low
+            else:
+                landing = min(
+                    max(hand, min(high - (self.costs.hand_window - 1), low)), low
+                )
+                move = self.costs.move_weight * abs(hand - landing)
+        above_reach = max(0, (landing or 0) - self.costs.open_reach)
+        open_cost = self.costs.open_weight * after.charged_opens * above_reach
+        return move + open_cost, landing
 
     def _viterbi(self, fingerings: Sequence[Sequence[_Fingering]]) -> list[_Fingering]:
         """The cheapest fingering per voicing, over the whole sequence.
@@ -246,10 +279,17 @@ class ViterbiFretboardMapper:
         # `min` takes the lowest-fret fingering of the last voicing, and
         # strict `<` gives each state its lowest-fret predecessor: ties break
         # toward lower frets, latest voicing first.
+        #
+        # The first voicing is reached from no hand, which costs nothing to
+        # move but still charges its open strings where the hand lands.
+        arrivals = [self._transition(None, fingering) for fingering in fingerings[0]]
         states: list[tuple[int, int | None]] = [
-            (index, fingering.position) for index, fingering in enumerate(fingerings[0])
+            (index, landing) for index, (_, landing) in enumerate(arrivals)
         ]
-        totals = [round(fingering.cost, COST_PLACES) for fingering in fingerings[0]]
+        totals = [
+            round(fingering.cost + cost, COST_PLACES)
+            for fingering, (cost, _) in zip(fingerings[0], arrivals, strict=True)
+        ]
         history: list[list[tuple[int, int | None]]] = [states]
         back: list[list[int]] = []
         for current in fingerings[1:]:

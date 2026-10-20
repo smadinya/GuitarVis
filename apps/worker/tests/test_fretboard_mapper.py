@@ -10,7 +10,7 @@ from collections.abc import Sequence
 
 import pytest
 from guitarvis_core.contracts import FretboardResult, NoteEvent
-from guitarvis_core.fretboard import check_invariant
+from guitarvis_core.fretboard import check_invariant, parse_pitch
 from guitarvis_core.tabdoc import STANDARD_TUNING, Note
 from guitarvis_worker.stages.fretboard import (
     MapperCosts,
@@ -142,14 +142,102 @@ def test_a_phrase_inside_one_box_does_not_move_the_hand() -> None:
     ]
 
 
-def shape(frets: tuple[int, int] | None) -> _Fingering:
+def quarter_notes(midis: list[int]) -> list[NoteEvent]:
+    """`midis` 0.25 s apart, each 0.25 s long."""
+    return [note(i * 0.25, m, duration=0.25) for i, m in enumerate(midis)]
+
+
+def test_a_scale_in_fifth_position_uses_no_open_strings() -> None:
+    # E4 is an open string, but the hand is at the 5th fret, and an open
+    # string up the neck costs something. Free, it would be played open.
+    result = assign(quarter_notes([60, 62, 64, 67, 69, 72]))
+    assert places(result) == [
+        (60, 3, 5),
+        (62, 3, 7),
+        (64, 4, 5),
+        (67, 4, 8),
+        (69, 5, 5),
+        (72, 5, 8),
+    ]
+
+
+def test_twelfth_position_stays_up_the_neck() -> None:
+    # A descent that ends on E4. Nothing pulls the hand to the nut, and the
+    # open e string costs 0.2 a fret above the fourth, so the phrase stays
+    # at the 12th fret instead of sliding down to it.
+    result = assign(quarter_notes([76, 74, 71, 69, 67, 64]))
+    assert places(result) == [
+        (76, 5, 12),
+        (74, 4, 15),
+        (71, 4, 12),
+        (69, 3, 14),
+        (67, 3, 12),
+        (64, 2, 14),
+    ]
+
+
+def test_an_open_low_e_pedal_does_not_drag_the_riff_down() -> None:
+    # E2 has one place, the open low string, wherever the hand is, so it is
+    # exempt from the open-string cost. Charged, the pedal pulled the hand to
+    # the nut: D4 landed on B3 and E4 on the open e string.
+    riff = [62, 64, 66, 67, 69, 71]
+    alone = [note((2 * i + 1) * 0.25, m, duration=0.25) for i, m in enumerate(riff)]
+    pedal = quarter_notes([m for riff_note in riff for m in (40, riff_note)])
+
+    with_pedal = places(assign(pedal))
+    assert [p for p in with_pedal if p[0] != 40] == places(assign(alone))
+    assert all(
+        string == 0 and fret == 0 for midi, string, fret in with_pedal if midi == 40
+    )
+
+
+def test_only_a_note_with_no_other_place_is_exempt() -> None:
+    # The exemption is "this note has exactly one candidate", not "the lowest
+    # string". Low D in drop D has no other place; on a seven-string the open
+    # E2 does, so it is charged like any open string.
+    def open_fingering(tuning: Sequence[str], midi: int) -> _Fingering:
+        mapper = ViterbiFretboardMapper()
+        pitches = [parse_pitch(name) for name in tuning]
+        options = mapper._fingerings([note(0.0, midi)], pitches)
+        (found,) = [o for o in options if all(fret == 0 for _, fret in o.places)]
+        return found
+
+    standard_e2 = open_fingering(STANDARD_TUNING, 40)
+    assert (standard_e2.places, standard_e2.charged_opens) == (((0, 0),), 0)
+    drop_d_d2 = open_fingering(DROP_D, 38)
+    assert (drop_d_d2.places, drop_d_d2.charged_opens) == (((0, 0),), 0)
+    seven_e2 = open_fingering(SEVEN_STRING, 40)
+    assert (seven_e2.places, seven_e2.charged_opens) == (((1, 0),), 1)
+
+
+def test_the_first_voicing_pays_for_its_open_strings_too() -> None:
+    # E4 open with C5 at the 13th fret costs nothing but the open string, which
+    # sits nine frets above the reach. Charged, the chord is held in the box at
+    # the 8th fret instead. The hand arriving for free is no reason to let the
+    # first voicing's open strings off.
+    assert places(assign(chord(0.0, 64, 72))) == [(64, 3, 9), (72, 5, 8)]
+
+
+def shape(frets: tuple[int, int] | None, charged_opens: int = 0) -> _Fingering:
     """A fingering whose fretted notes run over `frets` (lowest, highest), or
-    one with every string open when `frets` is None. Only its position and
-    top matter to the hand."""
+    one with every string open when `frets` is None. Only its position, top
+    and charged opens matter to the hand."""
     if frets is None:
-        return _Fingering(places=((0, 0),), cost=0.0, position=None, top=None)
+        return _Fingering(
+            places=((0, 0),),
+            cost=0.0,
+            position=None,
+            top=None,
+            charged_opens=charged_opens,
+        )
     low, high = frets
-    return _Fingering(places=((0, low), (1, high)), cost=0.0, position=low, top=high)
+    return _Fingering(
+        places=((0, low), (1, high)),
+        cost=0.0,
+        position=low,
+        top=high,
+        charged_opens=charged_opens,
+    )
 
 
 @pytest.mark.parametrize(
@@ -180,6 +268,33 @@ def test_a_shape_wider_than_the_box_puts_the_index_finger_on_its_lowest_fret(
     # the lowest fret whichever side the hand came from, and the move is
     # costed to there.
     assert ViterbiFretboardMapper()._transition(hand, shape((5, 9))) == (2.0, 5)
+
+
+@pytest.mark.parametrize(
+    ("hand", "frets", "charged", "cost", "landing"),
+    [
+        (4, None, 2, 0.0, 4),  # all open at the reach: free
+        (5, None, 1, 0.2, 5),  # one fret above it: 0.2 an open string
+        (9, None, 2, 2.0, 9),  # five frets above, two open strings
+        (9, None, 0, 0.0, 9),  # nothing charged: free anywhere
+        (None, None, 2, 0.0, None),  # all open before any fretting: the nut
+        (5, (6, 8), 1, 0.2, 5),  # charged on the hand after it stays
+        (5, (7, 9), 1, 1.4, 6),  # ...and after it moves: 1.0 + 0.2 * 2
+        (None, (7, 9), 1, 0.6, 7),  # ...and where it first lands
+    ],
+)
+def test_an_open_string_costs_by_how_far_up_the_neck_the_hand_lands(
+    hand: int | None,
+    frets: tuple[int, int] | None,
+    charged: int,
+    cost: float,
+    landing: int | None,
+) -> None:
+    got_cost, got_landing = ViterbiFretboardMapper()._transition(
+        hand, shape(frets, charged)
+    )
+    assert got_cost == pytest.approx(cost)
+    assert got_landing == landing
 
 
 def test_notes_inside_the_window_share_a_voicing() -> None:
@@ -308,10 +423,11 @@ def test_an_exact_tie_goes_to_the_lower_frets() -> None:
         {"max_span": -1},
         {"max_fret": -1},
         {"hand_window": 0},
+        {"open_reach": -1},
         {"move_weight": -1.0},
         {"span_weight": -0.5},
         {"height_weight": -0.1},
-        {"open_bonus": -0.3},
+        {"open_weight": -0.1},
     ],
 )
 def test_costs_that_could_never_place_a_note_are_refused(
