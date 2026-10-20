@@ -1,0 +1,1594 @@
+{
+  "date": "2026-10-19",
+  "commit": "5624075",
+  "dirty": false,
+  "mode": "oracle",
+  "split": "test",
+  "mapper_costs": {
+    "move_weight": 1.0,
+    "span_weight": 0.5,
+    "height_weight": 0.0,
+    "open_reach": 4,
+    "open_weight": 0.2,
+    "ring_weight": 2.0,
+    "ring_tolerance": 0.1,
+    "gap_weight": 0.6,
+    "max_fret": 20,
+    "max_span": 4,
+    "hand_window": 4,
+    "beam": 50
+  },
+  "summary": {
+    "all": {
+      "excerpts": 60,
+      "string": {
+        "correct": 5825,
+        "total": 8715,
+        "rate": 0.6683878370625359
+      },
+      "baseline_string": {
+        "correct": 3284,
+        "total": 8715,
+        "rate": 0.3768215720022949
+      },
+      "overlaps": {
+        "count": 34,
+        "notes": 8698,
+        "per_1000": 3.90894458496206
+      },
+      "baseline_overlaps": {
+        "count": 872,
+        "notes": 8715,
+        "per_1000": 100.05737234652898
+      }
+    },
+    "comp": {
+      "excerpts": 30,
+      "string": {
+        "correct": 4834,
+        "total": 6536,
+        "rate": 0.7395960832313342
+      },
+      "baseline_string": {
+        "correct": 2832,
+        "total": 6536,
+        "rate": 0.43329253365973075
+      },
+      "overlaps": {
+        "count": 12,
+        "notes": 6523,
+        "per_1000": 1.839644335428484
+      },
+      "baseline_overlaps": {
+        "count": 818,
+        "notes": 6536,
+        "per_1000": 125.1529987760098
+      }
+    },
+    "solo": {
+      "excerpts": 30,
+      "string": {
+        "correct": 991,
+        "total": 2179,
+        "rate": 0.45479577787976133
+      },
+      "baseline_string": {
+        "correct": 452,
+        "total": 2179,
+        "rate": 0.20743460302891234
+      },
+      "overlaps": {
+        "count": 22,
+        "notes": 2175,
+        "per_1000": 10.114942528735632
+      },
+      "baseline_overlaps": {
+        "count": 54,
+        "notes": 2179,
+        "per_1000": 24.782010096374485
+      }
+    }
+  },
+  "excerpts": [
+    {
+      "name": "05_BN1-129-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 34,
+        "total": 148,
+        "rate": 0.22972972972972974
+      },
+      "baseline_string": {
+        "correct": 27,
+        "total": 148,
+        "rate": 0.18243243243243243
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 148,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 7,
+        "notes": 148,
+        "per_1000": 47.2972972972973
+      }
+    },
+    {
+      "name": "05_BN1-129-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 39,
+        "total": 44,
+        "rate": 0.8863636363636364
+      },
+      "baseline_string": {
+        "correct": 5,
+        "total": 44,
+        "rate": 0.11363636363636363
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 44,
+        "per_1000": 22.727272727272727
+      },
+      "baseline_overlaps": {
+        "count": 1,
+        "notes": 44,
+        "per_1000": 22.727272727272727
+      }
+    },
+    {
+      "name": "05_BN1-147-Gb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 63,
+        "total": 96,
+        "rate": 0.65625
+      },
+      "baseline_string": {
+        "correct": 63,
+        "total": 96,
+        "rate": 0.65625
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 96,
+        "per_1000": 10.416666666666666
+      },
+      "baseline_overlaps": {
+        "count": 3,
+        "notes": 96,
+        "per_1000": 31.25
+      }
+    },
+    {
+      "name": "05_BN1-147-Gb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 13,
+        "total": 27,
+        "rate": 0.48148148148148145
+      },
+      "baseline_string": {
+        "correct": 1,
+        "total": 27,
+        "rate": 0.037037037037037035
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 27,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 1,
+        "notes": 27,
+        "per_1000": 37.03703703703704
+      }
+    },
+    {
+      "name": "05_BN2-131-B_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 95,
+        "total": 202,
+        "rate": 0.47029702970297027
+      },
+      "baseline_string": {
+        "correct": 73,
+        "total": 202,
+        "rate": 0.3613861386138614
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 202,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 6,
+        "notes": 202,
+        "per_1000": 29.702970297029704
+      }
+    },
+    {
+      "name": "05_BN2-131-B_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 31,
+        "total": 69,
+        "rate": 0.4492753623188406
+      },
+      "baseline_string": {
+        "correct": 7,
+        "total": 69,
+        "rate": 0.10144927536231885
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 69,
+        "per_1000": 14.492753623188406
+      },
+      "baseline_overlaps": {
+        "count": 2,
+        "notes": 69,
+        "per_1000": 28.985507246376812
+      }
+    },
+    {
+      "name": "05_BN2-166-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 113,
+        "total": 173,
+        "rate": 0.653179190751445
+      },
+      "baseline_string": {
+        "correct": 96,
+        "total": 173,
+        "rate": 0.5549132947976878
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 173,
+        "per_1000": 11.560693641618498
+      },
+      "baseline_overlaps": {
+        "count": 17,
+        "notes": 173,
+        "per_1000": 98.26589595375722
+      }
+    },
+    {
+      "name": "05_BN2-166-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 41,
+        "total": 67,
+        "rate": 0.6119402985074627
+      },
+      "baseline_string": {
+        "correct": 21,
+        "total": 67,
+        "rate": 0.31343283582089554
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 67,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 2,
+        "notes": 67,
+        "per_1000": 29.850746268656717
+      }
+    },
+    {
+      "name": "05_BN3-119-G_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 108,
+        "total": 180,
+        "rate": 0.6
+      },
+      "baseline_string": {
+        "correct": 72,
+        "total": 180,
+        "rate": 0.4
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 179,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 24,
+        "notes": 180,
+        "per_1000": 133.33333333333334
+      }
+    },
+    {
+      "name": "05_BN3-119-G_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 9,
+        "total": 62,
+        "rate": 0.14516129032258066
+      },
+      "baseline_string": {
+        "correct": 4,
+        "total": 62,
+        "rate": 0.06451612903225806
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 62,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 0,
+        "notes": 62,
+        "per_1000": 0.0
+      }
+    },
+    {
+      "name": "05_BN3-154-E_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 53,
+        "total": 185,
+        "rate": 0.2864864864864865
+      },
+      "baseline_string": {
+        "correct": 39,
+        "total": 185,
+        "rate": 0.21081081081081082
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 185,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 14,
+        "notes": 185,
+        "per_1000": 75.67567567567568
+      }
+    },
+    {
+      "name": "05_BN3-154-E_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 11,
+        "total": 56,
+        "rate": 0.19642857142857142
+      },
+      "baseline_string": {
+        "correct": 2,
+        "total": 56,
+        "rate": 0.03571428571428571
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 56,
+        "per_1000": 17.857142857142858
+      },
+      "baseline_overlaps": {
+        "count": 1,
+        "notes": 56,
+        "per_1000": 17.857142857142858
+      }
+    },
+    {
+      "name": "05_Funk1-114-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 180,
+        "total": 181,
+        "rate": 0.994475138121547
+      },
+      "baseline_string": {
+        "correct": 94,
+        "total": 181,
+        "rate": 0.5193370165745856
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 180,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 48,
+        "notes": 181,
+        "per_1000": 265.1933701657459
+      }
+    },
+    {
+      "name": "05_Funk1-114-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 38,
+        "total": 60,
+        "rate": 0.6333333333333333
+      },
+      "baseline_string": {
+        "correct": 8,
+        "total": 60,
+        "rate": 0.13333333333333333
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 60,
+        "per_1000": 33.333333333333336
+      },
+      "baseline_overlaps": {
+        "count": 2,
+        "notes": 60,
+        "per_1000": 33.333333333333336
+      }
+    },
+    {
+      "name": "05_Funk1-97-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 151,
+        "total": 177,
+        "rate": 0.8531073446327684
+      },
+      "baseline_string": {
+        "correct": 51,
+        "total": 177,
+        "rate": 0.288135593220339
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 176,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 43,
+        "notes": 177,
+        "per_1000": 242.93785310734464
+      }
+    },
+    {
+      "name": "05_Funk1-97-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 25,
+        "total": 58,
+        "rate": 0.43103448275862066
+      },
+      "baseline_string": {
+        "correct": 15,
+        "total": 58,
+        "rate": 0.25862068965517243
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 58,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 3,
+        "notes": 58,
+        "per_1000": 51.724137931034484
+      }
+    },
+    {
+      "name": "05_Funk2-108-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 229,
+        "total": 245,
+        "rate": 0.9346938775510204
+      },
+      "baseline_string": {
+        "correct": 110,
+        "total": 245,
+        "rate": 0.4489795918367347
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 245,
+        "per_1000": 8.16326530612245
+      },
+      "baseline_overlaps": {
+        "count": 48,
+        "notes": 245,
+        "per_1000": 195.91836734693877
+      }
+    },
+    {
+      "name": "05_Funk2-108-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 0,
+        "total": 61,
+        "rate": 0.0
+      },
+      "baseline_string": {
+        "correct": 28,
+        "total": 61,
+        "rate": 0.45901639344262296
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 61,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 0,
+        "notes": 61,
+        "per_1000": 0.0
+      }
+    },
+    {
+      "name": "05_Funk2-119-G_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 124,
+        "total": 182,
+        "rate": 0.6813186813186813
+      },
+      "baseline_string": {
+        "correct": 67,
+        "total": 182,
+        "rate": 0.36813186813186816
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 182,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 72,
+        "notes": 182,
+        "per_1000": 395.6043956043956
+      }
+    },
+    {
+      "name": "05_Funk2-119-G_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 40,
+        "total": 99,
+        "rate": 0.40404040404040403
+      },
+      "baseline_string": {
+        "correct": 19,
+        "total": 99,
+        "rate": 0.1919191919191919
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 99,
+        "per_1000": 20.2020202020202
+      },
+      "baseline_overlaps": {
+        "count": 3,
+        "notes": 99,
+        "per_1000": 30.303030303030305
+      }
+    },
+    {
+      "name": "05_Funk3-112-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 199,
+        "total": 212,
+        "rate": 0.9386792452830188
+      },
+      "baseline_string": {
+        "correct": 118,
+        "total": 212,
+        "rate": 0.5566037735849056
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 210,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 50,
+        "notes": 212,
+        "per_1000": 235.8490566037736
+      }
+    },
+    {
+      "name": "05_Funk3-112-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 0,
+        "total": 70,
+        "rate": 0.0
+      },
+      "baseline_string": {
+        "correct": 19,
+        "total": 70,
+        "rate": 0.2714285714285714
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 70,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 1,
+        "notes": 70,
+        "per_1000": 14.285714285714286
+      }
+    },
+    {
+      "name": "05_Funk3-98-A_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 163,
+        "total": 184,
+        "rate": 0.8858695652173914
+      },
+      "baseline_string": {
+        "correct": 67,
+        "total": 184,
+        "rate": 0.3641304347826087
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 184,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 74,
+        "notes": 184,
+        "per_1000": 402.17391304347825
+      }
+    },
+    {
+      "name": "05_Funk3-98-A_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 22,
+        "total": 65,
+        "rate": 0.3384615384615385
+      },
+      "baseline_string": {
+        "correct": 6,
+        "total": 65,
+        "rate": 0.09230769230769231
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 65,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 0,
+        "notes": 65,
+        "per_1000": 0.0
+      }
+    },
+    {
+      "name": "05_Jazz1-130-D_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 106,
+        "total": 141,
+        "rate": 0.75177304964539
+      },
+      "baseline_string": {
+        "correct": 59,
+        "total": 141,
+        "rate": 0.41843971631205673
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 141,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 17,
+        "notes": 141,
+        "per_1000": 120.56737588652483
+      }
+    },
+    {
+      "name": "05_Jazz1-130-D_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 32,
+        "total": 58,
+        "rate": 0.5517241379310345
+      },
+      "baseline_string": {
+        "correct": 14,
+        "total": 58,
+        "rate": 0.2413793103448276
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 58,
+        "per_1000": 17.24137931034483
+      },
+      "baseline_overlaps": {
+        "count": 0,
+        "notes": 58,
+        "per_1000": 0.0
+      }
+    },
+    {
+      "name": "05_Jazz1-200-B_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 149,
+        "total": 175,
+        "rate": 0.8514285714285714
+      },
+      "baseline_string": {
+        "correct": 34,
+        "total": 175,
+        "rate": 0.19428571428571428
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 175,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 7,
+        "notes": 175,
+        "per_1000": 40.0
+      }
+    },
+    {
+      "name": "05_Jazz1-200-B_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 48,
+        "total": 50,
+        "rate": 0.96
+      },
+      "baseline_string": {
+        "correct": 8,
+        "total": 50,
+        "rate": 0.16
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 50,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 1,
+        "notes": 50,
+        "per_1000": 20.0
+      }
+    },
+    {
+      "name": "05_Jazz2-110-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 241,
+        "total": 252,
+        "rate": 0.9563492063492064
+      },
+      "baseline_string": {
+        "correct": 132,
+        "total": 252,
+        "rate": 0.5238095238095238
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 248,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 21,
+        "notes": 252,
+        "per_1000": 83.33333333333333
+      }
+    },
+    {
+      "name": "05_Jazz2-110-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 56,
+        "total": 103,
+        "rate": 0.5436893203883495
+      },
+      "baseline_string": {
+        "correct": 26,
+        "total": 103,
+        "rate": 0.2524271844660194
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 103,
+        "per_1000": 9.70873786407767
+      },
+      "baseline_overlaps": {
+        "count": 3,
+        "notes": 103,
+        "per_1000": 29.12621359223301
+      }
+    },
+    {
+      "name": "05_Jazz2-187-F#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 175,
+        "total": 247,
+        "rate": 0.708502024291498
+      },
+      "baseline_string": {
+        "correct": 108,
+        "total": 247,
+        "rate": 0.43724696356275305
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 247,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 20,
+        "notes": 247,
+        "per_1000": 80.97165991902834
+      }
+    },
+    {
+      "name": "05_Jazz2-187-F#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 31,
+        "total": 61,
+        "rate": 0.5081967213114754
+      },
+      "baseline_string": {
+        "correct": 16,
+        "total": 61,
+        "rate": 0.26229508196721313
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 61,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 2,
+        "notes": 61,
+        "per_1000": 32.78688524590164
+      }
+    },
+    {
+      "name": "05_Jazz3-137-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 231,
+        "total": 235,
+        "rate": 0.9829787234042553
+      },
+      "baseline_string": {
+        "correct": 61,
+        "total": 235,
+        "rate": 0.25957446808510637
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 235,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 19,
+        "notes": 235,
+        "per_1000": 80.85106382978724
+      }
+    },
+    {
+      "name": "05_Jazz3-137-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 22,
+        "total": 77,
+        "rate": 0.2857142857142857
+      },
+      "baseline_string": {
+        "correct": 6,
+        "total": 77,
+        "rate": 0.07792207792207792
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 77,
+        "per_1000": 25.974025974025974
+      },
+      "baseline_overlaps": {
+        "count": 3,
+        "notes": 77,
+        "per_1000": 38.96103896103896
+      }
+    },
+    {
+      "name": "05_Jazz3-150-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 146,
+        "total": 227,
+        "rate": 0.6431718061674009
+      },
+      "baseline_string": {
+        "correct": 17,
+        "total": 227,
+        "rate": 0.07488986784140969
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 227,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 53,
+        "notes": 227,
+        "per_1000": 233.48017621145374
+      }
+    },
+    {
+      "name": "05_Jazz3-150-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 1,
+        "total": 69,
+        "rate": 0.014492753623188406
+      },
+      "baseline_string": {
+        "correct": 21,
+        "total": 69,
+        "rate": 0.30434782608695654
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 69,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 2,
+        "notes": 69,
+        "per_1000": 28.985507246376812
+      }
+    },
+    {
+      "name": "05_Rock1-130-A_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 64,
+        "total": 312,
+        "rate": 0.20512820512820512
+      },
+      "baseline_string": {
+        "correct": 64,
+        "total": 312,
+        "rate": 0.20512820512820512
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 312,
+        "per_1000": 3.2051282051282053
+      },
+      "baseline_overlaps": {
+        "count": 1,
+        "notes": 312,
+        "per_1000": 3.2051282051282053
+      }
+    },
+    {
+      "name": "05_Rock1-130-A_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 46,
+        "total": 60,
+        "rate": 0.7666666666666667
+      },
+      "baseline_string": {
+        "correct": 1,
+        "total": 60,
+        "rate": 0.016666666666666666
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 60,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 1,
+        "notes": 60,
+        "per_1000": 16.666666666666668
+      }
+    },
+    {
+      "name": "05_Rock1-90-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 277,
+        "total": 277,
+        "rate": 1.0
+      },
+      "baseline_string": {
+        "correct": 140,
+        "total": 277,
+        "rate": 0.5054151624548736
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 277,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 5,
+        "notes": 277,
+        "per_1000": 18.050541516245488
+      }
+    },
+    {
+      "name": "05_Rock1-90-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 33,
+        "total": 99,
+        "rate": 0.3333333333333333
+      },
+      "baseline_string": {
+        "correct": 24,
+        "total": 99,
+        "rate": 0.24242424242424243
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 99,
+        "per_1000": 10.1010101010101
+      },
+      "baseline_overlaps": {
+        "count": 1,
+        "notes": 99,
+        "per_1000": 10.1010101010101
+      }
+    },
+    {
+      "name": "05_Rock2-142-D_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 327,
+        "total": 460,
+        "rate": 0.7108695652173913
+      },
+      "baseline_string": {
+        "correct": 111,
+        "total": 460,
+        "rate": 0.24130434782608695
+      },
+      "overlaps": {
+        "count": 4,
+        "notes": 456,
+        "per_1000": 8.771929824561404
+      },
+      "baseline_overlaps": {
+        "count": 61,
+        "notes": 460,
+        "per_1000": 132.6086956521739
+      }
+    },
+    {
+      "name": "05_Rock2-142-D_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 60,
+        "total": 86,
+        "rate": 0.6976744186046512
+      },
+      "baseline_string": {
+        "correct": 3,
+        "total": 86,
+        "rate": 0.03488372093023256
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 86,
+        "per_1000": 11.627906976744185
+      },
+      "baseline_overlaps": {
+        "count": 3,
+        "notes": 86,
+        "per_1000": 34.883720930232556
+      }
+    },
+    {
+      "name": "05_Rock2-85-F_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 286,
+        "total": 325,
+        "rate": 0.88
+      },
+      "baseline_string": {
+        "correct": 132,
+        "total": 325,
+        "rate": 0.40615384615384614
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 325,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 13,
+        "notes": 325,
+        "per_1000": 40.0
+      }
+    },
+    {
+      "name": "05_Rock2-85-F_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 40,
+        "total": 125,
+        "rate": 0.32
+      },
+      "baseline_string": {
+        "correct": 43,
+        "total": 125,
+        "rate": 0.344
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 123,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 2,
+        "notes": 125,
+        "per_1000": 16.0
+      }
+    },
+    {
+      "name": "05_Rock3-117-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 331,
+        "total": 398,
+        "rate": 0.8316582914572864
+      },
+      "baseline_string": {
+        "correct": 67,
+        "total": 398,
+        "rate": 0.16834170854271358
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 398,
+        "per_1000": 5.025125628140704
+      },
+      "baseline_overlaps": {
+        "count": 35,
+        "notes": 398,
+        "per_1000": 87.93969849246231
+      }
+    },
+    {
+      "name": "05_Rock3-117-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 56,
+        "total": 70,
+        "rate": 0.8
+      },
+      "baseline_string": {
+        "correct": 28,
+        "total": 70,
+        "rate": 0.4
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 70,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 2,
+        "notes": 70,
+        "per_1000": 28.571428571428573
+      }
+    },
+    {
+      "name": "05_Rock3-148-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 5,
+        "total": 249,
+        "rate": 0.020080321285140562
+      },
+      "baseline_string": {
+        "correct": 112,
+        "total": 249,
+        "rate": 0.4497991967871486
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 249,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 125,
+        "notes": 249,
+        "per_1000": 502.00803212851406
+      }
+    },
+    {
+      "name": "05_Rock3-148-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 0,
+        "total": 61,
+        "rate": 0.0
+      },
+      "baseline_string": {
+        "correct": 7,
+        "total": 61,
+        "rate": 0.11475409836065574
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 61,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 2,
+        "notes": 61,
+        "per_1000": 32.78688524590164
+      }
+    },
+    {
+      "name": "05_SS1-100-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 102,
+        "total": 102,
+        "rate": 1.0
+      },
+      "baseline_string": {
+        "correct": 102,
+        "total": 102,
+        "rate": 1.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 102,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 0,
+        "notes": 102,
+        "per_1000": 0.0
+      }
+    },
+    {
+      "name": "05_SS1-100-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 43,
+        "total": 60,
+        "rate": 0.7166666666666667
+      },
+      "baseline_string": {
+        "correct": 44,
+        "total": 60,
+        "rate": 0.7333333333333333
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 59,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 1,
+        "notes": 60,
+        "per_1000": 16.666666666666668
+      }
+    },
+    {
+      "name": "05_SS1-68-E_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 143,
+        "total": 143,
+        "rate": 1.0
+      },
+      "baseline_string": {
+        "correct": 143,
+        "total": 143,
+        "rate": 1.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 143,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 0,
+        "notes": 143,
+        "per_1000": 0.0
+      }
+    },
+    {
+      "name": "05_SS1-68-E_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 59,
+        "total": 78,
+        "rate": 0.7564102564102564
+      },
+      "baseline_string": {
+        "correct": 8,
+        "total": 78,
+        "rate": 0.10256410256410256
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 77,
+        "per_1000": 25.974025974025974
+      },
+      "baseline_overlaps": {
+        "count": 4,
+        "notes": 78,
+        "per_1000": 51.282051282051285
+      }
+    },
+    {
+      "name": "05_SS2-107-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 161,
+        "total": 222,
+        "rate": 0.7252252252252253
+      },
+      "baseline_string": {
+        "correct": 111,
+        "total": 222,
+        "rate": 0.5
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 222,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 27,
+        "notes": 222,
+        "per_1000": 121.62162162162163
+      }
+    },
+    {
+      "name": "05_SS2-107-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 63,
+        "total": 87,
+        "rate": 0.7241379310344828
+      },
+      "baseline_string": {
+        "correct": 10,
+        "total": 87,
+        "rate": 0.11494252873563218
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 87,
+        "per_1000": 22.988505747126435
+      },
+      "baseline_overlaps": {
+        "count": 3,
+        "notes": 87,
+        "per_1000": 34.48275862068966
+      }
+    },
+    {
+      "name": "05_SS2-88-F_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 196,
+        "total": 196,
+        "rate": 1.0
+      },
+      "baseline_string": {
+        "correct": 196,
+        "total": 196,
+        "rate": 1.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 196,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 0,
+        "notes": 196,
+        "per_1000": 0.0
+      }
+    },
+    {
+      "name": "05_SS2-88-F_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 64,
+        "total": 93,
+        "rate": 0.6881720430107527
+      },
+      "baseline_string": {
+        "correct": 20,
+        "total": 93,
+        "rate": 0.21505376344086022
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 93,
+        "per_1000": 10.75268817204301
+      },
+      "baseline_overlaps": {
+        "count": 3,
+        "notes": 93,
+        "per_1000": 32.25806451612903
+      }
+    },
+    {
+      "name": "05_SS3-84-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 183,
+        "total": 211,
+        "rate": 0.8672985781990521
+      },
+      "baseline_string": {
+        "correct": 167,
+        "total": 211,
+        "rate": 0.7914691943127962
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 211,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 8,
+        "notes": 211,
+        "per_1000": 37.91469194312796
+      }
+    },
+    {
+      "name": "05_SS3-84-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 65,
+        "total": 111,
+        "rate": 0.5855855855855856
+      },
+      "baseline_string": {
+        "correct": 21,
+        "total": 111,
+        "rate": 0.1891891891891892
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 111,
+        "per_1000": 18.01801801801802
+      },
+      "baseline_overlaps": {
+        "count": 2,
+        "notes": 111,
+        "per_1000": 18.01801801801802
+      }
+    },
+    {
+      "name": "05_SS3-98-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 199,
+        "total": 199,
+        "rate": 1.0
+      },
+      "baseline_string": {
+        "correct": 199,
+        "total": 199,
+        "rate": 1.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 199,
+        "per_1000": 0.0
+      },
+      "baseline_overlaps": {
+        "count": 0,
+        "notes": 199,
+        "per_1000": 0.0
+      }
+    },
+    {
+      "name": "05_SS3-98-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 3,
+        "total": 93,
+        "rate": 0.03225806451612903
+      },
+      "baseline_string": {
+        "correct": 17,
+        "total": 93,
+        "rate": 0.1827956989247312
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 93,
+        "per_1000": 21.50537634408602
+      },
+      "baseline_overlaps": {
+        "count": 3,
+        "notes": 93,
+        "per_1000": 32.25806451612903
+      }
+    }
+  ]
+}

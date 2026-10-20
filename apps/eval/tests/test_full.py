@@ -18,6 +18,7 @@ from guitarvis_eval.metrics import (
 )
 from guitarvis_eval.runner import score_full, summarize
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
+from guitarvis_worker.stages.transcription import TranscriptionSettings
 
 
 @pytest.mark.parametrize(
@@ -83,6 +84,16 @@ class EchoTranscriber:
     def __init__(self, events: list[NoteEvent]) -> None:
         self.events = events
         self.seen: list[Path] = []
+        # Which main() records. basic-pitch's own values, named rather than
+        # defaulted, so tuning the defaults does not move what is checked.
+        self.settings = TranscriptionSettings(
+            onset_threshold=0.5,
+            frame_threshold=0.3,
+            minimum_note_length_ms=127.7,
+            melodia_trick=True,
+            ghost_ratio=None,
+            ghost_alone_only=False,
+        )
 
     def transcribe(self, stem_path: Path) -> list[NoteEvent]:
         self.seen.append(stem_path)
@@ -126,7 +137,36 @@ def test_score_full_with_stub_stages(tmp_path: Path) -> None:
     assert score.notes == NoteCounts(matched=1, truth=2, estimated=2)
     assert score.strings == Tally(1, 1)  # E2 on the low string
     assert score.chords == Tally(10, 10)
+    assert score.overlaps is not None
+    assert score.baseline_overlaps is None
     assert "note" in summarize([score])["all"]  # type: ignore[operator]
+
+
+def test_score_full_without_an_analyzer_scores_no_chords(tmp_path: Path) -> None:
+    pytest.importorskip("mir_eval")
+    excerpt = read_jams(
+        write_jams(
+            tmp_path,
+            "05_a_comp",
+            notes=[(0.0, 0.5, 40.0, 0)],
+            performed=[(0.0, 1.0, "E:min")],
+            duration=1.0,
+        )
+    )
+
+    score = score_full(
+        excerpt,
+        tmp_path / "05_a_comp_mic.wav",
+        transcriber=EchoTranscriber([NoteEvent(0.0, 0.5, 40, 0.9)]),
+        analyzer=None,
+        mapper=ViterbiFretboardMapper(),
+    )
+
+    assert score.chords is None
+    assert score.chord_confidence is None
+    assert score.notes == NoteCounts(matched=1, truth=1, estimated=1)
+    assert score.strings == Tally(1, 1)
+    assert score.confidence is not None  # the transcriber's bands still count
 
 
 def test_full_mode_without_mir_eval_says_what_to_install(
@@ -287,7 +327,16 @@ def test_full_mode_prints_and_records_precision_by_confidence(
     assert "CHORD_FULL (precision ≥ 0.8)" in printed
     assert "not supported" in printed
     [written] = (tmp_path / "out").iterdir()
-    summary = json.loads(written.read_text())["summary"]
+    payload = json.loads(written.read_text())
+    assert payload["transcription_settings"] == {
+        "onset_threshold": 0.5,
+        "frame_threshold": 0.3,
+        "minimum_note_length_ms": 127.7,
+        "melodia_trick": True,
+        "ghost_ratio": None,
+        "ghost_alone_only": False,
+    }
+    summary = payload["summary"]
     assert summary["all"]["precision_by_confidence"]["0.9"] == {
         "estimated": 1,
         "matched": 1,

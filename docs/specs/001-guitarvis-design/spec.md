@@ -220,10 +220,14 @@ stretch, one note per string, barre feasibility). A Viterbi pass over the
 voicing sequence minimizes total cost:
 
 - fret span within a voicing — tight shapes beat impossible stretches
-- hand-position movement between consecutive voicings — the dominant term, as
-  real players stay put
-- open-string preference, and a mild penalty for high frets when a lower
-  position exists
+- hand movement out of a four-fret box between consecutive voicings — the
+  dominant term, as real players stay put
+- open strings up the neck — free near the nut, costly higher up, unless the
+  note has no other place
+- reusing a string still ringing
+- skipped strings in a chord — a strum hits adjacent strings
+
+Amended by [010](../010-tab-accuracy/spec.md).
 
 Testable without audio: feed note sequences, assert fingerings.
 

@@ -14,6 +14,8 @@ make eval                         # oracle mode, test split (player 05)
 make eval ARGS="--split dev"      # players 00–04: tune MapperCosts here
 uv sync --extra eval-full && make eval-data ARGS=--audio
 make eval ARGS=--full             # transcription + structure + mapper
+make sweep ARGS="--cost gap_weight=0,0.3"   # dev only: one table row per value
+make sweep ARGS="--full --transcription onset_threshold=0.4,0.5"
 ```
 
 **Oracle mode** feeds ground-truth pitches to the mapper, so its string
@@ -25,6 +27,15 @@ string accuracy over matched notes, and chord accuracy. Tune on `dev`; commit
 Writes to `eval/results/`, which is **tracked in git** — the whole value is in
 comparing runs over time. It looks generated. It is not disposable, and it must
 never be added to `.gitignore`.
+
+**The sweep** is how to tune. It always runs on `dev`, tries every combination
+of the `--cost` and `--transcription` values it is given (defaults first), and
+prints a table. It writes no results file, so `eval/results/` holds only runs a
+person chose to make. In full mode it caches each setting's transcriptions in
+`~/.cache/guitarvis/sweep`, keyed by the settings, the worker's `CACHE_VERSION`
+and the transcriber's constants. A transcriber change that moves none of those
+still needs that directory deleted. Like `make eval`, it is unreachable from
+`make check`.
 
 ## The rule
 
@@ -59,6 +70,7 @@ not an implementation detail.
 | **note F1** | An onset within 50ms with the correct pitch counts as a hit |
 | **string accuracy** | Of correctly-pitched notes, the share on the right string |
 | **chord accuracy** | Frame-wise agreement with the ground-truth chord |
+| **overlaps** | Placed notes that start on a string whose previous note still sounds, per 1000 placed. The truth scores zero, so any overlap is the mapper's |
 
 Ground truth is GuitarSet: audio with string and fret annotations, roughly
 three hours of clean solo guitar. Held-out set only.

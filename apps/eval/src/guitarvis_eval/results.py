@@ -2,7 +2,8 @@
 
 The file records enough to reproduce the number: the commit, whether the
 tree had uncommitted changes (a dirty run measures code that is not in git),
-the mode, the split, and every mapper cost it ran with.
+the mode, the split, and every mapper cost it ran with. A full-mode run also
+records the transcriber's settings.
 """
 
 import dataclasses
@@ -12,6 +13,7 @@ from datetime import date
 from pathlib import Path
 
 from guitarvis_worker.stages.fretboard import MapperCosts
+from guitarvis_worker.stages.transcription import TranscriptionSettings
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 RESULTS_DIR = REPO_ROOT / "eval" / "results"
@@ -61,6 +63,7 @@ def write_results(
     out_dir: Path = RESULTS_DIR,
     today: date | None = None,
     repo: Path = REPO_ROOT,
+    transcription: TranscriptionSettings | None = None,
 ) -> Path:
     sha, dirty = git_state(repo)
     day = (today or date.today()).isoformat()
@@ -78,6 +81,8 @@ def write_results(
         "summary": summary,
         "excerpts": excerpts,
     }
+    if transcription is not None:
+        payload["transcription_settings"] = dataclasses.asdict(transcription)
     out_dir.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n")
     return path

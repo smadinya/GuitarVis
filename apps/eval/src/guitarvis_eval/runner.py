@@ -25,10 +25,12 @@ from guitarvis_eval.calibration import (
 from guitarvis_eval.dataset import Excerpt
 from guitarvis_eval.metrics import (
     NoteCounts,
+    Overlaps,
     Tally,
     chord_tally,
     match_notes,
     oracle_string_tally,
+    same_string_overlaps,
 )
 
 
@@ -42,6 +44,8 @@ class ExcerptScore:
     chords: Tally | None = None  # full mode only
     confidence: ConfidenceBands | None = None  # full mode only
     chord_confidence: ConfidenceBands | None = None  # full mode only
+    overlaps: Overlaps | None = None  # the mapper's placed notes
+    baseline_overlaps: Overlaps | None = None  # oracle mode only
 
 
 def score_oracle(
@@ -52,15 +56,15 @@ def score_oracle(
         NoteEvent(onset=n.onset, duration=n.duration, midi=n.midi, confidence=1.0)
         for n in excerpt.notes
     ]
+    placed = mapper.assign(events, STANDARD_TUNING).notes
+    baseline_placed = baseline.assign(events, STANDARD_TUNING).notes
     return ExcerptScore(
         name=excerpt.name,
         style=excerpt.style,
-        strings=oracle_string_tally(
-            excerpt.notes, mapper.assign(events, STANDARD_TUNING).notes
-        ),
-        baseline_strings=oracle_string_tally(
-            excerpt.notes, baseline.assign(events, STANDARD_TUNING).notes
-        ),
+        strings=oracle_string_tally(excerpt.notes, placed),
+        baseline_strings=oracle_string_tally(excerpt.notes, baseline_placed),
+        overlaps=same_string_overlaps(placed),
+        baseline_overlaps=same_string_overlaps(baseline_placed),
     )
 
 
@@ -69,7 +73,7 @@ def score_full(
     audio: Path,
     *,
     transcriber: Transcriber,
-    analyzer: StructureAnalyzer,
+    analyzer: StructureAnalyzer | None,
     mapper: FretboardMapper,
 ) -> ExcerptScore:
     """Audio in. Separation is skipped — GuitarSet is already solo guitar —
@@ -81,12 +85,16 @@ def score_full(
     The confidence bands tally the transcriber's notes too, for the same
     reason: they calibrate what the transcriber's confidence means. The
     chord bands do the same for the analyzer's.
+
+    Without an analyzer there are no chords to score: `chords` and
+    `chord_confidence` stay None. The sweep runs this way, because tuning
+    stages 2 and 4 has no use for chords and the analyzer is slow.
     """
     events = transcriber.transcribe(audio)
     heard = match_notes(excerpt.notes, events)
     placed = mapper.assign(events, STANDARD_TUNING).notes
     pairs = match_notes(excerpt.notes, placed)
-    structure = analyzer.analyze(audio, audio)
+    structure = analyzer.analyze(audio, audio) if analyzer is not None else None
     return ExcerptScore(
         name=excerpt.name,
         style=excerpt.style,
@@ -97,11 +105,18 @@ def score_full(
         notes=NoteCounts(
             matched=len(heard), truth=len(excerpt.notes), estimated=len(events)
         ),
-        chords=chord_tally(excerpt.chords, structure.chords, excerpt.duration),
-        confidence=confidence_bands(events, {e for _, e in heard}),
-        chord_confidence=chord_bands(
-            excerpt.chords, structure.chords, excerpt.duration
+        chords=(
+            chord_tally(excerpt.chords, structure.chords, excerpt.duration)
+            if structure is not None
+            else None
         ),
+        confidence=confidence_bands(events, {e for _, e in heard}),
+        chord_confidence=(
+            chord_bands(excerpt.chords, structure.chords, excerpt.duration)
+            if structure is not None
+            else None
+        ),
+        overlaps=same_string_overlaps(placed),
     )
 
 
@@ -132,6 +147,14 @@ def _total(
     baselines = [s.baseline_strings for s in scores if s.baseline_strings is not None]
     if baselines:
         out["baseline_string"] = _tally(sum(baselines, Tally()))
+    overlaps = [s.overlaps for s in scores if s.overlaps is not None]
+    if overlaps:
+        out["overlaps"] = _overlaps(sum(overlaps, Overlaps()))
+    baseline_overlaps = [
+        s.baseline_overlaps for s in scores if s.baseline_overlaps is not None
+    ]
+    if baseline_overlaps:
+        out["baseline_overlaps"] = _overlaps(sum(baseline_overlaps, Overlaps()))
     counts = [s.notes for s in scores if s.notes is not None]
     if counts:
         notes = sum(counts, NoteCounts())
@@ -166,6 +189,14 @@ def _bands(bands: ConfidenceBands) -> dict[str, object]:
             "precision": bands.precision(band),
         }
         for band in range(BANDS)
+    }
+
+
+def _overlaps(overlaps: Overlaps) -> dict[str, object]:
+    return {
+        "count": overlaps.count,
+        "notes": overlaps.notes,
+        "per_1000": overlaps.per_thousand,
     }
 
 

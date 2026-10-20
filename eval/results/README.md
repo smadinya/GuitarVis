@@ -21,5 +21,8 @@ Metrics, per the design spec:
 - **chord accuracy** — frame-wise agreement with the ground-truth chord, on a
   100ms grid. Frames whose chord has no major/minor reading (sus, dim, aug,
   power chords) are left out, since the analyzer cannot name them.
+- **same-string overlaps** — placed notes starting on a string whose previous
+  note still sounds more than 30ms later, per 1000 placed notes. The truth
+  scores zero. Oracle mode also reports the baseline's.
 
 These numbers are measured, never gated. No CI job may read them.

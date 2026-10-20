@@ -118,14 +118,14 @@ def stem_file(tmp_path: Path) -> Path:
 
 
 def test_keys_are_versioned_and_per_upload() -> None:
-    assert CACHE_VERSION == 1
-    assert KEYS.prefix == f"cache/v1/{'f' * 64}"
+    assert CACHE_VERSION == 2
+    assert KEYS.prefix == f"cache/v2/{'f' * 64}"
     assert KEYS.stem == f"{KEYS.prefix}/separation/stem.wav"
     assert KEYS.separation == f"{KEYS.prefix}/separation/result.json"
     assert KEYS.transcription == f"{KEYS.prefix}/transcription.json"
     assert KEYS.structure == f"{KEYS.prefix}/structure.json"
     assert CacheKeys("e" * 64).prefix != KEYS.prefix
-    assert CacheKeys("f" * 64, version=2).prefix != KEYS.prefix
+    assert CacheKeys("f" * 64, version=1).prefix != KEYS.prefix
 
 
 def test_the_decorators_implement_the_stage_protocols(tmp_path: Path) -> None:

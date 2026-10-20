@@ -10,7 +10,8 @@ Start here: [`docs/specs/001-guitarvis-design/spec.md`](docs/specs/001-guitarvis
 ## Commands
 
 `make install` · `make check` · `make test` · `make schema` · `make eval-data` · `make eval` ·
-`make services` · `make migrate` · `make api` · `make worker` · `make web` · `make help`
+`make sweep` · `make services` · `make migrate` · `make api` · `make worker` · `make web` ·
+`make help`
 
 `make check` is what CI runs. Run it before claiming anything works.
 

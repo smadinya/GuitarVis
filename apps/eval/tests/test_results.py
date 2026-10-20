@@ -10,6 +10,7 @@ from guitarset_fixture import write_jams
 from guitarvis_eval.__main__ import main
 from guitarvis_eval.results import REPO_ROOT, RESULTS_DIR, git_state, write_results
 from guitarvis_worker.stages.fretboard import MapperCosts
+from guitarvis_worker.stages.transcription import TranscriptionSettings
 
 
 def test_results_file_is_named_and_shaped(tmp_path: Path) -> None:
@@ -40,6 +41,32 @@ def test_results_file_is_named_and_shaped(tmp_path: Path) -> None:
     assert payload["mapper_costs"]["max_fret"] == MapperCosts().max_fret
 
 
+def test_full_results_record_the_transcription_settings(tmp_path: Path) -> None:
+    full = write_results(
+        mode="full",
+        split="test",
+        costs=MapperCosts(),
+        summary={},
+        excerpts=[],
+        out_dir=tmp_path / "full",
+        today=date(2026, 10, 8),
+        transcription=TranscriptionSettings(frame_threshold=0.3),
+    )
+    oracle = write_results(
+        mode="oracle",
+        split="test",
+        costs=MapperCosts(),
+        summary={},
+        excerpts=[],
+        out_dir=tmp_path / "oracle",
+        today=date(2026, 10, 8),
+    )
+
+    recorded = json.loads(full.read_text())["transcription_settings"]
+    assert recorded["frame_threshold"] == 0.3
+    assert "transcription_settings" not in json.loads(oracle.read_text())
+
+
 def test_git_state_inside_the_repository() -> None:
     sha, dirty = git_state(REPO_ROOT)
     assert len(sha) >= 7
@@ -62,6 +89,7 @@ def test_main_scores_the_test_split(tmp_path: Path) -> None:
     payload = json.loads(written.read_text())
     assert payload["mode"] == "oracle"
     assert payload["split"] == "test"
+    assert "transcription_settings" not in payload
     assert [e["name"] for e in payload["excerpts"]] == ["05_a_comp"]
     assert payload["summary"]["all"]["string"]["total"] == 1
 

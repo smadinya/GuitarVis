@@ -124,3 +124,133 @@ The chords tell the same story. Every chord in the first song scores below
 0.7, the highest at 0.68, so all of them fade. Under the note thresholds, the
 ones at 0.6 or above were drawn at full strength. `song3` fades two thirds of
 its chords. On GuitarSet, chords below 0.7 are right about one time in five.
+
+## After 010
+
+**Spec:** [010 — Tab accuracy](../010-tab-accuracy/spec.md#recalibrating-the-confidence-thresholds)
+**Results:** [`eval/results/2026-10-19-fa69e14-full-test.json`](../../../eval/results/2026-10-19-fa69e14-full-test.json), from
+`make eval ARGS=--full` on the test split (player 05), commit `fa69e14`, clean
+tree.
+
+Spec 010 changed the transcriber's decoding settings and added a ghost rule,
+and confidence is a note's mean frame activation, which the frame threshold
+changes. So the measurement above describes the old distribution, and this
+section repeats it on the new one. Everything above stands as history; the
+values in `web/src/confidence.ts` now cite this section.
+
+The settings are the ones that ship: onset threshold 0.5, frame threshold 0.4,
+minimum note length 93 ms, `melodia_trick` off, and the alone-only ghost rule
+at 0.8. Commit `fa69e14` has the same stage-2 code as the shipped branch
+([tuning.md](../010-tab-accuracy/tuning.md#fa69e14-the-alone-only-rule-at-08-current)).
+
+### Precision by confidence
+
+The same table as *Precision by confidence* above, from the `all` group:
+
+| Confidence | Notes | Matched | Precision |
+|---|---|---|---|
+| 0.0–0.1 | 0 | 0 | — |
+| 0.1–0.2 | 0 | 0 | — |
+| 0.2–0.3 | 7 | 1 | 14.3% |
+| 0.3–0.4 | 136 | 28 | 20.6% |
+| 0.4–0.5 | 738 | 332 | 45.0% |
+| 0.5–0.6 | 1868 | 1346 | 72.1% |
+| 0.6–0.7 | 2959 | 2457 | 83.0% |
+| 0.7–0.8 | 2791 | 2576 | 92.3% |
+| 0.8–0.9 | 410 | 374 | 91.2% |
+| 0.9–1.0 | 1 | 1 | 100.0% |
+
+The transcriber now reports 8910 notes on the split, down from 9778, at 79.9%
+precision, up from 73.4%. The weak bands emptied the most. Notes at or below
+0.5 went from 2218 (22.7%) to 881 (9.9%), and the 0.3–0.4 band from 877 notes
+to 136. The 0.4–0.5 band is right 45.0% of the time, down from 49.5%, and the
+0.5–0.6 band 72.1%, down from 74.4%. Above 0.6 the bands barely moved.
+
+### Chosen values
+
+| | Rule (spec 006) | Printed | Chosen | Before 010 |
+|---|---|---|---|---|
+| `HIDE` | the lowest band edge such that every band at or above it, among bands of 50 or more notes, has precision ≥ 0.5 | 0.5 | 0.5 | 0.5 |
+| `FULL` | the same, with precision ≥ 0.8 | 0.6 | 0.6 | 0.6 |
+
+Derived two ways: from this file's bands with `guitarvis_eval.calibration`'s
+`threshold`, the function `make eval` prints them with, and from the run
+itself, which printed `HIDE` 0.5 and `FULL` 0.6. Neither is 0 or "not
+supported", and neither moved, so spec 010's stop rule did not fire. The values
+are unchanged. `web/src/confidence.ts` still holds them, and now cites this
+section.
+
+- `HIDE`: the 0.3–0.4 band (136 notes, 20.6%) and the 0.4–0.5 band (738 notes,
+  45.0%) fall short of 0.5. The 0.2–0.3 band has 7 notes and does not count.
+  The 0.5–0.6 band, at 72.1% on 1868 notes, is the lowest that holds.
+- `FULL`: the 0.5–0.6 band is under 0.8 at 72.1%. The 0.6–0.7 band, at 83.0%
+  on 2959 notes, is the lowest that clears it, and every band above it does
+  too. The 0.9–1.0 band has one note and does not count.
+
+`HIDE` = 0.5 is less of a coin flip than it was: the band just below it is
+right 45.0% of the time, where it was 49.5%. `FULL` = 0.6 clears its line by
+3 points (83.0% against 80%), and the band under it misses by 8.
+
+The chord thresholds are untouched, because the analyzer is untouched.
+
+### On real songs
+
+**Round:** `R=stage2b` in [real-songs.md](../010-tab-accuracy/real-songs.md#stage-2-as-shipped),
+at commit `679ce9e`, which has the shipped settings above. Nine songs, all
+separated by Demucs and run through the real pipeline. The output of
+`node web/scripts/confidence-report.ts tmp/010/stage2b/*.json`, under `HIDE`
+0.5 and `FULL` 0.6:
+
+```text
+HIDE 0.5, FULL 0.6
+notes  at/below HIDE  partly faded  hidden  passages  document
+   26            58%            4%     50%         1  tmp/010/stage2b/Test.json
+   13            62%           15%     31%         1  tmp/010/stage2b/Test2.json
+   19            16%           16%      0%         0  tmp/010/stage2b/Test4.json
+   39            10%           33%      0%         0  tmp/010/stage2b/Test5.json
+  226            21%           36%      2%         1  tmp/010/stage2b/momsong.json
+  426            25%           36%      5%         5  tmp/010/stage2b/mysong.json
+  121            24%           40%      2%         1  tmp/010/stage2b/nutshell.json
+  577            13%           33%      0%         0  tmp/010/stage2b/nutshellandsolo.json
+    7            14%           14%      0%         0  tmp/010/stage2b/test3.json
+
+CHORD_HIDE 0.7, CHORD_FULL 0.8
+chords  at/below CHORD_HIDE  partly faded  document
+    17                 100%            0%  tmp/010/stage2b/Test.json
+    19                  58%           26%  tmp/010/stage2b/Test2.json
+    44                  73%           23%  tmp/010/stage2b/Test4.json
+    13                  85%            8%  tmp/010/stage2b/Test5.json
+    34                  18%           65%  tmp/010/stage2b/momsong.json
+    36                  19%           47%  tmp/010/stage2b/mysong.json
+    30                  60%           23%  tmp/010/stage2b/nutshell.json
+   109                  71%           21%  tmp/010/stage2b/nutshellandsolo.json
+     6                  33%           50%  tmp/010/stage2b/test3.json
+```
+
+The documents are the user's own and live in the gitignored `tmp/`. The
+per-song medians, in the order above, are 0.48, 0.49, 0.65, 0.67, 0.58, 0.57,
+0.57, 0.61 and 0.74.
+
+The GuitarSet table above predicts that 9.9% of notes sit at or below 0.5 (881
+of 8910) and 21.0% fall between 0.5 and 0.6 (1868). Pooled over the nine songs,
+19.9% are at or below `HIDE` (290 of 1454), 34.0% are partly faded (494), and
+3.1% are hidden (45 notes, in 9 passages). The pooled median is 0.59. Real
+songs still fade about twice what GuitarSet predicts, as the earlier section
+found: the stage 4 round, on the old settings, faded 39.9% of its notes
+against the old table's 22.7% (1.8 times). The values stay as measured.
+
+The pooled figures hide two groups. Test and Test2, with 26 and 13 notes, still
+fade 58% and 62% and hide 50% and 31% of their notes. Test is the first song
+through the api, the fixture in *On real songs* above; that earlier run faded
+66% and hid 50%, and it now fades 58% and hides 50%, at a median of 0.48. The four songs with over 100
+notes (1350 in all) fade 19.2% at or below `HIDE`, about twice the prediction,
+and hide 2.1%. Pooled over all nine songs, the hidden share is 3.1% now,
+against 12.1% after stage 4. The other three songs have 7 to 39 notes each, so
+a note or two moves their shares by several points.
+
+The partly faded share, 34.0% pooled and 33% to 40% in the four big songs, is
+well over GuitarSet's 21.0%. These are the notes the ramp between `HIDE` and
+`FULL` draws at partial strength, and the new table has 72.1% of them right.
+
+The chord report comes from the same documents and is shown for completeness.
+The chord thresholds were not re-derived.

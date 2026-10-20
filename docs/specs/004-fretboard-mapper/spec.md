@@ -88,6 +88,11 @@ kept, which bounds Viterbi's per-step work. A single note has at most one
 candidate per string and a full six-note chord rarely has more than twenty playable
 fingerings, so in practice the beam only bites on pathological input.
 
+Amended by 010: `open_bonus` is removed and `height_weight` is 0, so nothing
+pulls toward the nut. An open string costs `open_weight` per fret above
+`open_reach` instead, unless the note has no other place, and a chord of three
+or more notes pays `gap_weight` per skipped string.
+
 **Transition cost.** `move_weight · |position_a − position_b|`. The parent
 spec calls this the dominant term: real players stay put. A voicing of only
 open strings needs no fretting, so the hand stays where it was: moving into it
@@ -96,6 +101,12 @@ last fretted position. Treating an open voicing as a free reset would let one
 open note excuse any jump. The search state is therefore a fingering plus the
 hand position, and an open fingering carries one state per position it can be
 reached from.
+
+Amended by 010: the hand position is the index finger's fret, and the hand
+covers a `hand_window` box of frets, so a move costs `move_weight` per fret
+only when a shape does not fit the box. Moving into a fingering also costs
+`ring_weight` for each string it reuses while the previous note on it still
+rings.
 
 **Search.** Viterbi over the voicing sequence, minimising the sum of fingering
 and transition costs. Path totals are rounded to nine places before they are

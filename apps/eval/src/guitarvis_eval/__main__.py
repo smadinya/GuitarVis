@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
+from guitarvis_worker.stages.transcription import TranscriptionSettings
 
 from guitarvis_eval.baseline import LowestFretMapper
 from guitarvis_eval.calibration import (
@@ -82,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     mapper = ViterbiFretboardMapper()
     mode = "full" if args.full else "oracle"
     scores: list[ExcerptScore] = []
+    transcription: TranscriptionSettings | None = None
 
     if args.full:
         # Check every file before transcribing any: a missing one found at
@@ -112,6 +114,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 1
         transcriber = BasicPitchTranscriber()
+        transcription = transcriber.settings
         analyzer = LibrosaStructureAnalyzer()
         for index, excerpt in enumerate(excerpts, 1):
             audio = mic_audio_path(root, excerpt)
@@ -137,6 +140,7 @@ def main(argv: list[str] | None = None) -> int:
         summary=summary,
         excerpts=[score_to_dict(score) for score in scores],
         out_dir=args.out,
+        transcription=transcription,
     )
     _print_table(summary)
     if args.full:
@@ -153,6 +157,10 @@ def _print_table(summary: dict[str, object]) -> None:
         ("baseline_string", "baseline string accuracy"),
         ("chord", "chord accuracy"),
     )
+    overlap_rows = (
+        ("overlaps", "same-string overlaps /1000"),
+        ("baseline_overlaps", "baseline overlaps /1000"),
+    )
     for group, totals in summary.items():
         assert isinstance(totals, dict)
         print(f"{group} ({totals['excerpts']} excerpts)")
@@ -163,6 +171,10 @@ def _print_table(summary: dict[str, object]) -> None:
             tally = totals.get(key)
             if isinstance(tally, dict):
                 print(f"  {label:<26} {_percent(tally['rate'])}")
+        for key, label in overlap_rows:
+            overlaps = totals.get(key)
+            if isinstance(overlaps, dict):
+                print(f"  {label:<26} {_per_thousand(overlaps['per_1000'])}")
         _print_bands(
             totals.get("precision_by_confidence"), ("confidence", "notes", "matched")
         )
@@ -203,6 +215,10 @@ def _print_thresholds(notes: ConfidenceBands, chords: ConfidenceBands) -> None:
         shown = "not supported" if value is None else f"{value:.1f}"
         label = f"{name} (precision ≥ {precision:.1f})"
         print(f"  {label:<30} {shown}")
+
+
+def _per_thousand(value: object) -> str:
+    return f"{value:6.1f}" if isinstance(value, float) else "     —"
 
 
 def _percent(value: object) -> str:

@@ -10,8 +10,14 @@ from guitarvis_core.contracts import FretboardMapper, NoteEvent, TabNote
 from guitarvis_core.tabdoc import STANDARD_TUNING
 from guitarvis_eval.baseline import LowestFretMapper
 from guitarvis_eval.dataset import TruthNote, read_jams
-from guitarvis_eval.metrics import NoteCounts, Tally, oracle_string_tally
-from guitarvis_eval.runner import score_oracle, score_to_dict, summarize
+from guitarvis_eval.metrics import (
+    NoteCounts,
+    Overlaps,
+    Tally,
+    oracle_string_tally,
+    same_string_overlaps,
+)
+from guitarvis_eval.runner import ExcerptScore, score_oracle, score_to_dict, summarize
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
 
 _baseline: FretboardMapper = LowestFretMapper()
@@ -89,6 +95,8 @@ def test_empty_excerpt_scores_none_not_zero_division(tmp_path: Path) -> None:
         "excerpts": 1,
         "string": {"correct": 0, "total": 0, "rate": None},
         "baseline_string": {"correct": 0, "total": 0, "rate": None},
+        "overlaps": {"count": 0, "notes": 0, "per_1000": None},
+        "baseline_overlaps": {"count": 0, "notes": 0, "per_1000": None},
     }
 
 
@@ -117,3 +125,61 @@ def test_score_to_dict_names_the_excerpt(tmp_path: Path) -> None:
     assert row["name"] == "05_a_comp"
     assert row["style"] == "comp"
     assert row["string"] == {"correct": 1, "total": 1, "rate": 1.0}
+
+
+def _on_string(*notes: tuple[float, float, int]) -> list[TabNote]:
+    """(onset, duration, string) triples as placed notes."""
+    return [
+        TabNote(onset, duration, midi=60, string=string, fret=0, confidence=1.0)
+        for onset, duration, string in notes
+    ]
+
+
+def test_a_note_on_a_string_still_sounding_is_an_overlap() -> None:
+    placed = _on_string((0.0, 1.0, 3), (0.5, 0.5, 3))
+    assert same_string_overlaps(placed) == Overlaps(count=1, notes=2)
+
+
+def test_overlaps_allow_30ms_of_slop() -> None:
+    placed = _on_string((0.0, 0.52, 3), (0.5, 0.5, 3))
+    assert same_string_overlaps(placed) == Overlaps(count=0, notes=2)
+
+
+def test_overlaps_are_per_string() -> None:
+    placed = _on_string((0.0, 1.0, 3), (0.5, 0.5, 2))
+    assert same_string_overlaps(placed) == Overlaps(count=0, notes=2)
+
+
+def test_overlaps_ignore_input_order() -> None:
+    placed = _on_string((0.0, 1.0, 3), (0.5, 0.5, 3))
+    assert same_string_overlaps(placed[::-1]) == Overlaps(count=1, notes=2)
+
+
+def test_overlaps_per_thousand() -> None:
+    assert Overlaps(3, 1500).per_thousand == 2.0
+    assert Overlaps().per_thousand is None
+
+
+def test_score_oracle_reports_overlaps_for_mapper_and_baseline(tmp_path: Path) -> None:
+    # G3 on the G string for a second, then A3 half a second in. The baseline
+    # puts A3 on the same string at fret 2, so it cuts the G short.
+    notes = [(0.0, 1.0, 55.0, 3), (0.5, 0.5, 57.0, 2)]
+    excerpt = read_jams(write_jams(tmp_path, "05_x_comp", notes=notes))
+
+    score = score_oracle(excerpt, ViterbiFretboardMapper(), LowestFretMapper())
+
+    assert score.baseline_overlaps == Overlaps(1, 2)
+    assert score.overlaps is not None
+    assert score.overlaps.notes == 2
+
+
+def test_summary_reports_overlaps_per_thousand() -> None:
+    scores = [
+        ExcerptScore("a", "comp", Tally(), overlaps=Overlaps(1, 2)),
+        ExcerptScore("b", "comp", Tally(), overlaps=Overlaps(0, 2)),
+    ]
+    assert summarize(scores)["all"]["overlaps"] == {  # type: ignore[index]
+        "count": 1,
+        "notes": 4,
+        "per_1000": 250.0,
+    }
