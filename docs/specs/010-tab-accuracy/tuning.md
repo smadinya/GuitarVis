@@ -128,7 +128,7 @@ make sweep ARGS="--full --cost hand_window=3,4,5 --cost open_weight=0.1,0.2,0.4 
 | 4 | 0.1 | 5 | 81.7 | 49.7 | 7.4 | 75.9 | 38.8 | 17.8 | 57.4 | tests fail: scale, tie-open |
 | 4 | 0.2 | 3 | 82.6 | 51.5 | 7.0 | 76.8 | 39.8 | 16.7 | 58.3 | admissible |
 | 4 | 0.2 | 4 | 82.1 | 50.8 | 7.2 | 76.7 | 40.0 | 17.6 | 58.3 | **chosen** |
-| 4 | 0.2 | 5 | 81.8 | 50.0 | 7.3 | 76.6 | 40.0 | 17.7 | 58.3 | admissible |
+| 4 | 0.2 | 5 | 81.8 | 50.0 | 7.3 | 76.6 | 40.0 | 17.7 | 58.3 | tests fail: scale, tie-open |
 | 4 | 0.4 | 3 | 82.6 | 52.2 | 6.7 | 76.8 | 38.5 | 17.0 | 57.6 | admissible |
 | 4 | 0.4 | 4 | 82.7 | 51.2 | 6.9 | 76.8 | 38.5 | 17.4 | 57.6 | admissible |
 | 4 | 0.4 | 5 | 82.1 | 51.1 | 7.0 | 76.6 | 38.8 | 17.5 | 57.7 | tests fail: scale |
@@ -147,9 +147,12 @@ Every `hand_window=3` row fails box and scale: a three-fret hand cannot hold
 the fifth-position pentatonic box, frets 5 to 8, without moving. Every
 `hand_window=5` row is below full_solo's before-number.
 
-Of the rows that keep the tests, three tie at 58.3: `open_weight=0.2` with
-`open_reach` 3, 4 and 5. The tie goes to the starting values,
-`hand_window=4, open_weight=0.2, open_reach=4`.
+Of the rows that keep the tests, two tie at 58.3: `open_weight=0.2` with
+`open_reach` 3 and 4. The `open_reach=5` row ties on the number but fails
+scale and tie-open: an open string is free with the hand at the 5th fret, so
+the scale plays its E4 open, and the open G under a hand at the 9th costs 0.8
+instead of 1.0, which beats the first-position shape's 1.5. The tie goes to
+the starting values, `hand_window=4, open_weight=0.2, open_reach=4`.
 
 ### Sweep 2: ringing strings
 
@@ -208,9 +211,11 @@ make sweep ARGS="--full --cost hand_window=4 --cost open_weight=0.2 --cost open_
 | 4 | 0.15 | 82.1 | 50.3 | 8.4 | 76.1 | 40.2 | 20.3 | 58.1 | admissible |
 | 4 | 0.2 | 82.1 | 49.5 | 9.2 | 76.5 | 39.3 | 22.8 | 57.9 | admissible |
 
-Five rows tie at 58.3, among them the starting values `ring_weight=2,
-ring_tolerance=0.1`, which stay. `ring_weight=0` fails ring: with no cost, A3
-takes the G string while G3 still sounds.
+Four rows tie at 58.3: `ring_weight=1` and 4 at `ring_tolerance=0.05`, and
+`ring_weight=2` at 0.05 and at 0.1. The `defaults` row and `ring_weight=2,
+ring_tolerance=0.1` are the same costs, so they count once. The starting
+values stay. `ring_weight=0` fails ring: with no cost, A3 takes the G string
+while G3 still sounds.
 
 ### Sweep 3: gaps, height and span
 
