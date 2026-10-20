@@ -531,3 +531,55 @@ falls to 35.5, and precision does not rise.
     `frame_threshold=0.3`, the value it checks.
   - `test_settings_key_is_stable_and_distinguishes` probes
     `melodia_trick=True`, now the non-default value.
+
+## Stage 2 on test
+
+Commit `fa69e14`, clean tree, the tuned settings:
+
+```bash
+make eval ARGS=--full
+make eval
+```
+
+Before is Task 9's pair, at `354c2c8`. After is
+[`2026-10-19-fa69e14-full-test.json`](../../../eval/results/2026-10-19-fa69e14-full-test.json)
+and
+[`2026-10-19-fa69e14-oracle-test.json`](../../../eval/results/2026-10-19-fa69e14-oracle-test.json).
+Changes are taken from the unrounded rates, in points.
+
+| condition | mode | style | before | after | change | met |
+|---|---|---|---|---|---|---|
+| 4. note precision rises | full | comp | 0.700 | 0.765 | +6.5 | yes |
+| | full | solo | 0.845 | 0.899 | +5.4 | yes |
+| 5. note F1 holds | full | comp | 0.745 | 0.772 | +2.7 | yes |
+| | full | solo | 0.874 | 0.912 | +3.8 | yes |
+| 6. string accuracy holds | full | comp | 64.6% | 65.5% | +0.9 | yes |
+| | full | solo | 41.9% | 42.2% | +0.3 | yes |
+
+Overall, precision goes from 0.734 to 0.799 and note F1 from 0.777 to 0.807.
+The transcriber reports 8910 notes, against 9778. Recall falls in comp, from
+0.796 to 0.780, and rises in solo, from 0.906 to 0.926. Full-mode string
+accuracy goes from 58.3% to 58.9%. Overlaps per 1000 fall from 16.8 to 5.1:
+17.2 to 4.7 in comp, 15.5 to 6.2 in solo. Chord accuracy (33.5%) does not
+move, because the analyzer is untouched. The oracle file matches Task 9's in
+summary and in every excerpt, because stage 4 is untouched.
+
+The run printed `HIDE` 0.5 and `FULL` 0.6, the values `confidence.ts` holds
+now. Task 13 re-derives them.
+
+**Condition 8 is met.**
+- All 70 mapper tests and 29 transcription tests pass. Among them,
+  `test_every_placed_note_satisfies_the_invariant` checks 300 random inputs
+  in three tunings.
+- The 60 test excerpts, transcribed with the shipped settings and mapped in
+  two separate processes, give the same 8870 placements from 8910 notes, by
+  SHA-256. Every one has `pitch_of(string, fret) == midi`.
+- The second oracle run gives Task 9's summary and per-excerpt results
+  exactly.
+- On dev, two separate transcription passes of the same settings give
+  byte-identical notes for all 300 excerpts, twice over: the defaults (Task 9's
+  pass and this one), and the two `ghost_ratio=none` rows of sweep 3.
+- With the new defaults, the sweep prints the chosen row again, to the digit.
+
+Stage 2 meets conditions 4, 5, 6 and 8 on test. Condition 7, the real-song
+review, is Task 12's.
