@@ -32,8 +32,9 @@ never be added to `.gitignore`.
 of the `--cost` and `--transcription` values it is given (defaults first), and
 prints a table. It writes no results file, so `eval/results/` holds only runs a
 person chose to make. In full mode it caches each setting's transcriptions in
-`~/.cache/guitarvis/sweep`, keyed by the settings alone: delete that directory
-after changing the transcriber's code. Like `make eval`, it is unreachable from
+`~/.cache/guitarvis/sweep`, keyed by the settings, the worker's `CACHE_VERSION`
+and the transcriber's constants. A transcriber change that moves none of those
+still needs that directory deleted. Like `make eval`, it is unreachable from
 `make check`.
 
 ## The rule

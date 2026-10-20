@@ -13,8 +13,9 @@ another is six rows.
 
 In full mode each distinct set of transcription settings is transcribed once,
 and its notes are cached under `--cache` so later runs and later cost sweeps
-only re-map. The cache is keyed by the settings alone: after changing the
-transcriber's code, delete the directory.
+only re-map. The cache is keyed by the settings, the worker's CACHE_VERSION
+and the transcriber's module constants. A change to the transcriber's code
+that leaves all of those alone still needs a fresh `--cache`.
 """
 
 import argparse
@@ -30,6 +31,8 @@ from pathlib import Path
 from typing import Any, get_args, get_type_hints
 
 from guitarvis_core.contracts import NoteEvent, Transcriber
+from guitarvis_worker import caching
+from guitarvis_worker.stages import transcription
 from guitarvis_worker.stages.fretboard import MapperCosts, ViterbiFretboardMapper
 from guitarvis_worker.stages.transcription import TranscriptionSettings
 
@@ -126,9 +129,21 @@ def _coerce(name: str, text: str, hint: Any) -> object:
 
 
 def settings_key(settings: TranscriptionSettings) -> str:
-    """Names a settings object's cache directory: every field goes in."""
-    fields = json.dumps(dataclasses.asdict(settings), sort_keys=True)
-    return hashlib.sha1(fields.encode(), usedforsecurity=False).hexdigest()[:12]
+    """Names a settings object's cache directory.
+
+    Every field goes in, and so does what changes the notes under the same
+    settings: the worker's CACHE_VERSION, which is bumped when a stage's
+    output changes, and the constants the transcriber reads.
+    """
+    material = {
+        "settings": dataclasses.asdict(settings),
+        "cache_version": caching.CACHE_VERSION,
+        "min_confidence": transcription.MIN_CONFIDENCE,
+        "ghost_intervals": list(transcription.GHOST_INTERVALS),
+        "ghost_lead_sec": transcription.GHOST_LEAD_SEC,
+    }
+    text = json.dumps(material, sort_keys=True)
+    return hashlib.sha1(text.encode(), usedforsecurity=False).hexdigest()[:12]
 
 
 class CachedTranscriptions:

@@ -264,6 +264,25 @@ def test_settings_key_covers_every_field() -> None:
         assert settings_key(variant) != key, field.name
 
 
+@pytest.mark.parametrize(
+    ("target", "value"),
+    [
+        ("guitarvis_worker.caching.CACHE_VERSION", 99),
+        ("guitarvis_worker.stages.transcription.MIN_CONFIDENCE", 0.2),
+        ("guitarvis_worker.stages.transcription.GHOST_INTERVALS", (12,)),
+        ("guitarvis_worker.stages.transcription.GHOST_LEAD_SEC", 0.03),
+    ],
+)
+def test_settings_key_covers_the_transcribers_version_and_constants(
+    monkeypatch: pytest.MonkeyPatch, target: str, value: object
+) -> None:
+    # Same settings, different notes: a cached transcription made before any
+    # of these changed must not be served after.
+    key = settings_key(TranscriptionSettings())
+    monkeypatch.setattr(target, value)
+    assert settings_key(TranscriptionSettings()) != key
+
+
 def test_main_prints_defaults_first_then_each_combination(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
