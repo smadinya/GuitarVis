@@ -192,10 +192,60 @@ def test_an_open_low_e_pedal_does_not_drag_the_riff_down() -> None:
     )
 
 
+def test_an_open_dyad_under_a_riff_does_not_drag_it_down() -> None:
+    # A2 alone could be fretted on the low string, but beside E2, which holds
+    # that string, it can only be played open. Every way to play the dyad
+    # plays it open, so it is exempt like the pedal above. Charged, it pulled
+    # the riff toward the nut: D4 went to the B string and E4 to the open e.
+    riff = [62, 64, 66, 67, 69, 71]
+    alone = [note(0.25 + 0.5 * i, m, duration=0.25) for i, m in enumerate(riff)]
+    dyads = [
+        note(0.5 * i, midi, duration=0.25)
+        for i in range(len(riff))
+        for midi in (40, 45)
+    ]
+
+    with_dyads = places(assign([*dyads, *alone]))
+    assert [p for p in with_dyads if p[0] not in (40, 45)] == places(assign(alone))
+    assert [p for p in with_dyads if p[0] in (40, 45)] == [
+        (40, 0, 0),
+        (45, 1, 0),
+    ] * len(riff)
+
+
+def test_a_note_open_in_every_fingering_of_its_chord_is_exempt() -> None:
+    # Judged per voicing: E2 holds the low string, so A2 beside it has only
+    # the open A string. In A2 and E3, A2 can be fretted at the 5th when E3
+    # takes the D string, so where it is open it is charged.
+    mapper = ViterbiFretboardMapper()
+    pitches = [parse_pitch(name) for name in STANDARD_TUNING]
+
+    (dyad,) = mapper._fingerings([note(0.0, 40), note(0.0, 45)], pitches)
+    assert (dyad.places, dyad.charged_opens) == (((0, 0), (1, 0)), 0)
+
+    options = mapper._fingerings([note(0.0, 45), note(0.0, 52)], pitches)
+    assert {o.places: o.charged_opens for o in options} == {
+        ((1, 0), (2, 2)): 1,
+        ((1, 0), (0, 12)): 1,
+        ((0, 5), (1, 7)): 0,
+        ((0, 5), (2, 2)): 0,
+    }
+
+
+def test_the_exemption_is_judged_before_the_beam() -> None:
+    # A beam of one keeps only the open A, but the note can still be fretted
+    # on the low string, so its open string is charged.
+    mapper = ViterbiFretboardMapper(MapperCosts(beam=1))
+    pitches = [parse_pitch(name) for name in STANDARD_TUNING]
+    (kept,) = mapper._fingerings([note(0.0, 45)], pitches)
+    assert (kept.places, kept.charged_opens) == (((1, 0),), 1)
+
+
 def test_only_a_note_with_no_other_place_is_exempt() -> None:
-    # The exemption is "this note has exactly one candidate", not "the lowest
-    # string". Low D in drop D has no other place; on a seven-string the open
-    # E2 does, so it is charged like any open string.
+    # Alone, a note is exempt only when it has exactly one candidate, not
+    # because it is on the lowest string. Low D in drop D has no other place;
+    # on a seven-string the open E2 does, so it is charged like any open
+    # string.
     def open_fingering(tuning: Sequence[str], midi: int) -> _Fingering:
         mapper = ViterbiFretboardMapper()
         pitches = [parse_pitch(name) for name in tuning]
@@ -413,8 +463,8 @@ def test_a_chord_pays_for_each_unused_string_between_its_outer_strings(
     # The costs above are worked out at 0.5 a fret of span and 0.3 a skipped
     # string, so the weights are named here rather than read from the defaults.
     costs = MapperCosts(span_weight=0.5, gap_weight=0.3)
-    forced = (False,) * len(string_places)
-    fingering = ViterbiFretboardMapper(costs)._score(string_places, forced)
+    exempt = (False,) * len(string_places)
+    fingering = ViterbiFretboardMapper(costs)._score(string_places, exempt)
     assert fingering is not None
     assert fingering.cost == pytest.approx(cost)
 

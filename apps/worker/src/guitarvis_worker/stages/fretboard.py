@@ -6,8 +6,8 @@ Viterbi pass minimises total cost, dominated by hand-position movement between
 consecutive voicings because real players stay put. The hand is the index
 finger's fret and covers `hand_window` frets, so it moves only when a voicing
 does not fit under it. An open string costs more the further up the neck the
-hand sits, unless its note has no other place to be played. A chord that skips
-strings between its outer two costs a little for each one it skips.
+hand sits, unless every way to play its voicing plays that note open. A chord
+that skips strings between its outer two costs a little for each one it skips.
 
 Testable without audio: feed note sequences, assert fingerings. Every note it
 emits must satisfy guitarvis_core.fretboard.check_invariant — a note that
@@ -46,10 +46,10 @@ class MapperCosts:
     it costs `move_weight` per fret. Within a fingering, `span_weight` charges
     per fret of stretch and `height_weight` per fret of height, which pulls the
     tab toward the nut (zero: nothing does). An open string is free while the
-    hand sits at or below `open_reach`; one whose note has another place costs
-    `open_weight` per fret the hand sits above `open_reach`. A note with no
-    other place to be played is exempt, so the lowest string's open note never
-    drags a phrase down.
+    hand sits at or below `open_reach`; otherwise it costs `open_weight` per
+    fret the hand sits above `open_reach`. A note that every playable
+    fingering of its voicing plays open is exempt, so the lowest string's open
+    note, or an A2 sounded with it, never drags a phrase down.
 
     Moving into a fingering costs `ring_weight` for each string it uses where
     the previous voicing's note is still sounding. A note ending no more than
@@ -114,8 +114,9 @@ class _Fingering:
     cost: float
     position: int | None  # lowest fretted fret; None when every string is open
     top: int | None  # highest fretted fret; None when every string is open
-    # Open strings whose note could be played elsewhere. They are charged by
-    # where the hand lands, so the cost waits for the transition.
+    # Open strings whose note another fingering of the voicing frets. They
+    # are charged by where the hand lands, so the cost waits for the
+    # transition.
     charged_opens: int
 
     @property
@@ -218,12 +219,12 @@ class ViterbiFretboardMapper:
             return []  # more notes than strings: nothing to enumerate
 
         per_note = [self._candidates(note, open_pitches) for note in voicing]
-        forced = tuple(len(candidates) == 1 for candidates in per_note)
+        unexempt = (False,) * len(per_note)
         found: list[_Fingering] = []
 
         def extend(chosen: list[tuple[int, int]], used: set[int]) -> None:
             if len(chosen) == len(per_note):
-                fingering = self._score(tuple(chosen), forced)
+                fingering = self._score(tuple(chosen), unexempt)
                 if fingering is not None:
                     found.append(fingering)
                 return
@@ -236,19 +237,30 @@ class ViterbiFretboardMapper:
                     chosen.pop()
 
         extend([], set())
+        # A note every playable fingering plays open is exempt. It is judged
+        # on them all, before the beam: a note the beam's survivors happen to
+        # play open could still be fretted.
+        exempt = tuple(
+            all(fingering.places[i][1] == 0 for fingering in found)
+            for i in range(len(per_note))
+        )
+        if any(exempt):
+            rescored = (self._score(fingering.places, exempt) for fingering in found)
+            found = [fingering for fingering in rescored if fingering is not None]
         found.sort(key=lambda fingering: fingering.order_key)
         kept = found[: self.costs.beam]
         kept.sort(key=lambda fingering: fingering.tie_key)
         return kept
 
     def _score(
-        self, places: tuple[tuple[int, int], ...], forced: tuple[bool, ...]
+        self, places: tuple[tuple[int, int], ...], exempt: tuple[bool, ...]
     ) -> _Fingering | None:
         """The cost of one fingering, or None when no hand can hold it.
 
-        `forced[i]` says note i has exactly one candidate. If that one is an
-        open string every fingering plays it open, so charging for it would
-        only drag the rest of the phrase toward the nut. The exemption is
+        `exempt[i]` says every playable fingering of the voicing plays note i
+        open, so charging for it would only drag the rest of the phrase toward
+        the nut. A note with one candidate, an open string, is the usual case;
+        A2 beside E2, which holds the low string, is another. The exemption is
         that, and not "the lowest string": E2 on a seven-string has two places.
         """
         # A hole in the middle of a chord: strings between its outer two that
@@ -262,8 +274,8 @@ class ViterbiFretboardMapper:
         fretted = [fret for _, fret in places if fret > 0]
         charged_opens = sum(
             1
-            for (_, fret), only in zip(places, forced, strict=True)
-            if fret == 0 and not only
+            for (_, fret), free in zip(places, exempt, strict=True)
+            if fret == 0 and not free
         )
         if not fretted:
             return _Fingering(places, gap, None, None, charged_opens)
