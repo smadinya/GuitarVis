@@ -304,3 +304,47 @@ Task 1's benchmark, unchanged, with the chosen values. Five runs, run through
 | after, median | 0.143 |
 
 Under the 2 s limit.
+
+## Stage 4 on test
+
+Commit `354c2c8`, clean tree, the tuned costs:
+
+```bash
+make eval
+make eval ARGS=--full
+```
+
+Before is Task 1's pair, at `3439361`. After is
+[`2026-10-19-354c2c8-oracle-test.json`](../../../eval/results/2026-10-19-354c2c8-oracle-test.json)
+and
+[`2026-10-19-354c2c8-full-test.json`](../../../eval/results/2026-10-19-354c2c8-full-test.json).
+Changes are taken from the unrounded rates.
+
+| condition | mode | style | before | after | change | met |
+|---|---|---|---|---|---|---|
+| 1. string accuracy rises | oracle | comp | 62.0% | 74.0% | +11.9 | yes |
+| | oracle | solo | 30.2% | 45.5% | +15.3 | yes |
+| 2. string accuracy rises | full | comp | 57.8% | 64.6% | +6.8 | yes |
+| | full | solo | 30.8% | 41.9% | +11.0 | yes |
+| 3. overlaps fall, per 1000 | oracle | all | 9.0 | 3.9 | −5.1 | yes |
+| | full | all | 30.7 | 16.8 | −13.9 | yes |
+
+Overlaps also fall in each style: oracle 6.4 to 1.8 in comp and 16.6 to 10.1
+in solo; full 31.7 to 17.2 in comp and 27.2 to 15.5 in solo. Overall, oracle
+string accuracy goes from 54.0% to 66.8% (the spike reached 65.5%), and full
+from 50.3% to 58.3%. Note F1 (0.777) and precision (0.734) do not move: stage
+2 is untouched.
+
+**Condition 8 is met.**
+- All 70 mapper tests pass. Among them,
+  `test_every_placed_note_satisfies_the_invariant` checks 300 random inputs
+  in three tunings.
+- The 60 test excerpts' true pitches, mapped in two separate processes, give
+  the same 8698 placements, by SHA-256. Every one has
+  `pitch_of(string, fret) == midi`.
+- A second oracle run, into a scratch directory, gives the same summary and
+  the same per-excerpt results.
+- The defaults row is the same in all four sweeps. The chosen row comes back
+  to the digit with the new defaults.
+
+Stage 4 meets conditions 1, 2, 3 and 8 on test.
