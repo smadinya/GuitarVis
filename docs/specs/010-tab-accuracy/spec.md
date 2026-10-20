@@ -184,6 +184,13 @@ the usual case: E2 in standard tuning, D2 in drop D. Every path must play
 it open, so charging for it would only drag the surrounding phrase toward
 the nut. A riff at frets 7–12 over an open-E pedal is the case this protects.
 
+*Amended after the PR review (2026-10-20):* the exemption covers any note
+that every playable fingering of its voicing puts on an open string, not
+only a note with one candidate. Under an E2+A2 pedal, the A2's other place
+is the low E string's 5th fret. The E2 always takes that string, so the A2
+is open in every fingering. Charging it pulled the riff above it toward the
+nut. The same reasoning applies: every path plays it open.
+
 **The pull toward the nut.** `height_weight` stays as a field, but its value
 comes from tuning; the spike found anything above zero hurt. The tie-break
 rule (lower fret, then lower string, latest voicing first) stays. Determinism
