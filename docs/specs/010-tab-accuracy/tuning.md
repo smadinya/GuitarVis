@@ -461,10 +461,10 @@ make sweep ARGS="--full --transcription melodia_trick=false --transcription fram
 | 0.5 | true | 79.4 | 41.6 | 0.732 | 0.854 | 0.776 | 0.833 | 8.1 | 60.5 | 0.793 | admissible |
 | 0.6 | false | 79.0 | 43.5 | 0.732 | 0.857 | 0.782 | 0.839 | 7.9 | 61.2 | 0.795 | admissible |
 | 0.6 | true | 79.4 | 42.9 | 0.733 | 0.857 | 0.777 | 0.838 | 8.0 | 61.1 | 0.795 | admissible |
-| 0.7 | false | 77.8 | 50.3 | 0.728 | 0.862 | 0.790 | 0.849 | 7.6 | 64.0 | 0.795 | **chosen**: plain rule's best |
+| 0.7 | false | 77.8 | 50.3 | 0.728 | 0.862 | 0.790 | 0.849 | 7.6 | 64.0 | 0.795 | **dev rule's pick**: plain rule's best |
 | 0.7 | true | 79.1 | 47.7 | 0.733 | 0.861 | 0.779 | 0.846 | 8.1 | 63.4 | 0.797 | admissible |
 | 0.8 | false | 75.7 | 51.7 | 0.719 | 0.864 | 0.796 | 0.854 | 7.5 | 63.7 | 0.792 | rejected: full_comp below |
-| 0.8 | true | 79.2 | 48.5 | 0.733 | 0.862 | 0.781 | 0.850 | 8.1 | 63.8 | 0.798 | alone-only rule's best |
+| 0.8 | true | 79.2 | 48.5 | 0.733 | 0.862 | 0.781 | 0.850 | 8.1 | 63.8 | 0.798 | **shipped**: alone-only rule's best |
 
 The two `ghost_ratio=none` rows are the same settings under two cache keys,
 transcribed separately. Their 300 transcriptions are byte-identical, and
@@ -499,21 +499,31 @@ verdict's admissibility as it was.
 - **The alone-only rule.** Its best is 0.8, at 0.797706, the best obj2 in the
   sweep. Its full_solo is 48.52.
 - **Between the forms.** 50.28 against 48.52 is 1.75 points, so the plain
-  rule at 0.7 is chosen. It beats no rule on obj2, 0.795188 against 0.792857.
+  rule at 0.7 is the dev rule's pick. It beats no rule on obj2, 0.795188
+  against 0.792857.
 
 A first pass broke the printed tie toward 0.6 and so chose the alone-only
 rule at 0.8. That is commit `fa69e14` and its test pair, below.
 
+The plain rule at 0.7 is the dev rule's pick. It is not what ships. Its test
+run failed condition 6 in comp, and on 2026-10-19 the user chose the
+alone-only rule at 0.8. See *Stage 2 on test*.
+
 ### The chosen values
 
-| field | basic-pitch's default | spec's starting point | chosen |
-|---|---|---|---|
-| `onset_threshold` | 0.5 | 0.5 | 0.5 |
-| `frame_threshold` | 0.3 | 0.4 | **0.4** |
-| `minimum_note_length_ms` | 127.7 | about 58 | **93** |
-| `melodia_trick` | on | off | **off** |
-| `ghost_ratio` | no rule | 0.6 plain, or 0.8 alone-only | **0.7** |
-| `ghost_alone_only` | — | | false |
+| field | basic-pitch's default | spec's starting point | dev rule's pick | shipped |
+|---|---|---|---|---|
+| `onset_threshold` | 0.5 | 0.5 | 0.5 | 0.5 |
+| `frame_threshold` | 0.3 | 0.4 | 0.4 | **0.4** |
+| `minimum_note_length_ms` | 127.7 | about 58 | 93 | **93** |
+| `melodia_trick` | on | off | off | **off** |
+| `ghost_ratio` | no rule | 0.6 plain, or 0.8 alone-only | 0.7 | **0.8** |
+| `ghost_alone_only` | — | | false | **true** |
+
+The two ghost rows differ between the last two columns. The dev rule picked the
+plain rule at 0.7. It failed condition 6 in comp on test, and the user chose
+the alone-only rule at 0.8 instead (*Stage 2 on test*, below). The other four
+settings are the same in both.
 
 On dev, against the before-numbers:
 
@@ -521,12 +531,14 @@ On dev, against the before-numbers:
 |---|---|---|---|---|---|---|---|---|
 | before, stage 4 and basic-pitch's decoding | 77.0 | 39.9 | 0.709 | 0.810 | 0.728 | 0.773 | 17.7 | 0.759 |
 | tuned decoding, no ghost rule | 79.4 | 41.2 | 0.732 | 0.853 | 0.776 | 0.831 | 8.1 | 0.793 |
-| chosen | 77.8 | 50.3 | 0.728 | 0.862 | 0.790 | 0.849 | 7.6 | 0.795 |
+| dev rule's pick: plain rule at 0.7 | 77.8 | 50.3 | 0.728 | 0.862 | 0.790 | 0.849 | 7.6 | 0.795 |
+| shipped: alone-only rule at 0.8 | 79.2 | 48.5 | 0.733 | 0.862 | 0.781 | 0.850 | 8.1 | 0.798 |
 
-With the new defaults, `make sweep ARGS=--full` prints the chosen row again,
-to the digit. `CACHE_VERSION` goes from 1 to 2. It stays at 2 for the move
-from the alone-only rule to the plain one: the branch has not shipped, and 2
-already sets aside every entry from before 010.
+The shipped row is sweep 3's `0.8, true` row. The sweep was not run again
+after the revert. `CACHE_VERSION` goes from 1 to 2. It stayed at 2 through the
+move to the plain rule and stays at 2 on the move back: the branch has not
+shipped, and relative to `main` it is still one bump. 2 already sets aside
+every entry from before 010.
 
 **The choice is provisional.** `frame_threshold` and `melodia_trick` reach
 production only through the real-song review (spec, *Stage 2 · decoding*),
@@ -556,11 +568,60 @@ falls to 35.5, and precision does not rise.
 
 ## Stage 2 on test
 
-The current pair is at `5624075`, with the plain rule at 0.7. The pair at
-`fa69e14`, with the alone-only rule at 0.8, came first. Its files stay in
-`eval/results/` as history.
+The current pair is at `fa69e14`, with the alone-only rule at 0.8. The pair at
+`5624075`, with the plain rule at 0.7, is history. Both pairs' files stay in
+`eval/results/`.
 
-### `5624075`: the plain rule at 0.7 (current)
+### The decision
+
+On 2026-10-19 the user chose to ship the alone-only ghost rule at 0.8.
+
+- The plain rule at 0.7 was the dev rule's pick on the unrounded values. On
+  test it failed condition 6 in comp: string accuracy fell from 64.6% to
+  63.8%, which is 0.80 points against a tolerance of 0.5.
+- The alone-only rule at 0.8 met conditions 4, 5, 6 and 8 on test.
+- The user chose it with both test results in view. The plan's dev and test
+  discipline normally avoids that: the test split decided between two
+  candidates. The choice is not a dev result.
+- Commit `2a347e3` reverts `5624075`. The stage-2 code is identical to
+  `fa69e14`'s: `git diff fa69e14 HEAD -- apps packages web` is empty. No
+  further test run was made. The code is the same, so the `fa69e14` results
+  stand.
+- `CACHE_VERSION` stays at 2.
+- The real-song round for stage 2 (`real-songs.md`) ran at `dc315bd` with the
+  plain rule at 0.7. No round was made at the reverted code.
+
+### `fa69e14`: the alone-only rule at 0.8 (current)
+
+This is the first choice, made when the plain rule's printed tie went to
+0.6. It is current again by the user's decision, above. The decoding settings
+are the same as the plain rule's.
+[`2026-10-19-fa69e14-full-test.json`](../../../eval/results/2026-10-19-fa69e14-full-test.json)
+and
+[`2026-10-19-fa69e14-oracle-test.json`](../../../eval/results/2026-10-19-fa69e14-oracle-test.json),
+against Task 9's pair:
+
+| condition | mode | style | before | after | change | met |
+|---|---|---|---|---|---|---|
+| 4. note precision rises | full | comp | 0.700 | 0.765 | +6.5 | yes |
+| | full | solo | 0.845 | 0.899 | +5.4 | yes |
+| 5. note F1 holds | full | comp | 0.745 | 0.772 | +2.7 | yes |
+| | full | solo | 0.874 | 0.912 | +3.8 | yes |
+| 6. string accuracy holds | full | comp | 64.6% | 65.5% | +0.9 | yes |
+| | full | solo | 41.9% | 42.2% | +0.3 | yes |
+
+- Overall, precision went from 0.734 to 0.799 and note F1 from 0.777 to
+  0.807, with 8910 notes reported.
+- Full-mode string accuracy went from 58.3% to 58.9%, and overlaps per 1000
+  from 16.8 to 5.1.
+- The run printed `HIDE` 0.5 and `FULL` 0.6.
+- Condition 8 held: 8870 placements from 8910 notes, the same SHA-256 in two
+  processes, and every one with `pitch_of(string, fret) == midi`.
+
+That pair met conditions 4, 5, 6 and 8. Condition 7, the real-song review,
+is Task 12's.
+
+### `5624075`: the plain rule at 0.7 (history)
 
 Commit `5624075`, clean tree:
 
@@ -593,7 +654,7 @@ Changes are taken from the unrounded rates, in points.
   (+0.9).
 - In comp the plain rule leaves 6472 notes, against the alone-only rule's
   6666, and 4991 matched, against 5098.
-- Following the spec, stage 2 waits for an explicit decision.
+- Following the spec, stage 2 waited for an explicit decision. It is below.
 
 Overall, precision goes from 0.734 to 0.804 and note F1 from 0.777 to 0.804.
 The transcriber reports 8721 notes, against 9778. Recall falls in comp, from
@@ -617,35 +678,9 @@ now. Task 13 re-derives them.
 - On dev, two separate transcription passes of the same settings give
   byte-identical notes for all 300 excerpts, twice over: the defaults (Task
   9's pass and this one), and the two `ghost_ratio=none` rows of sweep 3.
-- With the new defaults, the sweep prints the chosen row again, to the digit.
+- With the defaults at `5624075`, the sweep printed the dev rule's pick again,
+  to the digit.
 
-At `5624075`, stage 2 meets conditions 4, 5 and 8 on test. It fails
-condition 6 in comp. Condition 7, the real-song review, is Task 12's.
-
-### `fa69e14`: the alone-only rule at 0.8 (superseded)
-
-This is the first choice, made when the plain rule's printed tie went to
-0.6. The decoding settings are the same.
-[`2026-10-19-fa69e14-full-test.json`](../../../eval/results/2026-10-19-fa69e14-full-test.json)
-and
-[`2026-10-19-fa69e14-oracle-test.json`](../../../eval/results/2026-10-19-fa69e14-oracle-test.json),
-against Task 9's pair:
-
-| condition | mode | style | before | after | change | met |
-|---|---|---|---|---|---|---|
-| 4. note precision rises | full | comp | 0.700 | 0.765 | +6.5 | yes |
-| | full | solo | 0.845 | 0.899 | +5.4 | yes |
-| 5. note F1 holds | full | comp | 0.745 | 0.772 | +2.7 | yes |
-| | full | solo | 0.874 | 0.912 | +3.8 | yes |
-| 6. string accuracy holds | full | comp | 64.6% | 65.5% | +0.9 | yes |
-| | full | solo | 41.9% | 42.2% | +0.3 | yes |
-
-- Overall, precision went from 0.734 to 0.799 and note F1 from 0.777 to
-  0.807, with 8910 notes reported.
-- Full-mode string accuracy went from 58.3% to 58.9%, and overlaps per 1000
-  from 16.8 to 5.1.
-- The run printed `HIDE` 0.5 and `FULL` 0.6.
-- Condition 8 held: 8870 placements from 8910 notes, the same SHA-256 in two
-  processes, and every one with `pitch_of(string, fret) == midi`.
-
-That pair met conditions 4, 5, 6 and 8.
+At `5624075`, stage 2 met conditions 4, 5 and 8 on test. It failed
+condition 6 in comp. This pair is history. Condition 7, the real-song review,
+is Task 12's.
