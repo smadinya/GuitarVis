@@ -717,3 +717,148 @@ now. Task 13 re-derives them.
 At `5624075`, stage 2 met conditions 4, 5 and 8 on test. It failed
 condition 6 in comp. This pair is history. Condition 7, the real-song review,
 is Task 12's.
+
+## After the PR review
+
+**Date:** 2026-10-20
+
+The code review of PR #26 led to four fixes:
+
+- **`29f1f80`: open notes in a chord.** A note is exempt from the open-string
+  cost when every playable fingering of its voicing plays it open, judged
+  before the beam. A2 beside E2, which holds the low string, no longer drags
+  a riff toward the nut.
+- **`a7c350e`: alone-only ghosts.** The alone-only ghost rule now needs at
+  least one other note starting with the ghost, and every such note must be a
+  base. A melody note over a held bass an octave below is no longer deleted.
+- **`793dc96`: the sweep's cache key.** It now also covers the worker's
+  `CACHE_VERSION`, `MIN_CONFIDENCE`, `GHOST_INTERVALS` and `GHOST_LEAD_SEC`.
+- **`7c8641c`: the ring cost.** It is worked out once per fingering pair,
+  not once per hand state. The output is identical.
+
+F1 is deferred to an issue. That is the first landing: letting a hand that
+arrives from nowhere land anywhere its box covers the shape. Its fix flips
+four pinned musical tests:
+- `test_an_open_string_does_not_reset_the_hand_position`
+- `test_twelfth_position_stays_up_the_neck`
+- `test_a_tie_with_an_open_string_goes_to_the_lower_frets`
+- `test_a_note_still_ringing_keeps_its_string`
+
+`CACHE_VERSION` stays at 2. The ghost fix changes stage 2's output, but the
+branch has not shipped, and 2 is one bump from `main`.
+
+### Dev
+
+Commit `7c8641c`, clean tree. The cache is a fresh directory, because the
+ghost fix changes the notes without changing a setting:
+
+```bash
+make sweep ARGS="--full --cache <fresh directory>"
+```
+
+| | oracle_comp | oracle_solo | full_comp | full_solo | f1_comp | f1_solo | prec_comp | prec_solo | oracle_ovl | full_ovl |
+|---|---|---|---|---|---|---|---|---|---|---|
+| before-numbers | 74.4 | 42.7 | 67.1 | 38.3 | 0.709 | 0.810 | 0.728 | 0.773 | 18.4 | 33.6 |
+| shipped, before the review | 83.0 | 50.8 | 79.2 | 48.5 | 0.733 | 0.862 | 0.781 | 0.850 | 7.4 | 8.1 |
+| after the review | 83.0 | 50.8 | 79.3 | 48.8 | 0.733 | 0.862 | 0.781 | 0.850 | 7.4 | 8.2 |
+
+No column is below its before-number, and both overlap columns are below
+theirs. obj4 is 64.0 and obj2 0.798.
+
+The whole change on dev comes from the ghost fix. The mapper at `9b49746` and
+the mapper at `7c8641c` place the 300 dev transcriptions identically.
+
+### Test
+
+Commit `7c8641c`, clean tree, `make eval` and `make eval ARGS=--full`:
+[`2026-10-20-7c8641c-oracle-test.json`](../../../eval/results/2026-10-20-7c8641c-oracle-test.json)
+and
+[`2026-10-20-7c8641c-full-test.json`](../../../eval/results/2026-10-20-7c8641c-full-test.json).
+Conditions 1–3 are measured against `3439361`, and 4–5 against `354c2c8`.
+The last column is `fa69e14`, the pair before the review. Changes are taken
+from the unrounded rates.
+
+| condition | mode | style | before | after | change | met | `fa69e14` |
+|---|---|---|---|---|---|---|---|
+| 1. string accuracy rises | oracle | comp | 62.0% | 74.0% | +11.95 | yes | 74.0% |
+| | oracle | solo | 30.2% | 45.5% | +15.33 | yes | 45.5% |
+| 2. string accuracy rises | full | comp | 57.8% | 65.4% | +7.69 | yes | 65.5% |
+| | full | solo | 30.8% | 42.2% | +11.36 | yes | 42.2% |
+| 3. overlaps fall, per 1000 | oracle | all | 9.0 | 3.9 | −5.06 | yes | 3.9 |
+| | full | all | 30.7 | 5.4 | −25.25 | yes | 5.1 |
+| 4. note precision rises | full | comp | 0.700 | 0.764 | +6.42 | yes | 0.765 |
+| | full | solo | 0.845 | 0.899 | +5.41 | yes | 0.899 |
+| 5. note F1 holds | full | comp | 0.745 | 0.772 | +2.75 | yes | 0.772 |
+| | full | solo | 0.874 | 0.912 | +3.76 | yes | 0.912 |
+
+**Oracle.** The oracle file matches `fa69e14`'s in its summary and in every
+excerpt.
+
+**Full mode.** Solo does not move. In comp, the ghost fix keeps 18 more notes
+(6684, against 6666), and 7 more of them match the truth (5105, against
+5098). Comp precision falls from 0.7648 to 0.7638, and F1 is flat. Full-mode
+comp string accuracy is 3335 of 5096 matched notes, against 3333 of 5089.
+
+**The open-note fix on test.** The shipped transcriptions, mapped by
+`9b49746`'s mapper, give 3340 of 5096 in comp (65.54%), against 3335 now.
+Comp overlaps are 4.82 per 1000, against 5.12 now. Solo is identical. So the
+open-note fix costs 5 comp notes on test and none on dev.
+
+**Condition 6.** Full-mode string accuracy holds against the same mapper with
+basic-pitch's default decoding. The comparison rows were computed on test at
+`7c8641c` with a throwaway script, `score_full(..., analyzer=None)` and
+`summarize`, and are not committed.
+
+| decoding, mapper at `7c8641c` | comp | solo | met |
+|---|---|---|---|
+| shipped (the results file) | 65.44% (3335/5096) | 42.19% (851/2017) | |
+| basic-pitch's own: onset 0.5, frame 0.3, 127.7 ms, melodia on, no ghost rule | 64.21% (3333/5191) | 41.87% (827/1975) | yes: +1.24, +0.32 |
+| basic-pitch's decoding with the ghost rule at its default (alone-only, 0.8) | 63.87% (3311/5184) | 47.21% (929/1968) | in solo, no: −5.01 |
+
+The second row is the comparison condition 6 means. It is stage 2 switched
+off: basic-pitch's predict() has no ghost rule, and it is the decoding behind
+`354c2c8`'s pair. The same transcriptions there gave 3353 of 5191 in comp;
+the open-note fix moves 20 of them.
+
+The third row is a different setup: the brief's constructor, which leaves
+`ghost_ratio` at its default. That combination was never a dev candidate,
+because sweep 3 fixed the decoding before trying ghost rules. On test, its
+solo string accuracy is 5.0 points above the shipped decoding. Its precision
+(0.716 comp, 0.859 solo) and F1 (0.754, 0.880) are below the shipped
+decoding's. It is recorded here and not acted on, since acting on it would
+mean tuning on test.
+
+**Condition 8 is met.**
+- `make check` passes, with `GUITARVIS_REQUIRE_SERVICES=1`: 682 Python tests
+  and 330 web tests.
+- A second oracle run and a second full run, into a scratch directory, give
+  the committed files' summaries and every excerpt exactly.
+- Two separate processes map the 60 test excerpts' transcriptions to the
+  same 8888 placements from 8928 notes, by SHA-256. All 8888 have
+  `pitch_of(string, fret) == midi`.
+
+**Thresholds.** The run printed `HIDE` 0.5 and `FULL` 0.6, and `CHORD_HIDE`
+0.7 and `CHORD_FULL` 0.8. These are the values `web/src/confidence.ts`
+holds.
+
+**The current pair** is `7c8641c`'s. `fa69e14`'s is history.
+
+### Timing
+
+The plan's benchmark and the worst case from *Timing after tuning*, five runs
+each, with a worker process running in the background. Times are medians, in
+seconds:
+
+| 1200 voicings, 0.25 s apart | `9b49746` | `793dc96` (before the ring fix) | `7c8641c` (after it) |
+|---|---|---|---|
+| D3 G3 B3 E4 (27 fingerings) every time | 7.80 | 6.90 | 4.92 |
+| Task 1's strums | 0.169 | 0.156 | 0.169 |
+
+- The search is the same at `9b49746` and `793dc96`, so the difference
+  between those two columns is noise.
+- The ring fix cuts the worst case by 29%.
+- The ring fix's output was checked against the code before it on 3000
+  random inputs. They cover three tunings, and half of them use random ring,
+  hand and open-string costs. Placements and warnings are identical in every
+  one, and the same check catches a ring weight changed by 0.5 in 302 of
+  them.

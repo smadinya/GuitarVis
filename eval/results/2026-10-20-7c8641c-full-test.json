@@ -1,0 +1,2103 @@
+{
+  "date": "2026-10-20",
+  "commit": "7c8641c",
+  "dirty": false,
+  "mode": "full",
+  "split": "test",
+  "mapper_costs": {
+    "move_weight": 1.0,
+    "span_weight": 0.5,
+    "height_weight": 0.0,
+    "open_reach": 4,
+    "open_weight": 0.2,
+    "ring_weight": 2.0,
+    "ring_tolerance": 0.1,
+    "gap_weight": 0.6,
+    "max_fret": 20,
+    "max_span": 4,
+    "hand_window": 4,
+    "beam": 50
+  },
+  "summary": {
+    "all": {
+      "excerpts": 60,
+      "string": {
+        "correct": 4186,
+        "total": 7113,
+        "rate": 0.5884999297061718
+      },
+      "overlaps": {
+        "count": 48,
+        "notes": 8888,
+        "per_1000": 5.4005400540054005
+      },
+      "note": {
+        "matched": 7122,
+        "truth": 8715,
+        "estimated": 8928,
+        "precision": 0.7977150537634409,
+        "recall": 0.8172117039586919,
+        "f1": 0.807345689508587
+      },
+      "chord": {
+        "correct": 5440,
+        "total": 16254,
+        "rate": 0.3346868463147533
+      },
+      "precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 7,
+          "matched": 1,
+          "precision": 0.14285714285714285
+        },
+        "0.3": {
+          "estimated": 139,
+          "matched": 28,
+          "precision": 0.2014388489208633
+        },
+        "0.4": {
+          "estimated": 743,
+          "matched": 334,
+          "precision": 0.44952893674293404
+        },
+        "0.5": {
+          "estimated": 1877,
+          "matched": 1351,
+          "precision": 0.7197655833777304
+        },
+        "0.6": {
+          "estimated": 2960,
+          "matched": 2457,
+          "precision": 0.8300675675675676
+        },
+        "0.7": {
+          "estimated": 2791,
+          "matched": 2576,
+          "precision": 0.9229666786098173
+        },
+        "0.8": {
+          "estimated": 410,
+          "matched": 374,
+          "precision": 0.9121951219512195
+        },
+        "0.9": {
+          "estimated": 1,
+          "matched": 1,
+          "precision": 1.0
+        }
+      },
+      "chord_precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.3": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.4": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.5": {
+          "estimated": 3264,
+          "matched": 221,
+          "precision": 0.06770833333333333
+        },
+        "0.6": {
+          "estimated": 6651,
+          "matched": 1572,
+          "precision": 0.2363554352728913
+        },
+        "0.7": {
+          "estimated": 3835,
+          "matched": 2034,
+          "precision": 0.5303780964797914
+        },
+        "0.8": {
+          "estimated": 1846,
+          "matched": 1522,
+          "precision": 0.8244853737811484
+        },
+        "0.9": {
+          "estimated": 93,
+          "matched": 91,
+          "precision": 0.978494623655914
+        }
+      }
+    },
+    "comp": {
+      "excerpts": 30,
+      "string": {
+        "correct": 3335,
+        "total": 5096,
+        "rate": 0.6544348508634223
+      },
+      "overlaps": {
+        "count": 34,
+        "notes": 6644,
+        "per_1000": 5.1173991571342565
+      },
+      "note": {
+        "matched": 5105,
+        "truth": 6536,
+        "estimated": 6684,
+        "precision": 0.7637642130460802,
+        "recall": 0.7810587515299877,
+        "f1": 0.7723146747352496
+      },
+      "chord": {
+        "correct": 4186,
+        "total": 8127,
+        "rate": 0.5150732127476314
+      },
+      "precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 5,
+          "matched": 0,
+          "precision": 0.0
+        },
+        "0.3": {
+          "estimated": 123,
+          "matched": 27,
+          "precision": 0.21951219512195122
+        },
+        "0.4": {
+          "estimated": 710,
+          "matched": 327,
+          "precision": 0.46056338028169014
+        },
+        "0.5": {
+          "estimated": 1792,
+          "matched": 1299,
+          "precision": 0.7248883928571429
+        },
+        "0.6": {
+          "estimated": 2445,
+          "matched": 2018,
+          "precision": 0.8253578732106339
+        },
+        "0.7": {
+          "estimated": 1434,
+          "matched": 1278,
+          "precision": 0.891213389121339
+        },
+        "0.8": {
+          "estimated": 175,
+          "matched": 156,
+          "precision": 0.8914285714285715
+        },
+        "0.9": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        }
+      },
+      "chord_precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.3": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.4": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.5": {
+          "estimated": 1227,
+          "matched": 98,
+          "precision": 0.07986960065199673
+        },
+        "0.6": {
+          "estimated": 2194,
+          "matched": 769,
+          "precision": 0.3505013673655424
+        },
+        "0.7": {
+          "estimated": 2607,
+          "matched": 1718,
+          "precision": 0.6589950134253931
+        },
+        "0.8": {
+          "estimated": 1772,
+          "matched": 1510,
+          "precision": 0.8521444695259593
+        },
+        "0.9": {
+          "estimated": 93,
+          "matched": 91,
+          "precision": 0.978494623655914
+        }
+      }
+    },
+    "solo": {
+      "excerpts": 30,
+      "string": {
+        "correct": 851,
+        "total": 2017,
+        "rate": 0.42191373326722853
+      },
+      "overlaps": {
+        "count": 14,
+        "notes": 2244,
+        "per_1000": 6.238859180035651
+      },
+      "note": {
+        "matched": 2017,
+        "truth": 2179,
+        "estimated": 2244,
+        "precision": 0.8988413547237076,
+        "recall": 0.9256539697108765,
+        "f1": 0.9120506443590324
+      },
+      "chord": {
+        "correct": 1254,
+        "total": 8127,
+        "rate": 0.15430047988187523
+      },
+      "precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 2,
+          "matched": 1,
+          "precision": 0.5
+        },
+        "0.3": {
+          "estimated": 16,
+          "matched": 1,
+          "precision": 0.0625
+        },
+        "0.4": {
+          "estimated": 33,
+          "matched": 7,
+          "precision": 0.21212121212121213
+        },
+        "0.5": {
+          "estimated": 85,
+          "matched": 52,
+          "precision": 0.611764705882353
+        },
+        "0.6": {
+          "estimated": 515,
+          "matched": 439,
+          "precision": 0.8524271844660194
+        },
+        "0.7": {
+          "estimated": 1357,
+          "matched": 1298,
+          "precision": 0.9565217391304348
+        },
+        "0.8": {
+          "estimated": 235,
+          "matched": 218,
+          "precision": 0.9276595744680851
+        },
+        "0.9": {
+          "estimated": 1,
+          "matched": 1,
+          "precision": 1.0
+        }
+      },
+      "chord_precision_by_confidence": {
+        "0.0": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.1": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.2": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.3": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.4": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        },
+        "0.5": {
+          "estimated": 2037,
+          "matched": 123,
+          "precision": 0.060382916053019146
+        },
+        "0.6": {
+          "estimated": 4457,
+          "matched": 803,
+          "precision": 0.18016603096253084
+        },
+        "0.7": {
+          "estimated": 1228,
+          "matched": 316,
+          "precision": 0.25732899022801303
+        },
+        "0.8": {
+          "estimated": 74,
+          "matched": 12,
+          "precision": 0.16216216216216217
+        },
+        "0.9": {
+          "estimated": 0,
+          "matched": 0,
+          "precision": null
+        }
+      }
+    }
+  },
+  "excerpts": [
+    {
+      "name": "05_BN1-129-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 33,
+        "total": 139,
+        "rate": 0.23741007194244604
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 165,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 139,
+        "truth": 148,
+        "estimated": 166,
+        "precision": 0.8373493975903614,
+        "recall": 0.9391891891891891,
+        "f1": 0.8853503184713376
+      },
+      "chord": {
+        "correct": 36,
+        "total": 148,
+        "rate": 0.24324324324324326
+      }
+    },
+    {
+      "name": "05_BN1-129-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 0,
+        "total": 42,
+        "rate": 0.0
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 49,
+        "per_1000": 20.408163265306122
+      },
+      "note": {
+        "matched": 42,
+        "truth": 44,
+        "estimated": 49,
+        "precision": 0.8571428571428571,
+        "recall": 0.9545454545454546,
+        "f1": 0.9032258064516129
+      },
+      "chord": {
+        "correct": 9,
+        "total": 148,
+        "rate": 0.060810810810810814
+      }
+    },
+    {
+      "name": "05_BN1-147-Gb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 62,
+        "total": 90,
+        "rate": 0.6888888888888889
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 125,
+        "per_1000": 16.0
+      },
+      "note": {
+        "matched": 90,
+        "truth": 96,
+        "estimated": 125,
+        "precision": 0.72,
+        "recall": 0.9375,
+        "f1": 0.8144796380090498
+      },
+      "chord": {
+        "correct": 9,
+        "total": 98,
+        "rate": 0.09183673469387756
+      }
+    },
+    {
+      "name": "05_BN1-147-Gb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 11,
+        "total": 25,
+        "rate": 0.44
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 34,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 25,
+        "truth": 27,
+        "estimated": 34,
+        "precision": 0.7352941176470589,
+        "recall": 0.9259259259259259,
+        "f1": 0.819672131147541
+      },
+      "chord": {
+        "correct": 32,
+        "total": 98,
+        "rate": 0.32653061224489793
+      }
+    },
+    {
+      "name": "05_BN2-131-B_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 91,
+        "total": 183,
+        "rate": 0.4972677595628415
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 220,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 183,
+        "truth": 202,
+        "estimated": 220,
+        "precision": 0.8318181818181818,
+        "recall": 0.905940594059406,
+        "f1": 0.8672985781990521
+      },
+      "chord": {
+        "correct": 43,
+        "total": 238,
+        "rate": 0.18067226890756302
+      }
+    },
+    {
+      "name": "05_BN2-131-B_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 0,
+        "total": 68,
+        "rate": 0.0
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 83,
+        "per_1000": 12.048192771084338
+      },
+      "note": {
+        "matched": 68,
+        "truth": 69,
+        "estimated": 83,
+        "precision": 0.8192771084337349,
+        "recall": 0.9855072463768116,
+        "f1": 0.8947368421052632
+      },
+      "chord": {
+        "correct": 40,
+        "total": 238,
+        "rate": 0.16806722689075632
+      }
+    },
+    {
+      "name": "05_BN2-166-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 120,
+        "total": 152,
+        "rate": 0.7894736842105263
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 193,
+        "per_1000": 5.181347150259067
+      },
+      "note": {
+        "matched": 153,
+        "truth": 173,
+        "estimated": 195,
+        "precision": 0.7846153846153846,
+        "recall": 0.884393063583815,
+        "f1": 0.8315217391304348
+      },
+      "chord": {
+        "correct": 91,
+        "total": 173,
+        "rate": 0.5260115606936416
+      }
+    },
+    {
+      "name": "05_BN2-166-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 39,
+        "total": 65,
+        "rate": 0.6
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 70,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 65,
+        "truth": 67,
+        "estimated": 70,
+        "precision": 0.9285714285714286,
+        "recall": 0.9701492537313433,
+        "f1": 0.948905109489051
+      },
+      "chord": {
+        "correct": 20,
+        "total": 173,
+        "rate": 0.11560693641618497
+      }
+    },
+    {
+      "name": "05_BN3-119-G_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 100,
+        "total": 168,
+        "rate": 0.5952380952380952
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 198,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 168,
+        "truth": 180,
+        "estimated": 198,
+        "precision": 0.8484848484848485,
+        "recall": 0.9333333333333333,
+        "f1": 0.8888888888888888
+      },
+      "chord": {
+        "correct": 79,
+        "total": 303,
+        "rate": 0.2607260726072607
+      }
+    },
+    {
+      "name": "05_BN3-119-G_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 9,
+        "total": 58,
+        "rate": 0.15517241379310345
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 69,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 58,
+        "truth": 62,
+        "estimated": 69,
+        "precision": 0.8405797101449275,
+        "recall": 0.9354838709677419,
+        "f1": 0.8854961832061069
+      },
+      "chord": {
+        "correct": 20,
+        "total": 303,
+        "rate": 0.066006600660066
+      }
+    },
+    {
+      "name": "05_BN3-154-E_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 62,
+        "total": 149,
+        "rate": 0.4161073825503356
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 181,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 149,
+        "truth": 185,
+        "estimated": 182,
+        "precision": 0.8186813186813187,
+        "recall": 0.8054054054054054,
+        "f1": 0.8119891008174387
+      },
+      "chord": {
+        "correct": 67,
+        "total": 218,
+        "rate": 0.3073394495412844
+      }
+    },
+    {
+      "name": "05_BN3-154-E_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 11,
+        "total": 54,
+        "rate": 0.2037037037037037
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 61,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 54,
+        "truth": 56,
+        "estimated": 61,
+        "precision": 0.8852459016393442,
+        "recall": 0.9642857142857143,
+        "f1": 0.9230769230769231
+      },
+      "chord": {
+        "correct": 34,
+        "total": 218,
+        "rate": 0.1559633027522936
+      }
+    },
+    {
+      "name": "05_Funk1-114-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 134,
+        "total": 134,
+        "rate": 1.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 162,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 134,
+        "truth": 181,
+        "estimated": 162,
+        "precision": 0.8271604938271605,
+        "recall": 0.7403314917127072,
+        "f1": 0.7813411078717201
+      },
+      "chord": {
+        "correct": 109,
+        "total": 253,
+        "rate": 0.4308300395256917
+      }
+    },
+    {
+      "name": "05_Funk1-114-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 30,
+        "total": 48,
+        "rate": 0.625
+      },
+      "overlaps": {
+        "count": 4,
+        "notes": 58,
+        "per_1000": 68.96551724137932
+      },
+      "note": {
+        "matched": 48,
+        "truth": 60,
+        "estimated": 58,
+        "precision": 0.8275862068965517,
+        "recall": 0.8,
+        "f1": 0.8135593220338984
+      },
+      "chord": {
+        "correct": 46,
+        "total": 253,
+        "rate": 0.18181818181818182
+      }
+    },
+    {
+      "name": "05_Funk1-97-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 127,
+        "total": 145,
+        "rate": 0.8758620689655172
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 159,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 145,
+        "truth": 177,
+        "estimated": 159,
+        "precision": 0.9119496855345912,
+        "recall": 0.8192090395480226,
+        "f1": 0.8630952380952381
+      },
+      "chord": {
+        "correct": 92,
+        "total": 297,
+        "rate": 0.30976430976430974
+      }
+    },
+    {
+      "name": "05_Funk1-97-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 26,
+        "total": 44,
+        "rate": 0.5909090909090909
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 47,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 44,
+        "truth": 58,
+        "estimated": 47,
+        "precision": 0.9361702127659575,
+        "recall": 0.7586206896551724,
+        "f1": 0.8380952380952381
+      },
+      "chord": {
+        "correct": 59,
+        "total": 297,
+        "rate": 0.19865319865319866
+      }
+    },
+    {
+      "name": "05_Funk2-108-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 141,
+        "total": 185,
+        "rate": 0.7621621621621621
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 233,
+        "per_1000": 8.583690987124463
+      },
+      "note": {
+        "matched": 186,
+        "truth": 245,
+        "estimated": 237,
+        "precision": 0.7848101265822784,
+        "recall": 0.7591836734693878,
+        "f1": 0.7717842323651453
+      },
+      "chord": {
+        "correct": 75,
+        "total": 288,
+        "rate": 0.2604166666666667
+      }
+    },
+    {
+      "name": "05_Funk2-108-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 0,
+        "total": 59,
+        "rate": 0.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 64,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 59,
+        "truth": 61,
+        "estimated": 64,
+        "precision": 0.921875,
+        "recall": 0.9672131147540983,
+        "f1": 0.944
+      },
+      "chord": {
+        "correct": 19,
+        "total": 288,
+        "rate": 0.06597222222222222
+      }
+    },
+    {
+      "name": "05_Funk2-119-G_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 121,
+        "total": 150,
+        "rate": 0.8066666666666666
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 173,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 150,
+        "truth": 182,
+        "estimated": 174,
+        "precision": 0.8620689655172413,
+        "recall": 0.8241758241758241,
+        "f1": 0.8426966292134831
+      },
+      "chord": {
+        "correct": 37,
+        "total": 242,
+        "rate": 0.15289256198347106
+      }
+    },
+    {
+      "name": "05_Funk2-119-G_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 37,
+        "total": 90,
+        "rate": 0.4111111111111111
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 96,
+        "per_1000": 10.416666666666666
+      },
+      "note": {
+        "matched": 90,
+        "truth": 99,
+        "estimated": 96,
+        "precision": 0.9375,
+        "recall": 0.9090909090909091,
+        "f1": 0.9230769230769231
+      },
+      "chord": {
+        "correct": 48,
+        "total": 242,
+        "rate": 0.19834710743801653
+      }
+    },
+    {
+      "name": "05_Funk3-112-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 137,
+        "total": 157,
+        "rate": 0.8726114649681529
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 180,
+        "per_1000": 5.555555555555555
+      },
+      "note": {
+        "matched": 158,
+        "truth": 212,
+        "estimated": 183,
+        "precision": 0.8633879781420765,
+        "recall": 0.7452830188679245,
+        "f1": 0.8
+      },
+      "chord": {
+        "correct": 91,
+        "total": 322,
+        "rate": 0.2826086956521739
+      }
+    },
+    {
+      "name": "05_Funk3-112-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 0,
+        "total": 69,
+        "rate": 0.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 69,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 69,
+        "truth": 70,
+        "estimated": 69,
+        "precision": 1.0,
+        "recall": 0.9857142857142858,
+        "f1": 0.9928057553956835
+      },
+      "chord": {
+        "correct": 32,
+        "total": 322,
+        "rate": 0.09937888198757763
+      }
+    },
+    {
+      "name": "05_Funk3-98-A_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 129,
+        "total": 153,
+        "rate": 0.8431372549019608
+      },
+      "overlaps": {
+        "count": 3,
+        "notes": 186,
+        "per_1000": 16.129032258064516
+      },
+      "note": {
+        "matched": 153,
+        "truth": 184,
+        "estimated": 187,
+        "precision": 0.8181818181818182,
+        "recall": 0.8315217391304348,
+        "f1": 0.8247978436657682
+      },
+      "chord": {
+        "correct": 162,
+        "total": 392,
+        "rate": 0.413265306122449
+      }
+    },
+    {
+      "name": "05_Funk3-98-A_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 22,
+        "total": 64,
+        "rate": 0.34375
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 65,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 64,
+        "truth": 65,
+        "estimated": 65,
+        "precision": 0.9846153846153847,
+        "recall": 0.9846153846153847,
+        "f1": 0.9846153846153847
+      },
+      "chord": {
+        "correct": 60,
+        "total": 392,
+        "rate": 0.15306122448979592
+      }
+    },
+    {
+      "name": "05_Jazz1-130-D_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 92,
+        "total": 120,
+        "rate": 0.7666666666666667
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 124,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 121,
+        "truth": 141,
+        "estimated": 126,
+        "precision": 0.9603174603174603,
+        "recall": 0.8581560283687943,
+        "f1": 0.9063670411985019
+      },
+      "chord": {
+        "correct": 15,
+        "total": 147,
+        "rate": 0.10204081632653061
+      }
+    },
+    {
+      "name": "05_Jazz1-130-D_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 6,
+        "total": 53,
+        "rate": 0.11320754716981132
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 62,
+        "per_1000": 16.129032258064516
+      },
+      "note": {
+        "matched": 53,
+        "truth": 58,
+        "estimated": 62,
+        "precision": 0.8548387096774194,
+        "recall": 0.9137931034482759,
+        "f1": 0.8833333333333333
+      },
+      "chord": {
+        "correct": 37,
+        "total": 147,
+        "rate": 0.25170068027210885
+      }
+    },
+    {
+      "name": "05_Jazz1-200-B_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 14,
+        "total": 80,
+        "rate": 0.175
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 95,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 80,
+        "truth": 175,
+        "estimated": 95,
+        "precision": 0.8421052631578947,
+        "recall": 0.45714285714285713,
+        "f1": 0.5925925925925926
+      },
+      "chord": {
+        "correct": 24,
+        "total": 72,
+        "rate": 0.3333333333333333
+      }
+    },
+    {
+      "name": "05_Jazz1-200-B_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 40,
+        "total": 46,
+        "rate": 0.8695652173913043
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 48,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 46,
+        "truth": 50,
+        "estimated": 48,
+        "precision": 0.9583333333333334,
+        "recall": 0.92,
+        "f1": 0.9387755102040817
+      },
+      "chord": {
+        "correct": 4,
+        "total": 72,
+        "rate": 0.05555555555555555
+      }
+    },
+    {
+      "name": "05_Jazz2-110-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 130,
+        "total": 181,
+        "rate": 0.7182320441988951
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 199,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 185,
+        "truth": 252,
+        "estimated": 208,
+        "precision": 0.8894230769230769,
+        "recall": 0.7341269841269841,
+        "f1": 0.8043478260869565
+      },
+      "chord": {
+        "correct": 39,
+        "total": 305,
+        "rate": 0.12786885245901639
+      }
+    },
+    {
+      "name": "05_Jazz2-110-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 53,
+        "total": 79,
+        "rate": 0.6708860759493671
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 85,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 79,
+        "truth": 103,
+        "estimated": 85,
+        "precision": 0.9294117647058824,
+        "recall": 0.7669902912621359,
+        "f1": 0.8404255319148937
+      },
+      "chord": {
+        "correct": 31,
+        "total": 305,
+        "rate": 0.10163934426229508
+      }
+    },
+    {
+      "name": "05_Jazz2-187-F#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 88,
+        "total": 126,
+        "rate": 0.6984126984126984
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 138,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 126,
+        "truth": 247,
+        "estimated": 139,
+        "precision": 0.9064748201438849,
+        "recall": 0.5101214574898786,
+        "f1": 0.6528497409326425
+      },
+      "chord": {
+        "correct": 47,
+        "total": 167,
+        "rate": 0.281437125748503
+      }
+    },
+    {
+      "name": "05_Jazz2-187-F#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 30,
+        "total": 59,
+        "rate": 0.5084745762711864
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 65,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 59,
+        "truth": 61,
+        "estimated": 65,
+        "precision": 0.9076923076923077,
+        "recall": 0.9672131147540983,
+        "f1": 0.9365079365079365
+      },
+      "chord": {
+        "correct": 27,
+        "total": 167,
+        "rate": 0.16167664670658682
+      }
+    },
+    {
+      "name": "05_Jazz3-137-Eb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 138,
+        "total": 184,
+        "rate": 0.75
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 216,
+        "per_1000": 9.25925925925926
+      },
+      "note": {
+        "matched": 185,
+        "truth": 235,
+        "estimated": 219,
+        "precision": 0.8447488584474886,
+        "recall": 0.7872340425531915,
+        "f1": 0.8149779735682819
+      },
+      "chord": {
+        "correct": 115,
+        "total": 280,
+        "rate": 0.4107142857142857
+      }
+    },
+    {
+      "name": "05_Jazz3-137-Eb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 20,
+        "total": 75,
+        "rate": 0.26666666666666666
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 85,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 75,
+        "truth": 77,
+        "estimated": 85,
+        "precision": 0.8823529411764706,
+        "recall": 0.974025974025974,
+        "f1": 0.9259259259259259
+      },
+      "chord": {
+        "correct": 24,
+        "total": 280,
+        "rate": 0.08571428571428572
+      }
+    },
+    {
+      "name": "05_Jazz3-150-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 41,
+        "total": 141,
+        "rate": 0.2907801418439716
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 167,
+        "per_1000": 5.9880239520958085
+      },
+      "note": {
+        "matched": 141,
+        "truth": 227,
+        "estimated": 168,
+        "precision": 0.8392857142857143,
+        "recall": 0.6211453744493393,
+        "f1": 0.7139240506329114
+      },
+      "chord": {
+        "correct": 59,
+        "total": 256,
+        "rate": 0.23046875
+      }
+    },
+    {
+      "name": "05_Jazz3-150-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 48,
+        "total": 64,
+        "rate": 0.75
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 69,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 64,
+        "truth": 69,
+        "estimated": 69,
+        "precision": 0.927536231884058,
+        "recall": 0.927536231884058,
+        "f1": 0.927536231884058
+      },
+      "chord": {
+        "correct": 27,
+        "total": 256,
+        "rate": 0.10546875
+      }
+    },
+    {
+      "name": "05_Rock1-130-A_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 50,
+        "total": 262,
+        "rate": 0.19083969465648856
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 279,
+        "per_1000": 7.168458781362007
+      },
+      "note": {
+        "matched": 262,
+        "truth": 312,
+        "estimated": 279,
+        "precision": 0.9390681003584229,
+        "recall": 0.8397435897435898,
+        "f1": 0.8866328257191202
+      },
+      "chord": {
+        "correct": 141,
+        "total": 185,
+        "rate": 0.7621621621621621
+      }
+    },
+    {
+      "name": "05_Rock1-130-A_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 27,
+        "total": 55,
+        "rate": 0.4909090909090909
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 61,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 55,
+        "truth": 60,
+        "estimated": 61,
+        "precision": 0.9016393442622951,
+        "recall": 0.9166666666666666,
+        "f1": 0.9090909090909091
+      },
+      "chord": {
+        "correct": 26,
+        "total": 185,
+        "rate": 0.14054054054054055
+      }
+    },
+    {
+      "name": "05_Rock1-90-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 211,
+        "total": 211,
+        "rate": 1.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 216,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 211,
+        "truth": 277,
+        "estimated": 216,
+        "precision": 0.9768518518518519,
+        "recall": 0.7617328519855595,
+        "f1": 0.8559837728194726
+      },
+      "chord": {
+        "correct": 290,
+        "total": 320,
+        "rate": 0.90625
+      }
+    },
+    {
+      "name": "05_Rock1-90-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 25,
+        "total": 88,
+        "rate": 0.2840909090909091
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 102,
+        "per_1000": 9.803921568627452
+      },
+      "note": {
+        "matched": 88,
+        "truth": 99,
+        "estimated": 102,
+        "precision": 0.8627450980392157,
+        "recall": 0.8888888888888888,
+        "f1": 0.8756218905472637
+      },
+      "chord": {
+        "correct": 51,
+        "total": 320,
+        "rate": 0.159375
+      }
+    },
+    {
+      "name": "05_Rock2-142-D_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 112,
+        "total": 254,
+        "rate": 0.4409448818897638
+      },
+      "overlaps": {
+        "count": 7,
+        "notes": 270,
+        "per_1000": 25.925925925925927
+      },
+      "note": {
+        "matched": 254,
+        "truth": 460,
+        "estimated": 270,
+        "precision": 0.9407407407407408,
+        "recall": 0.5521739130434783,
+        "f1": 0.6958904109589041
+      },
+      "chord": {
+        "correct": 171,
+        "total": 270,
+        "rate": 0.6333333333333333
+      }
+    },
+    {
+      "name": "05_Rock2-142-D_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 45,
+        "total": 80,
+        "rate": 0.5625
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 90,
+        "per_1000": 22.22222222222222
+      },
+      "note": {
+        "matched": 80,
+        "truth": 86,
+        "estimated": 90,
+        "precision": 0.8888888888888888,
+        "recall": 0.9302325581395349,
+        "f1": 0.9090909090909091
+      },
+      "chord": {
+        "correct": 37,
+        "total": 270,
+        "rate": 0.13703703703703704
+      }
+    },
+    {
+      "name": "05_Rock2-85-F_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 158,
+        "total": 206,
+        "rate": 0.7669902912621359
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 241,
+        "per_1000": 8.298755186721992
+      },
+      "note": {
+        "matched": 206,
+        "truth": 325,
+        "estimated": 242,
+        "precision": 0.8512396694214877,
+        "recall": 0.6338461538461538,
+        "f1": 0.7266313932980599
+      },
+      "chord": {
+        "correct": 174,
+        "total": 310,
+        "rate": 0.5612903225806452
+      }
+    },
+    {
+      "name": "05_Rock2-85-F_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 53,
+        "total": 114,
+        "rate": 0.4649122807017544
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 125,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 114,
+        "truth": 125,
+        "estimated": 125,
+        "precision": 0.912,
+        "recall": 0.912,
+        "f1": 0.912
+      },
+      "chord": {
+        "correct": 14,
+        "total": 310,
+        "rate": 0.04516129032258064
+      }
+    },
+    {
+      "name": "05_Rock3-117-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 120,
+        "total": 290,
+        "rate": 0.41379310344827586
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 307,
+        "per_1000": 6.514657980456026
+      },
+      "note": {
+        "matched": 290,
+        "truth": 398,
+        "estimated": 307,
+        "precision": 0.9446254071661238,
+        "recall": 0.7286432160804021,
+        "f1": 0.8226950354609929
+      },
+      "chord": {
+        "correct": 219,
+        "total": 328,
+        "rate": 0.6676829268292683
+      }
+    },
+    {
+      "name": "05_Rock3-117-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 54,
+        "total": 66,
+        "rate": 0.8181818181818182
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 70,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 66,
+        "truth": 70,
+        "estimated": 70,
+        "precision": 0.9428571428571428,
+        "recall": 0.9428571428571428,
+        "f1": 0.9428571428571428
+      },
+      "chord": {
+        "correct": 57,
+        "total": 328,
+        "rate": 0.17378048780487804
+      }
+    },
+    {
+      "name": "05_Rock3-148-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 35,
+        "total": 234,
+        "rate": 0.14957264957264957
+      },
+      "overlaps": {
+        "count": 5,
+        "notes": 396,
+        "per_1000": 12.626262626262626
+      },
+      "note": {
+        "matched": 234,
+        "truth": 249,
+        "estimated": 403,
+        "precision": 0.5806451612903226,
+        "recall": 0.9397590361445783,
+        "f1": 0.7177914110429447
+      },
+      "chord": {
+        "correct": 159,
+        "total": 259,
+        "rate": 0.6138996138996139
+      }
+    },
+    {
+      "name": "05_Rock3-148-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 0,
+        "total": 57,
+        "rate": 0.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 62,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 57,
+        "truth": 61,
+        "estimated": 62,
+        "precision": 0.9193548387096774,
+        "recall": 0.9344262295081968,
+        "f1": 0.926829268292683
+      },
+      "chord": {
+        "correct": 28,
+        "total": 259,
+        "rate": 0.10810810810810811
+      }
+    },
+    {
+      "name": "05_SS1-100-C#_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 98,
+        "total": 98,
+        "rate": 1.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 233,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 98,
+        "truth": 102,
+        "estimated": 233,
+        "precision": 0.4206008583690987,
+        "recall": 0.9607843137254902,
+        "f1": 0.5850746268656717
+      },
+      "chord": {
+        "correct": 267,
+        "total": 288,
+        "rate": 0.9270833333333334
+      }
+    },
+    {
+      "name": "05_SS1-100-C#_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 41,
+        "total": 56,
+        "rate": 0.7321428571428571
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 67,
+        "per_1000": 29.850746268656717
+      },
+      "note": {
+        "matched": 56,
+        "truth": 60,
+        "estimated": 67,
+        "precision": 0.835820895522388,
+        "recall": 0.9333333333333333,
+        "f1": 0.8818897637795275
+      },
+      "chord": {
+        "correct": 118,
+        "total": 288,
+        "rate": 0.4097222222222222
+      }
+    },
+    {
+      "name": "05_SS1-68-E_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 142,
+        "total": 142,
+        "rate": 1.0
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 268,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 142,
+        "truth": 143,
+        "estimated": 268,
+        "precision": 0.5298507462686567,
+        "recall": 0.993006993006993,
+        "f1": 0.6909975669099757
+      },
+      "chord": {
+        "correct": 353,
+        "total": 423,
+        "rate": 0.83451536643026
+      }
+    },
+    {
+      "name": "05_SS1-68-E_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 46,
+        "total": 70,
+        "rate": 0.6571428571428571
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 92,
+        "per_1000": 10.869565217391305
+      },
+      "note": {
+        "matched": 70,
+        "truth": 78,
+        "estimated": 92,
+        "precision": 0.7608695652173914,
+        "recall": 0.8974358974358975,
+        "f1": 0.8235294117647058
+      },
+      "chord": {
+        "correct": 82,
+        "total": 423,
+        "rate": 0.1938534278959811
+      }
+    },
+    {
+      "name": "05_SS2-107-Ab_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 129,
+        "total": 188,
+        "rate": 0.6861702127659575
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 268,
+        "per_1000": 3.7313432835820897
+      },
+      "note": {
+        "matched": 188,
+        "truth": 222,
+        "estimated": 268,
+        "precision": 0.7014925373134329,
+        "recall": 0.8468468468468469,
+        "f1": 0.7673469387755102
+      },
+      "chord": {
+        "correct": 260,
+        "total": 314,
+        "rate": 0.8280254777070064
+      }
+    },
+    {
+      "name": "05_SS2-107-Ab_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 28,
+        "total": 78,
+        "rate": 0.358974358974359
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 85,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 78,
+        "truth": 87,
+        "estimated": 85,
+        "precision": 0.9176470588235294,
+        "recall": 0.896551724137931,
+        "f1": 0.9069767441860465
+      },
+      "chord": {
+        "correct": 61,
+        "total": 314,
+        "rate": 0.1942675159235669
+      }
+    },
+    {
+      "name": "05_SS2-88-F_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 154,
+        "total": 180,
+        "rate": 0.8555555555555555
+      },
+      "overlaps": {
+        "count": 2,
+        "notes": 408,
+        "per_1000": 4.901960784313726
+      },
+      "note": {
+        "matched": 180,
+        "truth": 196,
+        "estimated": 408,
+        "precision": 0.4411764705882353,
+        "recall": 0.9183673469387755,
+        "f1": 0.5960264900662252
+      },
+      "chord": {
+        "correct": 256,
+        "total": 382,
+        "rate": 0.6701570680628273
+      }
+    },
+    {
+      "name": "05_SS2-88-F_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 62,
+        "total": 91,
+        "rate": 0.6813186813186813
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 96,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 91,
+        "truth": 93,
+        "estimated": 96,
+        "precision": 0.9479166666666666,
+        "recall": 0.978494623655914,
+        "f1": 0.9629629629629629
+      },
+      "chord": {
+        "correct": 60,
+        "total": 382,
+        "rate": 0.15706806282722513
+      }
+    },
+    {
+      "name": "05_SS3-84-Bb_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 182,
+        "total": 210,
+        "rate": 0.8666666666666667
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 315,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 210,
+        "truth": 211,
+        "estimated": 317,
+        "precision": 0.6624605678233438,
+        "recall": 0.995260663507109,
+        "f1": 0.7954545454545454
+      },
+      "chord": {
+        "correct": 383,
+        "total": 457,
+        "rate": 0.838074398249453
+      }
+    },
+    {
+      "name": "05_SS3-84-Bb_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 64,
+        "total": 109,
+        "rate": 0.5871559633027523
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 119,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 109,
+        "truth": 111,
+        "estimated": 119,
+        "precision": 0.9159663865546218,
+        "recall": 0.9819819819819819,
+        "f1": 0.9478260869565217
+      },
+      "chord": {
+        "correct": 85,
+        "total": 457,
+        "rate": 0.18599562363238512
+      }
+    },
+    {
+      "name": "05_SS3-98-C_comp",
+      "style": "comp",
+      "excerpts": 1,
+      "string": {
+        "correct": 184,
+        "total": 184,
+        "rate": 1.0
+      },
+      "overlaps": {
+        "count": 1,
+        "notes": 329,
+        "per_1000": 3.0395136778115504
+      },
+      "note": {
+        "matched": 184,
+        "truth": 199,
+        "estimated": 330,
+        "precision": 0.5575757575757576,
+        "recall": 0.9246231155778895,
+        "f1": 0.6956521739130435
+      },
+      "chord": {
+        "correct": 323,
+        "total": 392,
+        "rate": 0.8239795918367347
+      }
+    },
+    {
+      "name": "05_SS3-98-C_solo",
+      "style": "solo",
+      "excerpts": 1,
+      "string": {
+        "correct": 24,
+        "total": 91,
+        "rate": 0.26373626373626374
+      },
+      "overlaps": {
+        "count": 0,
+        "notes": 96,
+        "per_1000": 0.0
+      },
+      "note": {
+        "matched": 91,
+        "truth": 93,
+        "estimated": 96,
+        "precision": 0.9479166666666666,
+        "recall": 0.978494623655914,
+        "f1": 0.9629629629629629
+      },
+      "chord": {
+        "correct": 66,
+        "total": 392,
+        "rate": 0.1683673469387755
+      }
+    }
+  ],
+  "transcription_settings": {
+    "onset_threshold": 0.5,
+    "frame_threshold": 0.4,
+    "minimum_note_length_ms": 93.0,
+    "melodia_trick": false,
+    "ghost_ratio": 0.8,
+    "ghost_alone_only": true
+  }
+}
