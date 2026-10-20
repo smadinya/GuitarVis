@@ -57,7 +57,50 @@ All nine jobs succeeded.
 
 ## Stage 4
 
-Round `R=stage4`, to be filled in by plan Task 9.
+Round `R=stage4`, run on 2026-10-19 at commit `7c02b6e`, on a worker started
+after the tuned mapper commit `354c2c8`. All nine jobs succeeded. `HIDE` is 0.5
+and `FULL` is 0.6, as before. *Before* links the same song's job in the round
+above.
+
+| Song | Job | Before | Notes | At or below `HIDE` | Partly faded | Hidden | Passages | Median confidence | Warnings |
+|---|---|---|---|---|---|---|---|---|---|
+| Test | [c7a6aed1](http://localhost:5173/songs/c7a6aed1-f73d-4803-92b2-5d0a4483a1e4) | [86a54243](http://localhost:5173/songs/86a54243-c5dd-4c09-bddf-db194052af72) | 30 | 63% | 7% | 47% | 1 | 0.46 | none |
+| Test2 | [f942f153](http://localhost:5173/songs/f942f153-cd6e-411a-9d85-d4dbb76ecc37) | [380d903f](http://localhost:5173/songs/380d903f-efa6-41a6-83b6-6554f20c7a4c) | 24 | 88% | 8% | 75% | 2 | 0.41 | 1 note outside the guitar's range was dropped. |
+| Test4 | [76dbc7eb](http://localhost:5173/songs/76dbc7eb-744a-44bf-bb4f-9bb15ad377ae) | [161510fc](http://localhost:5173/songs/161510fc-2016-4526-85d4-62a01bb07e41) | 24 | 38% | 13% | 13% | 1 | 0.62 | none |
+| Test5 | [0923c576](http://localhost:5173/songs/0923c576-cd42-4e56-8124-3bf7fc75e691) | [84a4cc5f](http://localhost:5173/songs/84a4cc5f-589d-40bc-9b11-a17d4c907891) | 46 | 26% | 33% | 0% | 0 | 0.57 | 1 note outside the guitar's range was dropped. 1 note in chords no hand could play was dropped. |
+| momsong | [60dfde77](http://localhost:5173/songs/60dfde77-5f78-42b8-8ab4-4c37226c5847) | [d65ba56e](http://localhost:5173/songs/d65ba56e-1903-4c1d-833c-89b2cbb41a07) | 280 | 43% | 23% | 11% | 8 | 0.53 | 1 note in chords no hand could play was dropped. |
+| mysong | [36bd1c25](http://localhost:5173/songs/36bd1c25-fae9-4cf5-8dc2-44ed50671d66) | [7b4313de](http://localhost:5173/songs/7b4313de-7a49-498f-b9ba-418898562a34) | 523 | 45% | 26% | 16% | 21 | 0.52 | 3 notes outside the guitar's range were dropped. 16 notes in chords no hand could play were dropped. |
+| nutshell | [be2d156b](http://localhost:5173/songs/be2d156b-dd33-4f1f-81ca-f6e1a243aef0) | [9896637e](http://localhost:5173/songs/9896637e-6c15-42cf-bf33-64b698c34a00) | 148 | 50% | 26% | 16% | 6 | 0.50 | 1 note outside the guitar's range was dropped. 10 notes in chords no hand could play were dropped. |
+| nutshellandsolo | [552bb023](http://localhost:5173/songs/552bb023-ff11-4413-a95e-41586d1d3b30) | [10cb6ffb](http://localhost:5173/songs/10cb6ffb-d90c-496a-a155-a2b7b0586b80) | 683 | 31% | 29% | 6% | 11 | 0.57 | 4 notes outside the guitar's range were dropped. 13 notes in chords no hand could play were dropped. |
+| test3 | [d94ebcc8](http://localhost:5173/songs/d94ebcc8-a92d-4152-a1ae-2d0e60f9de4d) | [8960e818](http://localhost:5173/songs/8960e818-7b86-4566-a7ef-7672f9d86c47) | 11 | 36% | 9% | 36% | 1 | 0.68 | 2 notes outside the guitar's range were dropped. |
+
+Note counts differ between the rounds, although stage 4 cannot change which
+notes are transcribed. Separation is not deterministic: the worker runs the
+Demucs CLI (`_demucs` in `apps/worker/src/guitarvis_worker/stages/separation.py`)
+without `--shifts`, and Demucs' default of one random shift (`--shifts` defaults
+to 1, and `apply_model` draws the shift with `random.randint`) makes each run's
+stems differ slightly. Each round uploads a new copy of the song, so each round
+separates afresh.
+
+Evidence that the difference is upstream of stage 4:
+
+- Test2 goes from 30 to 24 notes with identical `warnings` in both documents
+  (one note outside the guitar's range, none dropped from chords). Its 24
+  notes' pitches are a subset of the 30's; the mapper drops notes only with a
+  warning.
+- The out-of-range warning depends on a note's pitch alone. It changes between
+  the rounds on Test5 (2 notes, then 1) and test3 (1 note, then 2).
+- Every song's pitch multiset differs between the rounds.
+
+So note counts and confidence shares between the rounds carry separation noise.
+Before to Stage 4, the note count changes by -6 to +7 notes per song, or -20% to
++5%. The share of notes hidden moves by up to 15 points (Test2, 60% to 75%;
+Test4, 0% to 13%). The stage 4 effect on real songs is in the tab itself, the
+string and fret chosen for each note, which the *Before* and *Job* links let the
+user compare in the client.
+
+The user's look at this round is informational. The spec decides the stage 4
+half by its GuitarSet conditions, not by this table.
 
 ## Stage 2
 
