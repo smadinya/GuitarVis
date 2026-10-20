@@ -73,7 +73,7 @@ def score_full(
     audio: Path,
     *,
     transcriber: Transcriber,
-    analyzer: StructureAnalyzer,
+    analyzer: StructureAnalyzer | None,
     mapper: FretboardMapper,
 ) -> ExcerptScore:
     """Audio in. Separation is skipped — GuitarSet is already solo guitar —
@@ -85,12 +85,16 @@ def score_full(
     The confidence bands tally the transcriber's notes too, for the same
     reason: they calibrate what the transcriber's confidence means. The
     chord bands do the same for the analyzer's.
+
+    Without an analyzer there are no chords to score: `chords` and
+    `chord_confidence` stay None. The sweep runs this way, because tuning
+    stages 2 and 4 has no use for chords and the analyzer is slow.
     """
     events = transcriber.transcribe(audio)
     heard = match_notes(excerpt.notes, events)
     placed = mapper.assign(events, STANDARD_TUNING).notes
     pairs = match_notes(excerpt.notes, placed)
-    structure = analyzer.analyze(audio, audio)
+    structure = analyzer.analyze(audio, audio) if analyzer is not None else None
     return ExcerptScore(
         name=excerpt.name,
         style=excerpt.style,
@@ -101,10 +105,16 @@ def score_full(
         notes=NoteCounts(
             matched=len(heard), truth=len(excerpt.notes), estimated=len(events)
         ),
-        chords=chord_tally(excerpt.chords, structure.chords, excerpt.duration),
+        chords=(
+            chord_tally(excerpt.chords, structure.chords, excerpt.duration)
+            if structure is not None
+            else None
+        ),
         confidence=confidence_bands(events, {e for _, e in heard}),
-        chord_confidence=chord_bands(
-            excerpt.chords, structure.chords, excerpt.duration
+        chord_confidence=(
+            chord_bands(excerpt.chords, structure.chords, excerpt.duration)
+            if structure is not None
+            else None
         ),
         overlaps=same_string_overlaps(placed),
     )

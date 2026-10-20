@@ -133,6 +133,33 @@ def test_score_full_with_stub_stages(tmp_path: Path) -> None:
     assert "note" in summarize([score])["all"]  # type: ignore[operator]
 
 
+def test_score_full_without_an_analyzer_scores_no_chords(tmp_path: Path) -> None:
+    pytest.importorskip("mir_eval")
+    excerpt = read_jams(
+        write_jams(
+            tmp_path,
+            "05_a_comp",
+            notes=[(0.0, 0.5, 40.0, 0)],
+            performed=[(0.0, 1.0, "E:min")],
+            duration=1.0,
+        )
+    )
+
+    score = score_full(
+        excerpt,
+        tmp_path / "05_a_comp_mic.wav",
+        transcriber=EchoTranscriber([NoteEvent(0.0, 0.5, 40, 0.9)]),
+        analyzer=None,
+        mapper=ViterbiFretboardMapper(),
+    )
+
+    assert score.chords is None
+    assert score.chord_confidence is None
+    assert score.notes == NoteCounts(matched=1, truth=1, estimated=1)
+    assert score.strings == Tally(1, 1)
+    assert score.confidence is not None  # the transcriber's bands still count
+
+
 def test_full_mode_without_mir_eval_says_what_to_install(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

@@ -1,9 +1,9 @@
 # The command surface. CI runs `make check` and nothing else, so anything that
 # must not break belongs behind that target.
 #
-# `eval` is deliberately absent from `check`. Evaluation is measured, never
-# gated: a suite that fails because a model got two percent worse on a Tuesday
-# is a suite people learn to ignore.
+# `eval` and `sweep` are deliberately absent from `check`. Evaluation is
+# measured, never gated: a suite that fails because a model got two percent
+# worse on a Tuesday is a suite people learn to ignore.
 
 .DEFAULT_GOAL := help
 UV  := uv
@@ -22,7 +22,7 @@ NPM := npm --prefix web
 # enforces the lockfile on the Node side.
 UV_SYNC_FLAGS ?=
 
-# Extra arguments for `make eval` / `make eval-data`, e.g.
+# Extra arguments for `make eval` / `make eval-data` / `make sweep`, e.g.
 # `make eval ARGS="--split dev"`.
 ARGS ?=
 
@@ -45,7 +45,7 @@ PY_SOURCES := packages/core/src packages/jobs/src apps/api/src apps/worker/src a
               packages/core/tests packages/jobs/tests apps/api/tests apps/worker/tests apps/eval/tests
 
 .PHONY: help install lint format typecheck test test-py test-web \
-        schema schema-check check eval eval-data services migrate api worker web clean
+        schema schema-check check eval sweep eval-data services migrate api worker web clean
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -117,6 +117,9 @@ check: lint typecheck test schema-check ## Everything CI runs
 
 eval: ## GuitarSet evaluation. Measured, never gated — not part of `check`.
 	$(UV) run python -m guitarvis_eval $(ARGS)
+
+sweep: ## Tune MapperCosts and transcription settings on dev. Never gated.
+	$(UV) run python -m guitarvis_eval.sweep $(ARGS)
 
 eval-data: ## Download GuitarSet into ~/.cache (ARGS=--audio for full mode's audio)
 	$(UV) run python -m guitarvis_eval.download $(ARGS)
