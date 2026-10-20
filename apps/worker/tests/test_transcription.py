@@ -200,6 +200,23 @@ def test_alone_only_counts_a_neighbour_that_is_too_weak_to_be_a_base() -> None:
     assert drop_ghosts(events, 0.6, alone_only=True) == events
 
 
+def test_alone_only_needs_the_base_to_start_with_the_ghost() -> None:
+    # A melody note over a held bass: E3 starts while E2 is still sounding,
+    # but nothing starts with it. The ghost and its base are not "the only
+    # notes starting at that onset", because the base started two seconds
+    # earlier, so E3 stays. The plain rule still drops it.
+    e2 = NoteEvent(onset=0.0, duration=3.0, midi=40, confidence=0.8)
+    e3 = NoteEvent(onset=2.0, duration=0.5, midi=E3, confidence=0.6)
+    assert drop_ghosts([e2, e3], 0.8, alone_only=True) == [e2, e3]
+    assert drop_ghosts([e2, e3], 0.8, alone_only=False) == [e2]
+
+    # A base starting with the ghost still makes it one, held bass or not.
+    e3_base = NoteEvent(onset=2.0, duration=0.5, midi=E3, confidence=0.8)
+    e4 = NoteEvent(onset=2.0, duration=0.5, midi=64, confidence=0.4)
+    events = [e2, e3_base, e4]
+    assert drop_ghosts(events, 0.8, alone_only=True) == [e2, e3_base]
+
+
 def test_ghost_rule_judges_against_decoded_notes() -> None:
     # Review Focus 4. A ghost is a base too: the E4 is judged against the E3
     # even though the E3 is itself about to go.

@@ -81,9 +81,11 @@ def drop_ghosts(
     A note is a ghost when some other note, its base, is a GHOST_INTERVALS
     distance below it, is sounding at its onset (the ghost may start
     GHOST_LEAD_SEC before the base), and has a confidence the ghost's is
-    under `ratio` times. With `alone_only`, every other note starting within
-    VOICING_WINDOW_SEC of the ghost must be one of its bases too, so a
-    chord's real octave stays.
+    under `ratio` times. With `alone_only`, some other note must start within
+    VOICING_WINDOW_SEC of the ghost, and every such note must be one of its
+    bases: the ghost and its base are the only notes starting there. So a
+    chord's real octave stays, and so does a melody note over a held bass,
+    whose base started long before it.
 
     Bases are judged against every note passed in, never against the
     survivors: with the plain rule, a weak E4 over a weak E3 over a strong E2
@@ -120,7 +122,8 @@ def drop_ghosts(
             return True
         first = bisect_left(onsets, ghost.onset - VOICING_WINDOW_SEC)
         last = bisect_right(onsets, ghost.onset + VOICING_WINDOW_SEC)
-        return all(other == index or other in bases for other in by_onset[first:last])
+        neighbours = [other for other in by_onset[first:last] if other != index]
+        return bool(neighbours) and all(other in bases for other in neighbours)
 
     return [event for index, event in enumerate(events) if not is_ghost(index)]
 
