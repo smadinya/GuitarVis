@@ -6,7 +6,8 @@ Viterbi pass minimises total cost, dominated by hand-position movement between
 consecutive voicings because real players stay put. The hand is the index
 finger's fret and covers `hand_window` frets, so it moves only when a voicing
 does not fit under it. An open string costs more the further up the neck the
-hand sits, unless its note has no other place to be played.
+hand sits, unless its note has no other place to be played. A chord that skips
+strings between its outer two costs a little for each one it skips.
 
 Testable without audio: feed note sequences, assert fingerings. Every note it
 emits must satisfy guitarvis_core.fretboard.check_invariant — a note that
@@ -52,6 +53,10 @@ class MapperCosts:
     until `ring_tolerance` seconds after the next voicing starts, because
     basic-pitch lets notes run on past the point a player moved to the next
     note. It is a cost, not a rule: a ringing string can still be reused.
+
+    A fingering of three or more notes costs `gap_weight` per unused string
+    between its lowest and highest string, because a strum hits adjacent
+    strings. The weight is small: fingerstyle chords do skip strings.
     """
 
     move_weight: float = 1.0
@@ -61,6 +66,7 @@ class MapperCosts:
     open_weight: float = 0.2
     ring_weight: float = 2.0
     ring_tolerance: float = 0.1  # seconds
+    gap_weight: float = 0.3
     max_fret: int = 20
     max_span: int = 4
     hand_window: int = 4
@@ -82,6 +88,7 @@ class MapperCosts:
             self.height_weight,
             self.open_weight,
             self.ring_weight,
+            self.gap_weight,
         )
         if any(weight < 0 for weight in weights):
             raise ValueError("cost weights cannot be negative")
@@ -236,6 +243,14 @@ class ViterbiFretboardMapper:
         only drag the rest of the phrase toward the nut. The exemption is
         that, and not "the lowest string": E2 on a seven-string has two places.
         """
+        # A hole in the middle of a chord: strings between its outer two that
+        # it leaves unused. One or two notes have no middle to speak of.
+        gap = 0.0
+        if len(places) >= 3:
+            strings = [string for string, _ in places]
+            gap = self.costs.gap_weight * (
+                max(strings) - min(strings) + 1 - len(places)
+            )
         fretted = [fret for _, fret in places if fret > 0]
         charged_opens = sum(
             1
@@ -243,7 +258,7 @@ class ViterbiFretboardMapper:
             if fret == 0 and not only
         )
         if not fretted:
-            return _Fingering(places, 0.0, None, None, charged_opens)
+            return _Fingering(places, gap, None, None, charged_opens)
 
         low, high = min(fretted), max(fretted)
         span = high - low
@@ -254,7 +269,7 @@ class ViterbiFretboardMapper:
         if sum(1 for fret in fretted if fret > low) > FINGERS_BEYOND_BARRE:
             return None
 
-        cost = self.costs.span_weight * span + self.costs.height_weight * low
+        cost = self.costs.span_weight * span + self.costs.height_weight * low + gap
         return _Fingering(places, cost, low, high, charged_opens)
 
     def _transition(

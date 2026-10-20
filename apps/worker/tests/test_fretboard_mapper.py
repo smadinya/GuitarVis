@@ -388,6 +388,33 @@ def test_a_ring_costs_the_weight_for_each_string_still_sounding(
     assert ViterbiFretboardMapper()._ring(before, held, 0.5, after) == cost
 
 
+def test_a_power_chord_keeps_to_adjacent_strings() -> None:
+    # C3, G3, C4. A3, open G and B1 sounds the same pitches but skips the D
+    # string; the C5 shape is the one a strum would hit.
+    result = assign(chord(0.0, 48, 55, 60))
+    assert places(result) == [(48, 1, 3), (55, 2, 5), (60, 3, 5)]
+    assert_invariant(result, STANDARD_TUNING)
+
+
+@pytest.mark.parametrize(
+    ("string_places", "cost"),
+    [
+        (((0, 3), (2, 5)), 1.0),  # two notes: a skipped string is free
+        (((1, 3), (2, 5), (3, 5)), 1.0),  # adjacent: span 2 only
+        (((1, 3), (3, 5), (4, 5)), 1.3),  # one string skipped
+        (((0, 3), (2, 5), (5, 5)), 1.9),  # span 2, three strings skipped
+        (((0, 0), (2, 0), (3, 0)), 0.3),  # all open: the gap is still charged
+    ],
+)
+def test_a_chord_pays_for_each_unused_string_between_its_outer_strings(
+    string_places: tuple[tuple[int, int], ...], cost: float
+) -> None:
+    forced = (False,) * len(string_places)
+    fingering = ViterbiFretboardMapper()._score(string_places, forced)
+    assert fingering is not None
+    assert fingering.cost == pytest.approx(cost)
+
+
 def test_notes_inside_the_window_share_a_voicing() -> None:
     # E2 and F#2 both need the low string. 49ms apart they are one voicing
     # and cannot both sound; 51ms apart they are two and both fit.
@@ -521,6 +548,7 @@ def test_an_exact_tie_goes_to_the_lower_frets() -> None:
         {"open_weight": -0.1},
         {"ring_weight": -0.1},
         {"ring_tolerance": -0.1},
+        {"gap_weight": -0.1},
     ],
 )
 def test_costs_that_could_never_place_a_note_are_refused(
