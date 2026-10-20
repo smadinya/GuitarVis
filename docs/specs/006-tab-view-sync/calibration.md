@@ -216,15 +216,15 @@ notes  at/below HIDE  partly faded  hidden  passages  document
 
 CHORD_HIDE 0.7, CHORD_FULL 0.8
 chords  at/below CHORD_HIDE  partly faded  document
-   17                 100%            0%  tmp/010/stage2b/Test.json
-   19                  58%           26%  tmp/010/stage2b/Test2.json
-   44                  73%           23%  tmp/010/stage2b/Test4.json
-   13                  85%            8%  tmp/010/stage2b/Test5.json
-   34                  18%           65%  tmp/010/stage2b/momsong.json
-   36                  19%           47%  tmp/010/stage2b/mysong.json
-   30                  60%           23%  tmp/010/stage2b/nutshell.json
-  109                  71%           21%  tmp/010/stage2b/nutshellandsolo.json
-    6                  33%           50%  tmp/010/stage2b/test3.json
+    17                 100%            0%  tmp/010/stage2b/Test.json
+    19                  58%           26%  tmp/010/stage2b/Test2.json
+    44                  73%           23%  tmp/010/stage2b/Test4.json
+    13                  85%            8%  tmp/010/stage2b/Test5.json
+    34                  18%           65%  tmp/010/stage2b/momsong.json
+    36                  19%           47%  tmp/010/stage2b/mysong.json
+    30                  60%           23%  tmp/010/stage2b/nutshell.json
+   109                  71%           21%  tmp/010/stage2b/nutshellandsolo.json
+     6                  33%           50%  tmp/010/stage2b/test3.json
 ```
 
 The documents are the user's own and live in the gitignored `tmp/`. The
@@ -244,9 +244,9 @@ fade 58% and 62% and hide 50% and 31% of their notes. Test is the first song
 through the api, the fixture in *On real songs* above; that earlier run faded
 66% and hid 50%, and it now fades 58% and hides 50%, at a median of 0.48. The four songs with over 100
 notes (1350 in all) fade 19.2% at or below `HIDE`, about twice the prediction,
-and hide 2.1%, where the stage 4 round hid 12.1% of all notes. The other three
-songs have 7 to 39 notes each, so a note or two moves their shares by several
-points.
+and hide 2.1%. Pooled over all nine songs, the hidden share is 3.1% now,
+against 12.1% after stage 4. The other three songs have 7 to 39 notes each, so
+a note or two moves their shares by several points.
 
 The partly faded share, 34.0% pooled and 33% to 40% in the four big songs, is
 well over GuitarSet's 21.0%. These are the notes the ramp between `HIDE` and

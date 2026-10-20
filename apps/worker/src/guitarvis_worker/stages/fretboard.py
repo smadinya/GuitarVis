@@ -46,15 +46,16 @@ class MapperCosts:
     it costs `move_weight` per fret. Within a fingering, `span_weight` charges
     per fret of stretch and `height_weight` per fret of height, which pulls the
     tab toward the nut (zero: nothing does). An open string is free while the
-    hand sits at or below `open_reach`, and above it costs `open_weight` per
-    fret of the hand's height. A note with no other place to be played is
-    exempt, so the lowest string's open note never drags a phrase down.
+    hand sits at or below `open_reach`; one whose note has another place costs
+    `open_weight` per fret the hand sits above `open_reach`. A note with no
+    other place to be played is exempt, so the lowest string's open note never
+    drags a phrase down.
 
     Moving into a fingering costs `ring_weight` for each string it uses where
-    the previous voicing's note is still sounding. A note counts as sounding
-    until `ring_tolerance` seconds after the next voicing starts, because
-    basic-pitch lets notes run on past the point a player moved to the next
-    note. It is a cost, not a rule: a ringing string can still be reused.
+    the previous voicing's note is still sounding. A note ending no more than
+    `ring_tolerance` seconds after the next voicing starts counts as stopped,
+    because basic-pitch lets notes run on past the point a player moved to the
+    next note. It is a cost, not a rule: a ringing string can still be reused.
 
     A fingering of three or more notes costs `gap_weight` per unused string
     between its lowest and highest string, because a strum hits adjacent

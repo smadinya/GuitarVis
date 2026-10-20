@@ -149,10 +149,13 @@ the fifth-position pentatonic box, frets 5 to 8, without moving. Every
 
 Of the rows that keep the tests, two tie at 58.3: `open_weight=0.2` with
 `open_reach` 3 and 4. The `open_reach=5` row ties on the number but fails
-scale and tie-open: an open string is free with the hand at the 5th fret, so
-the scale plays its E4 open, and the open G under a hand at the 9th costs 0.8
-instead of 1.0, which beats the first-position shape's 1.5. The tie goes to
-the starting values, `hand_window=4, open_weight=0.2, open_reach=4`.
+scale and tie-open. For the scale, an open string is free with the hand at
+the 5th fret, so it plays its E4 open. For tie-open (F#3, G3, C4), the
+9th-fret shape totals 1.3 at `open_reach=5`: 0.5 for the span and 0.8 for the
+open G (four frets above the reach, at 0.2 each). That beats the
+first-position shape's 1.5. At `open_reach=4` the open charge is 1.0 (five
+frets), the totals tie at 1.5, and the lower frets win. The tie goes to the starting
+values, `hand_window=4, open_weight=0.2, open_reach=4`.
 
 ### Sweep 2: ringing strings
 
@@ -309,6 +312,34 @@ Task 1's benchmark, unchanged, with the chosen values. Five runs, run through
 | after, median | 0.143 |
 
 Under the 2 s limit.
+
+The plan's benchmark met its 2 s limit but does not exercise the extra
+hand-position states. Its chords have one to three fingerings each, so a
+transition has little to multiply. The worst case is a voicing with many
+fingerings played over and over. It was measured at the end of 010, at
+`cc86137` (the mapper is as at `ebf0cb1`), against `ff1bce4`, the last commit
+before 010. It is the same script on the same machine, five runs each, with a
+worker process running in the background. Five minutes at four voicings a
+second is 1200 voicings:
+
+| 1200 voicings, 0.25 s apart | `ff1bce4` | `cc86137` |
+|---|---|---|
+| D3 G3 B3 E4 (27 fingerings) every time | 1.21 s | 8.05 s |
+| four mixed 4-note chords in turn | 0.33 s | 1.36 s |
+| random 3-note voicings | 0.13 s | 0.31 s |
+| Task 1's strums | 0.10 s | 0.18 s |
+
+Medians. The worst case is about six and a half times slower than before 010,
+and the only row over 2 s. The final review measured the same case at 6.85 s
+against 1.01 s at `ff1bce4`, about the same ratio. It is small next
+to separation, which alone takes tens of seconds to minutes for a song
+(`docs/specs/001-guitarvis-design/spec.md`), and a real song does not repeat
+one 27-fingering voicing for five minutes. No mapper code changed for it.
+
+A follow-up, if it ever matters: `_ring` depends on the previous voicing's
+fingering and the new fingering, not on where the hand lands. `_viterbi`
+calls it once per hand-position state, so caching it per (previous fingering,
+fingering) pair would cut the repeated work.
 
 ## Stage 4 on test
 
@@ -584,9 +615,10 @@ On 2026-10-19 the user chose to ship the alone-only ghost rule at 0.8.
   discipline normally avoids that: the test split decided between two
   candidates. The choice is not a dev result.
 - Commit `2a347e3` reverts `5624075`. The stage-2 code is identical to
-  `fa69e14`'s: `git diff fa69e14 HEAD -- apps packages web` is empty. No
-  further test run was made. The code is the same, so the `fa69e14` results
-  stand.
+  `fa69e14`'s: at `ebf0cb1`, `git diff fa69e14 ebf0cb1 -- apps packages` is
+  empty, and `-- web` differs only in comments in `web/src/confidence.ts` (the
+  recalibration in `5a621e7`). No further test run was made. The code is the
+  same, so the `fa69e14` results stand.
 - `CACHE_VERSION` stays at 2.
 - The real-song round for stage 2 (`real-songs.md`) ran at `dc315bd` with the
   plain rule at 0.7. Round `stage2b`, in the same file, was made afterwards at

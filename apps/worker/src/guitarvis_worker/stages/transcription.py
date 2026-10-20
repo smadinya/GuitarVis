@@ -86,7 +86,9 @@ def drop_ghosts(
     chord's real octave stays.
 
     Bases are judged against every note passed in, never against the
-    survivors: a weak E4 over a weak E3 over a strong E2 loses both.
+    survivors: with the plain rule, a weak E4 over a weak E3 over a strong E2
+    loses both. With `alone_only` only the E4 goes, because it is a neighbour
+    of E3 that is not one of E3's bases, which spares E3.
 
     This is an artifact of basic-pitch, so it lives here and not in a stage
     that sees any transcriber's output. A future Transcriber should not

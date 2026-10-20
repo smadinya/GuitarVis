@@ -318,11 +318,14 @@ decoding settings of the round above: onset threshold 0.5, frame threshold
 
 **Date:** 2026-10-19.
 
-The user looked at the Before, Stage 4 and Stage 2 (plain 0.7) rounds, not at
-the shipped one. The plain rule at 0.7 had failed spec condition 6 in comp on
-test ([tuning.md](tuning.md#the-decision)), and the user chose the alone-only
-rule at 0.8. Round `stage2b` was run after that, at the shipped code, for the
-record. This is the sign-off spec condition 7 asks for.
+The user gave the words below after looking at the Before, Stage 4 and
+Stage 2 (plain 0.7) rounds. They have not yet looked at round `stage2b`'s tab,
+which is the shipped configuration (the alone-only rule at 0.8, run at
+`679ce9e`). The plain rule at 0.7 had failed spec condition 6 in comp on test
+([tuning.md](tuning.md#the-decision)), and the user chose the alone-only rule
+at 0.8. Spec condition 7 asks for a sign-off on the real songs: what follows
+is the user's review of the rounds they saw, and confirmation on `stage2b` is
+asked for in the PR.
 
 The user's words, given on the plain-0.7 round:
 

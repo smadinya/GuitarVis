@@ -176,6 +176,14 @@ confidence ratio. Two signals could tell them apart:
 - **Hand shapes:** a candidate ghost could be checked against the chord's
   likely shape.
 
+The alone-only form the shipped rule uses has a known gap: two ghosts of one
+base can shield each other, because each is a neighbour of the other that is
+not one of its bases. With E3 at 0.9, E4 at 0.3 and B4 at 0.2, the E4 and the
+B4 both stay (the plain rule would drop both). A weak E4 over a weak E3 over a
+strong E2 (E2 0.9, E3 0.5, E4 0.25) likewise keeps the E3 and drops only the
+E4. The shipped rule accepts both. A future rule could judge a neighbour that
+is itself a ghost as not counting against its fellow.
+
 - **Pick it up when:** comp precision is still poor after 010.
 
 ### Split notes and octave-below errors
