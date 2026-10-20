@@ -50,8 +50,8 @@ class TranscriptionSettings:
     frame_threshold: float = 0.4
     minimum_note_length_ms: float = 93.0
     melodia_trick: bool = False
-    ghost_ratio: float | None = 0.8
-    ghost_alone_only: bool = True
+    ghost_ratio: float | None = 0.7
+    ghost_alone_only: bool = False
 
     def __post_init__(self) -> None:
         for name in ("onset_threshold", "frame_threshold"):
