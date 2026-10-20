@@ -409,8 +409,11 @@ def test_a_power_chord_keeps_to_adjacent_strings() -> None:
 def test_a_chord_pays_for_each_unused_string_between_its_outer_strings(
     string_places: tuple[tuple[int, int], ...], cost: float
 ) -> None:
+    # The costs above are worked out at 0.5 a fret of span and 0.3 a skipped
+    # string, so the weights are named here rather than read from the defaults.
+    costs = MapperCosts(span_weight=0.5, gap_weight=0.3)
     forced = (False,) * len(string_places)
-    fingering = ViterbiFretboardMapper()._score(string_places, forced)
+    fingering = ViterbiFretboardMapper(costs)._score(string_places, forced)
     assert fingering is not None
     assert fingering.cost == pytest.approx(cost)
 

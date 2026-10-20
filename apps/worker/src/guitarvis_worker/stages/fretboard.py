@@ -37,6 +37,7 @@ FINGERS_BEYOND_BARRE = 3  # the index finger holds the lowest fret; three remain
 class MapperCosts:
     """Every tunable number in the mapper. Tuned on the dev split, not by edit.
 
+    docs/specs/010-tab-accuracy/tuning.md records the sweeps that chose them.
     Evaluation results record the values they ran with, so a change here shows
     up in the eval/results/ history next to the number it moved.
 
@@ -56,7 +57,7 @@ class MapperCosts:
 
     A fingering of three or more notes costs `gap_weight` per unused string
     between its lowest and highest string, because a strum hits adjacent
-    strings. The weight is small: fingerstyle chords do skip strings.
+    strings. It is a cost, not a rule: fingerstyle chords do skip strings.
     """
 
     move_weight: float = 1.0
@@ -66,7 +67,7 @@ class MapperCosts:
     open_weight: float = 0.2
     ring_weight: float = 2.0
     ring_tolerance: float = 0.1  # seconds
-    gap_weight: float = 0.3
+    gap_weight: float = 0.6
     max_fret: int = 20
     max_span: int = 4
     hand_window: int = 4
