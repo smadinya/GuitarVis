@@ -7,13 +7,21 @@
  * docs/specs/006-tab-view-sync/calibration.md. Notes and chords have their
  * own: a note's confidence is the transcriber's, a chord's is how closely
  * the audio matches a triad template, and the same number means different
- * things in each.
+ * things in each. The note thresholds were measured again after spec 010
+ * changed the transcriber ("After 010" in calibration.md); the chord
+ * thresholds were not, because the analyzer did not change.
  */
 import type { Note } from "./types/tabDocument";
 
-/** Below HIDE, a note is more often wrong than right (calibration.md). */
+/**
+ * Below HIDE, a note is more often wrong than right. Measured after 010 in
+ * calibration.md ("After 010"), on eval/results/2026-10-19-fa69e14-full-test.json.
+ */
 export const HIDE = 0.5;
-/** At or above FULL, a note is right at least 80% of the time (calibration.md). */
+/**
+ * At or above FULL, a note is right at least 80% of the time. Measured after
+ * 010 in calibration.md ("After 010"), on the same results file as HIDE.
+ */
 export const FULL = 0.6;
 /** Below CHORD_HIDE, a chord symbol is more often wrong than right (calibration.md). */
 export const CHORD_HIDE = 0.7;
