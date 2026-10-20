@@ -327,6 +327,12 @@ at 0.8. Spec condition 7 asks for a sign-off on the real songs: what follows
 is the user's review of the rounds they saw, and confirmation on `stage2b` is
 asked for in the PR.
 
+Two code-review fixes landed after round `stage2b`. One stops charging an open
+string that every fingering of its chord plays (`29f1f80`), which changes riffs
+over a two-note open pedal. The other stops the alone-only ghost rule dropping
+a lone note over a held bass (`a7c350e`). No real-song round was run after
+them. On 2026-10-20 the user asked for the PR to be reviewed, fixed and merged.
+
 The user's words, given on the plain-0.7 round:
 
 > Honestly stage2 was significantly more accurate in certain chords and solos,
