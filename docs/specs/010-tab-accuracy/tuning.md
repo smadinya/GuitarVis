@@ -379,7 +379,8 @@ sweeps used.
   full_comp 77.0, full_solo 39.9, f1_comp 0.709, f1_solo 0.810, prec_comp
   0.728, prec_solo 0.773.
 - Reject a row whose full_ovl is above 17.7.
-- Rows are compared as printed. A tie on obj2 goes to the row nearer
+- Rows are compared as printed. A printed tie on obj2 that decides a choice
+  is settled on the unrounded obj2. Only an exact tie goes to the row nearer
   basic-pitch's defaults.
 - Between the two ghost forms, each at its own best ratio, take the higher
   full_solo. Within 0.5 points, take the plain rule,
@@ -458,31 +459,50 @@ make sweep ARGS="--full --transcription melodia_trick=false --transcription fram
 | none | true | 79.4 | 41.2 | 0.732 | 0.853 | 0.776 | 0.831 | 8.1 | 60.3 | 0.793 | admissible |
 | 0.5 | false | 79.1 | 41.6 | 0.732 | 0.854 | 0.777 | 0.833 | 8.1 | 60.3 | 0.793 | admissible |
 | 0.5 | true | 79.4 | 41.6 | 0.732 | 0.854 | 0.776 | 0.833 | 8.1 | 60.5 | 0.793 | admissible |
-| 0.6 | false | 79.0 | 43.5 | 0.732 | 0.857 | 0.782 | 0.839 | 7.9 | 61.2 | 0.795 | plain rule's best: ties 0.7, nearer the defaults |
+| 0.6 | false | 79.0 | 43.5 | 0.732 | 0.857 | 0.782 | 0.839 | 7.9 | 61.2 | 0.795 | admissible |
 | 0.6 | true | 79.4 | 42.9 | 0.733 | 0.857 | 0.777 | 0.838 | 8.0 | 61.1 | 0.795 | admissible |
-| 0.7 | false | 77.8 | 50.3 | 0.728 | 0.862 | 0.790 | 0.849 | 7.6 | 64.0 | 0.795 | admissible; ties 0.6 |
+| 0.7 | false | 77.8 | 50.3 | 0.728 | 0.862 | 0.790 | 0.849 | 7.6 | 64.0 | 0.795 | **chosen**: plain rule's best |
 | 0.7 | true | 79.1 | 47.7 | 0.733 | 0.861 | 0.779 | 0.846 | 8.1 | 63.4 | 0.797 | admissible |
 | 0.8 | false | 75.7 | 51.7 | 0.719 | 0.864 | 0.796 | 0.854 | 7.5 | 63.7 | 0.792 | rejected: full_comp below |
-| 0.8 | true | 79.2 | 48.5 | 0.733 | 0.862 | 0.781 | 0.850 | 8.1 | 63.8 | 0.798 | **chosen**: alone-only's best |
+| 0.8 | true | 79.2 | 48.5 | 0.733 | 0.862 | 0.781 | 0.850 | 8.1 | 63.8 | 0.798 | alone-only rule's best |
 
 The two `ghost_ratio=none` rows are the same settings under two cache keys,
 transcribed separately. Their 300 transcriptions are byte-identical, and
 both repeat sweep 2's chosen row.
 
-- **The plain rule.** At 0.8 it is below full_comp, at 75.7: chords hold
-  real octaves, as the research found. 0.6 and 0.7 tie on obj2 at 0.795.
-  The tie goes to 0.6, the row nearer basic-pitch's defaults: a lower ratio
-  drops fewer notes, and basic-pitch's own output drops none. 0.6 is also
-  the spec's value for this form. Its full_solo is 43.5.
-- **The alone-only rule.** Its best is 0.8, at 0.798, the best obj2 in the
-  sweep. Its full_solo is 48.5.
-- **Between the forms.** 48.5 against 43.5 is 5.0 points, so the alone-only
-  rule at 0.8 is chosen. It beats no rule on obj2, 0.798 against 0.793.
+The plain rule's 0.6 and 0.7 tie on obj2 as printed, and that tie decides the
+form. It is settled on the unrounded numbers. A tie at float precision would
+have gone to 0.6, the spec's value for this form, but there is none. The same
+cached transcriptions were scored again through the sweep's own code
+(`CachedTranscriptions`, `score_full` without an analyzer, `summarize`), at
+six decimals:
 
-The plain rule's tie decided the form. Had it gone to 0.7, that row's
-full_solo of 50.3 would have beaten 48.5 by 1.8 points, and the plain rule
-at 0.7 would have been chosen. It has a lower obj2 (0.795) and a lower
-full_comp (77.8 against 79.2).
+| ghost_ratio | ghost_alone_only | full_comp | full_solo | f1_comp | f1_solo | obj2 |
+|---|---|---|---|---|---|---|
+| defaults | | 76.961021 | 39.945522 | 0.709049 | 0.809705 | 0.759377 |
+| none | either | 79.355697 | 41.172360 | 0.732226 | 0.853489 | 0.792857 |
+| 0.5 | false | 79.125065 | 41.574779 | 0.732335 | 0.854234 | 0.793284 |
+| 0.5 | true | 79.357866 | 41.574779 | 0.732340 | 0.854234 | 0.793287 |
+| 0.6 | false | 78.969111 | 43.469816 | 0.732081 | 0.857352 | 0.794717 |
+| 0.6 | true | 79.357629 | 42.892652 | 0.732674 | 0.856867 | 0.794771 |
+| 0.7 | false | 77.804739 | 50.276157 | 0.728203 | 0.862173 | 0.795188 |
+| 0.7 | true | 79.106522 | 47.745997 | 0.733094 | 0.860948 | 0.797021 |
+| 0.8 | false | 75.675043 | 51.729241 | 0.719258 | 0.863959 | 0.791609 |
+| 0.8 | true | 79.165121 | 48.521631 | 0.732919 | 0.862492 | 0.797706 |
+
+Every value rounds to its printed cell. The unrounded numbers leave every
+verdict's admissibility as it was.
+
+- **The plain rule.** At 0.8 it is below full_comp, at 75.7: chords hold
+  real octaves, as the research found. Its best is 0.7, at 0.795188 against
+  0.6's 0.794717. Its full_solo is 50.28.
+- **The alone-only rule.** Its best is 0.8, at 0.797706, the best obj2 in the
+  sweep. Its full_solo is 48.52.
+- **Between the forms.** 50.28 against 48.52 is 1.75 points, so the plain
+  rule at 0.7 is chosen. It beats no rule on obj2, 0.795188 against 0.792857.
+
+A first pass broke the printed tie toward 0.6 and so chose the alone-only
+rule at 0.8. That is commit `fa69e14` and its test pair, below.
 
 ### The chosen values
 
@@ -492,8 +512,8 @@ full_comp (77.8 against 79.2).
 | `frame_threshold` | 0.3 | 0.4 | **0.4** |
 | `minimum_note_length_ms` | 127.7 | about 58 | **93** |
 | `melodia_trick` | on | off | **off** |
-| `ghost_ratio` | no rule | 0.6 plain, or 0.8 alone-only | **0.8** |
-| `ghost_alone_only` | — | | **true** |
+| `ghost_ratio` | no rule | 0.6 plain, or 0.8 alone-only | **0.7** |
+| `ghost_alone_only` | — | | false |
 
 On dev, against the before-numbers:
 
@@ -501,10 +521,12 @@ On dev, against the before-numbers:
 |---|---|---|---|---|---|---|---|---|
 | before, stage 4 and basic-pitch's decoding | 77.0 | 39.9 | 0.709 | 0.810 | 0.728 | 0.773 | 17.7 | 0.759 |
 | tuned decoding, no ghost rule | 79.4 | 41.2 | 0.732 | 0.853 | 0.776 | 0.831 | 8.1 | 0.793 |
-| chosen | 79.2 | 48.5 | 0.733 | 0.862 | 0.781 | 0.850 | 8.1 | 0.798 |
+| chosen | 77.8 | 50.3 | 0.728 | 0.862 | 0.790 | 0.849 | 7.6 | 0.795 |
 
 With the new defaults, `make sweep ARGS=--full` prints the chosen row again,
-to the digit. `CACHE_VERSION` goes from 1 to 2.
+to the digit. `CACHE_VERSION` goes from 1 to 2. It stays at 2 for the move
+from the alone-only rule to the plain one: the branch has not shipped, and 2
+already sets aside every entry from before 010.
 
 **The choice is provisional.** `frame_threshold` and `melodia_trick` reach
 production only through the real-song review (spec, *Stage 2 · decoding*),
@@ -534,7 +556,13 @@ falls to 35.5, and precision does not rise.
 
 ## Stage 2 on test
 
-Commit `fa69e14`, clean tree, the tuned settings:
+The current pair is at `5624075`, with the plain rule at 0.7. The pair at
+`fa69e14`, with the alone-only rule at 0.8, came first. Its files stay in
+`eval/results/` as history.
+
+### `5624075`: the plain rule at 0.7 (current)
+
+Commit `5624075`, clean tree:
 
 ```bash
 make eval ARGS=--full
@@ -542,10 +570,66 @@ make eval
 ```
 
 Before is Task 9's pair, at `354c2c8`. After is
+[`2026-10-19-5624075-full-test.json`](../../../eval/results/2026-10-19-5624075-full-test.json)
+and
+[`2026-10-19-5624075-oracle-test.json`](../../../eval/results/2026-10-19-5624075-oracle-test.json).
+Changes are taken from the unrounded rates, in points.
+
+| condition | mode | style | before | after | change | met |
+|---|---|---|---|---|---|---|
+| 4. note precision rises | full | comp | 0.700 | 0.771 | +7.2 | yes |
+| | full | solo | 0.845 | 0.898 | +5.3 | yes |
+| 5. note F1 holds | full | comp | 0.745 | 0.767 | +2.3 | yes |
+| | full | solo | 0.874 | 0.912 | +3.7 | yes |
+| 6. string accuracy holds | full | comp | 64.6% | 63.8% | −0.8 | **no** |
+| | full | solo | 41.9% | 42.2% | +0.4 | yes |
+
+**Condition 6 fails in comp.**
+- Full-mode comp string accuracy falls from 64.6% to 63.8%: 3179 of 4983
+  matched notes on the right string, against 3353 of 5191. That is 0.80
+  points, and the tolerance is 0.5.
+- On dev the same setting held comp, at 77.80 against 76.96.
+- The alone-only rule at 0.8, measured first, held comp on test, at 65.5%
+  (+0.9).
+- In comp the plain rule leaves 6472 notes, against the alone-only rule's
+  6666, and 4991 matched, against 5098.
+- Following the spec, stage 2 waits for an explicit decision.
+
+Overall, precision goes from 0.734 to 0.804 and note F1 from 0.777 to 0.804.
+The transcriber reports 8721 notes, against 9778. Recall falls in comp, from
+0.796 to 0.764, and rises in solo, from 0.906 to 0.927. Full-mode string
+accuracy goes from 58.3% to 57.6%. Overlaps per 1000 fall from 16.8 to 5.5:
+17.2 to 5.3 in comp, 15.5 to 6.2 in solo. Chord accuracy (33.5%) does not
+move. The oracle file matches Task 9's in summary and in every excerpt.
+
+The run printed `HIDE` 0.5 and `FULL` 0.6, the values `confidence.ts` holds
+now. Task 13 re-derives them.
+
+**Condition 8 is met.**
+- All 70 mapper tests and 29 transcription tests pass. Among them,
+  `test_every_placed_note_satisfies_the_invariant` checks 300 random inputs
+  in three tunings.
+- The 60 test excerpts, transcribed with these settings and mapped in two
+  separate processes, give the same 8692 placements from 8721 notes, by
+  SHA-256. Every one has `pitch_of(string, fret) == midi`.
+- The second oracle run gives Task 9's summary and per-excerpt results
+  exactly.
+- On dev, two separate transcription passes of the same settings give
+  byte-identical notes for all 300 excerpts, twice over: the defaults (Task
+  9's pass and this one), and the two `ghost_ratio=none` rows of sweep 3.
+- With the new defaults, the sweep prints the chosen row again, to the digit.
+
+At `5624075`, stage 2 meets conditions 4, 5 and 8 on test. It fails
+condition 6 in comp. Condition 7, the real-song review, is Task 12's.
+
+### `fa69e14`: the alone-only rule at 0.8 (superseded)
+
+This is the first choice, made when the plain rule's printed tie went to
+0.6. The decoding settings are the same.
 [`2026-10-19-fa69e14-full-test.json`](../../../eval/results/2026-10-19-fa69e14-full-test.json)
 and
-[`2026-10-19-fa69e14-oracle-test.json`](../../../eval/results/2026-10-19-fa69e14-oracle-test.json).
-Changes are taken from the unrounded rates, in points.
+[`2026-10-19-fa69e14-oracle-test.json`](../../../eval/results/2026-10-19-fa69e14-oracle-test.json),
+against Task 9's pair:
 
 | condition | mode | style | before | after | change | met |
 |---|---|---|---|---|---|---|
@@ -556,30 +640,12 @@ Changes are taken from the unrounded rates, in points.
 | 6. string accuracy holds | full | comp | 64.6% | 65.5% | +0.9 | yes |
 | | full | solo | 41.9% | 42.2% | +0.3 | yes |
 
-Overall, precision goes from 0.734 to 0.799 and note F1 from 0.777 to 0.807.
-The transcriber reports 8910 notes, against 9778. Recall falls in comp, from
-0.796 to 0.780, and rises in solo, from 0.906 to 0.926. Full-mode string
-accuracy goes from 58.3% to 58.9%. Overlaps per 1000 fall from 16.8 to 5.1:
-17.2 to 4.7 in comp, 15.5 to 6.2 in solo. Chord accuracy (33.5%) does not
-move, because the analyzer is untouched. The oracle file matches Task 9's in
-summary and in every excerpt, because stage 4 is untouched.
+- Overall, precision went from 0.734 to 0.799 and note F1 from 0.777 to
+  0.807, with 8910 notes reported.
+- Full-mode string accuracy went from 58.3% to 58.9%, and overlaps per 1000
+  from 16.8 to 5.1.
+- The run printed `HIDE` 0.5 and `FULL` 0.6.
+- Condition 8 held: 8870 placements from 8910 notes, the same SHA-256 in two
+  processes, and every one with `pitch_of(string, fret) == midi`.
 
-The run printed `HIDE` 0.5 and `FULL` 0.6, the values `confidence.ts` holds
-now. Task 13 re-derives them.
-
-**Condition 8 is met.**
-- All 70 mapper tests and 29 transcription tests pass. Among them,
-  `test_every_placed_note_satisfies_the_invariant` checks 300 random inputs
-  in three tunings.
-- The 60 test excerpts, transcribed with the shipped settings and mapped in
-  two separate processes, give the same 8870 placements from 8910 notes, by
-  SHA-256. Every one has `pitch_of(string, fret) == midi`.
-- The second oracle run gives Task 9's summary and per-excerpt results
-  exactly.
-- On dev, two separate transcription passes of the same settings give
-  byte-identical notes for all 300 excerpts, twice over: the defaults (Task 9's
-  pass and this one), and the two `ghost_ratio=none` rows of sweep 3.
-- With the new defaults, the sweep prints the chosen row again, to the digit.
-
-Stage 2 meets conditions 4, 5, 6 and 8 on test. Condition 7, the real-song
-review, is Task 12's.
+That pair met conditions 4, 5, 6 and 8.
