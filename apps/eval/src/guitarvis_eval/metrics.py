@@ -15,6 +15,9 @@ from guitarvis_core.tabdoc import Chord
 from guitarvis_eval.dataset import TruthChord, TruthNote
 
 ONSET_TOLERANCE_SEC = 0.05
+# A string can't ring two notes: a placed note that starts while the string's
+# previous one still sounds is a contradiction, bar a little transcription slop.
+OVERLAP_TOLERANCE_SEC = 0.03
 CHORD_HOP_SEC = 0.1
 NO_CHORD = "N"
 
@@ -68,6 +71,19 @@ class NoteCounts:
         return 2 * self.matched / (self.truth + self.estimated)
 
 
+@dataclass(frozen=True)
+class Overlaps:
+    count: int = 0
+    notes: int = 0
+
+    def __add__(self, other: "Overlaps") -> "Overlaps":
+        return Overlaps(self.count + other.count, self.notes + other.notes)
+
+    @property
+    def per_thousand(self) -> float | None:
+        return 1000 * self.count / self.notes if self.notes else None
+
+
 def oracle_string_tally(truth: Sequence[TruthNote], placed: Sequence[TabNote]) -> Tally:
     """Oracle mode: the mapper saw exactly the truth's onsets and pitches.
 
@@ -85,6 +101,25 @@ def oracle_string_tally(truth: Sequence[TruthNote], placed: Sequence[TabNote]) -
             candidates.remove(note.string)
             correct += 1
     return Tally(correct, len(truth))
+
+
+def same_string_overlaps(
+    notes: Sequence[TabNote], tolerance: float = OVERLAP_TOLERANCE_SEC
+) -> Overlaps:
+    """Notes that start on a string whose previous note still sounds more than
+    `tolerance` later. The truth scores zero; a mapper that stacks notes on one
+    string does not.
+
+    Each string remembers the end of its most recent note, not the latest end
+    seen: a note that cut its predecessor short has already been counted.
+    """
+    last_end: dict[int, float] = {}
+    count = 0
+    for note in sorted(notes, key=lambda n: (n.onset, n.string)):
+        if note.onset < last_end.get(note.string, float("-inf")) - tolerance:
+            count += 1
+        last_end[note.string] = note.onset + note.duration
+    return Overlaps(count, len(notes))
 
 
 def match_notes(

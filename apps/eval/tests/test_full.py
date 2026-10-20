@@ -126,6 +126,8 @@ def test_score_full_with_stub_stages(tmp_path: Path) -> None:
     assert score.notes == NoteCounts(matched=1, truth=2, estimated=2)
     assert score.strings == Tally(1, 1)  # E2 on the low string
     assert score.chords == Tally(10, 10)
+    assert score.overlaps is not None
+    assert score.baseline_overlaps is None
     assert "note" in summarize([score])["all"]  # type: ignore[operator]
 
 

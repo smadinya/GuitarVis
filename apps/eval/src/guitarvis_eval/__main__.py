@@ -153,6 +153,10 @@ def _print_table(summary: dict[str, object]) -> None:
         ("baseline_string", "baseline string accuracy"),
         ("chord", "chord accuracy"),
     )
+    overlap_rows = (
+        ("overlaps", "same-string overlaps /1000"),
+        ("baseline_overlaps", "baseline overlaps /1000"),
+    )
     for group, totals in summary.items():
         assert isinstance(totals, dict)
         print(f"{group} ({totals['excerpts']} excerpts)")
@@ -163,6 +167,10 @@ def _print_table(summary: dict[str, object]) -> None:
             tally = totals.get(key)
             if isinstance(tally, dict):
                 print(f"  {label:<26} {_percent(tally['rate'])}")
+        for key, label in overlap_rows:
+            overlaps = totals.get(key)
+            if isinstance(overlaps, dict):
+                print(f"  {label:<26} {_per_thousand(overlaps['per_1000'])}")
         _print_bands(
             totals.get("precision_by_confidence"), ("confidence", "notes", "matched")
         )
@@ -203,6 +211,10 @@ def _print_thresholds(notes: ConfidenceBands, chords: ConfidenceBands) -> None:
         shown = "not supported" if value is None else f"{value:.1f}"
         label = f"{name} (precision ≥ {precision:.1f})"
         print(f"  {label:<30} {shown}")
+
+
+def _per_thousand(value: object) -> str:
+    return f"{value:6.1f}" if isinstance(value, float) else "     —"
 
 
 def _percent(value: object) -> str:
