@@ -18,6 +18,7 @@ from guitarvis_eval.metrics import (
 )
 from guitarvis_eval.runner import score_full, summarize
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
+from guitarvis_worker.stages.transcription import TranscriptionSettings
 
 
 @pytest.mark.parametrize(
@@ -83,6 +84,7 @@ class EchoTranscriber:
     def __init__(self, events: list[NoteEvent]) -> None:
         self.events = events
         self.seen: list[Path] = []
+        self.settings = TranscriptionSettings()  # which main() records
 
     def transcribe(self, stem_path: Path) -> list[NoteEvent]:
         self.seen.append(stem_path)
@@ -289,7 +291,14 @@ def test_full_mode_prints_and_records_precision_by_confidence(
     assert "CHORD_FULL (precision ≥ 0.8)" in printed
     assert "not supported" in printed
     [written] = (tmp_path / "out").iterdir()
-    summary = json.loads(written.read_text())["summary"]
+    payload = json.loads(written.read_text())
+    assert payload["transcription_settings"] == {
+        "onset_threshold": 0.5,
+        "frame_threshold": 0.3,
+        "minimum_note_length_ms": 127.7,
+        "melodia_trick": True,
+    }
+    summary = payload["summary"]
     assert summary["all"]["precision_by_confidence"]["0.9"] == {
         "estimated": 1,
         "matched": 1,

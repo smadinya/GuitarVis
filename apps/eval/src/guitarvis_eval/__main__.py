@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from guitarvis_worker.stages.fretboard import ViterbiFretboardMapper
+from guitarvis_worker.stages.transcription import TranscriptionSettings
 
 from guitarvis_eval.baseline import LowestFretMapper
 from guitarvis_eval.calibration import (
@@ -82,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     mapper = ViterbiFretboardMapper()
     mode = "full" if args.full else "oracle"
     scores: list[ExcerptScore] = []
+    transcription: TranscriptionSettings | None = None
 
     if args.full:
         # Check every file before transcribing any: a missing one found at
@@ -112,6 +114,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 1
         transcriber = BasicPitchTranscriber()
+        transcription = transcriber.settings
         analyzer = LibrosaStructureAnalyzer()
         for index, excerpt in enumerate(excerpts, 1):
             audio = mic_audio_path(root, excerpt)
@@ -137,6 +140,7 @@ def main(argv: list[str] | None = None) -> int:
         summary=summary,
         excerpts=[score_to_dict(score) for score in scores],
         out_dir=args.out,
+        transcription=transcription,
     )
     _print_table(summary)
     if args.full:

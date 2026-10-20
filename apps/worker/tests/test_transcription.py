@@ -4,18 +4,22 @@ _predict is stubbed: what is under test is the clamping, filtering, and
 ordering, none of which should require the ml extra to verify.
 """
 
+import sys
+import types
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import pytest
 from guitarvis_worker.stages.transcription import (
     MIN_CONFIDENCE,
     BasicPitchTranscriber,
+    TranscriptionSettings,
 )
 
 
 class StubTranscriber(BasicPitchTranscriber):
-    def __init__(self, raw: Sequence[tuple], **kwargs: float) -> None:
+    def __init__(self, raw: Sequence[tuple], **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.raw = raw
 
@@ -71,3 +75,53 @@ def test_min_confidence_stays_conservative() -> None:
     # The degradation ladder needs faint notes to survive and render faintly;
     # this floor removes near-noise only.
     assert MIN_CONFIDENCE <= 0.2
+
+
+def test_default_settings_are_basic_pitchs_own() -> None:
+    assert TranscriptionSettings() == TranscriptionSettings(0.5, 0.3, 127.7, True)
+    assert BasicPitchTranscriber().settings == TranscriptionSettings()
+
+
+def test_settings_reach_predict(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, object] = {}
+
+    def predict(path: str, model: str, **kwargs: object) -> tuple:
+        seen.update(path=path, model=model, **kwargs)
+        return {}, None, []
+
+    package = types.ModuleType("basic_pitch")
+    package.ICASSP_2022_MODEL_PATH = "nmp.onnx"  # type: ignore[attr-defined]
+    inference = types.ModuleType("basic_pitch.inference")
+    inference.predict = predict  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "basic_pitch", package)
+    monkeypatch.setitem(sys.modules, "basic_pitch.inference", inference)
+
+    settings = TranscriptionSettings(
+        onset_threshold=0.6,
+        frame_threshold=0.4,
+        minimum_note_length_ms=58.0,
+        melodia_trick=False,
+    )
+    BasicPitchTranscriber(settings=settings).transcribe(Path("x.wav"))
+
+    assert seen == {
+        "path": "x.wav",
+        "model": "nmp.onnx",
+        "onset_threshold": 0.6,
+        "frame_threshold": 0.4,
+        "minimum_note_length": 58.0,
+        "melodia_trick": False,
+    }
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"frame_threshold": 0},
+        {"onset_threshold": 1.5},
+        {"minimum_note_length_ms": -1},
+    ],
+)
+def test_settings_refuse_impossible_values(bad: dict[str, Any]) -> None:
+    with pytest.raises(ValueError):
+        TranscriptionSettings(**bad)
