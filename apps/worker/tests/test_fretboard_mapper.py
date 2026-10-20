@@ -314,6 +314,80 @@ def test_an_open_string_costs_by_how_far_up_the_neck_the_hand_lands(
     assert got_landing == landing
 
 
+def held_note(onset: float, midi: int, duration: float) -> NoteEvent:
+    return NoteEvent(onset=onset, duration=duration, midi=midi, confidence=0.9)
+
+
+def test_a_note_still_ringing_keeps_its_string() -> None:
+    # G3 rings for a second, so A3 half a second later does not take the G
+    # string at the 2nd fret. The open G has left the hand nowhere, so the D
+    # string at the 7th is reached for free.
+    notes = [held_note(0.0, 55, 1.0), held_note(0.5, 57, 0.5)]
+    assert places(assign(notes)) == [(55, 3, 0), (57, 2, 7)]
+
+
+def test_a_note_that_has_stopped_frees_its_string() -> None:
+    notes = [held_note(0.0, 55, 0.3), held_note(0.5, 57, 0.5)]
+    assert places(assign(notes)) == [(55, 3, 0), (57, 3, 2)]
+
+
+def test_ringing_allows_100ms_of_slop() -> None:
+    # G3 ends at 0.55 s, 50 ms into A3's onset at 0.5 s: inside the tolerance.
+    notes = [held_note(0.0, 55, 0.55), held_note(0.5, 57, 0.5)]
+    assert places(assign(notes)) == [(55, 3, 0), (57, 3, 2)]
+
+
+def test_a_note_ringing_for_ever_never_blocks_the_notes_after_it() -> None:
+    # The ring is a cost, and only the next voicing is checked against it. A
+    # transcribed duration of 10 s must not stop any later note being placed.
+    notes = [
+        held_note(0.0, 55, 10.0),
+        *(
+            held_note(onset, midi, 0.4)
+            for onset, midi in [(0.5, 55), (1.0, 57), (1.5, 59), (2.0, 60)]
+        ),
+    ]
+    result = assign(notes)
+    assert [tab.midi for tab in result.notes] == [55, 55, 57, 59, 60]
+    assert result.warnings == []
+    assert_invariant(result, STANDARD_TUNING)
+
+
+@pytest.mark.parametrize(
+    ("after_strings", "cost"),
+    [
+        ((3,), 2.0),  # the G string rings
+        ((3, 2), 4.0),  # the G and D strings ring
+        ((3, 2, 1), 4.0),  # the A string was never played
+        ((1,), 0.0),  # nothing it uses rings
+        ((4,), 0.0),  # the B string's note has ended
+    ],
+)
+def test_a_ring_costs_the_weight_for_each_string_still_sounding(
+    after_strings: tuple[int, ...], cost: float
+) -> None:
+    before = [
+        held_note(0.0, 55, 1.0),  # G3 on string 3, until 1.0 s
+        held_note(0.0, 62, 1.0),  # D4 on string 2, until 1.0 s
+        held_note(0.0, 59, 0.5),  # B3 on string 4, until 0.5 s
+    ]
+    held = _Fingering(
+        places=((3, 0), (2, 7), (4, 0)),
+        cost=0.0,
+        position=7,
+        top=7,
+        charged_opens=0,
+    )
+    after = _Fingering(
+        places=tuple((string, 1) for string in after_strings),
+        cost=0.0,
+        position=1,
+        top=1,
+        charged_opens=0,
+    )
+    assert ViterbiFretboardMapper()._ring(before, held, 0.5, after) == cost
+
+
 def test_notes_inside_the_window_share_a_voicing() -> None:
     # E2 and F#2 both need the low string. 49ms apart they are one voicing
     # and cannot both sound; 51ms apart they are two and both fit.
@@ -445,6 +519,8 @@ def test_an_exact_tie_goes_to_the_lower_frets() -> None:
         {"span_weight": -0.5},
         {"height_weight": -0.1},
         {"open_weight": -0.1},
+        {"ring_weight": -0.1},
+        {"ring_tolerance": -0.1},
     ],
 )
 def test_costs_that_could_never_place_a_note_are_refused(

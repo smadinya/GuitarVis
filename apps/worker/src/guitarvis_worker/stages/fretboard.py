@@ -46,6 +46,12 @@ class MapperCosts:
     hand sits at or below `open_reach`, and above it costs `open_weight` per
     fret of the hand's height. A note with no other place to be played is
     exempt, so the lowest string's open note never drags a phrase down.
+
+    Moving into a fingering costs `ring_weight` for each string it uses where
+    the previous voicing's note is still sounding. A note counts as sounding
+    until `ring_tolerance` seconds after the next voicing starts, because
+    basic-pitch lets notes run on past the point a player moved to the next
+    note. It is a cost, not a rule: a ringing string can still be reused.
     """
 
     move_weight: float = 1.0
@@ -53,6 +59,8 @@ class MapperCosts:
     height_weight: float = 0.0
     open_reach: int = 4
     open_weight: float = 0.2
+    ring_weight: float = 2.0
+    ring_tolerance: float = 0.1  # seconds
     max_fret: int = 20
     max_span: int = 4
     hand_window: int = 4
@@ -73,9 +81,14 @@ class MapperCosts:
             self.span_weight,
             self.height_weight,
             self.open_weight,
+            self.ring_weight,
         )
         if any(weight < 0 for weight in weights):
             raise ValueError("cost weights cannot be negative")
+        if self.ring_tolerance < 0:
+            raise ValueError(
+                f"ring_tolerance cannot be negative, not {self.ring_tolerance}"
+            )
 
 
 @dataclass(frozen=True)
@@ -137,7 +150,7 @@ class ViterbiFretboardMapper:
             voicings.append(voicing)
             fingerings.append(options)
 
-        path = self._viterbi(fingerings)
+        path = self._viterbi(voicings, fingerings)
         placed = [
             TabNote(
                 onset=note.onset,
@@ -276,8 +289,41 @@ class ViterbiFretboardMapper:
         open_cost = self.costs.open_weight * after.charged_opens * above_reach
         return move + open_cost, landing
 
-    def _viterbi(self, fingerings: Sequence[Sequence[_Fingering]]) -> list[_Fingering]:
+    def _ring(
+        self,
+        before: Sequence[NoteEvent],
+        held: _Fingering,
+        onset: float,
+        after: _Fingering,
+    ) -> float:
+        """The cost of playing `after` while `before` may still be sounding.
+
+        `held` is how `before` was played, a place per note in note order.
+        Each string that `after` uses costs `ring_weight` when the note `held`
+        put on it ends more than `ring_tolerance` after `onset`, the start of
+        the voicing `after` plays. A note that rings for ever costs only this,
+        once, so it can never stop a later note being placed.
+        """
+        ends = {
+            string: note.onset + note.duration
+            for note, (string, _) in zip(before, held.places, strict=True)
+        }
+        limit = onset + self.costs.ring_tolerance
+        ringing = sum(
+            1 for string, _ in after.places if string in ends and ends[string] > limit
+        )
+        return self.costs.ring_weight * ringing
+
+    def _viterbi(
+        self,
+        voicings: Sequence[Sequence[NoteEvent]],
+        fingerings: Sequence[Sequence[_Fingering]],
+    ) -> list[_Fingering]:
         """The cheapest fingering per voicing, over the whole sequence.
+
+        `voicings[k]` is the notes `fingerings[k]` plays. A transition also
+        pays for any string in the new fingering that the previous voicing's
+        fingering left sounding, which the predecessor state already holds.
 
         A state is a fingering plus where the hand lands. The hand is the
         index finger's fret and covers `hand_window` frets, so a fingering
@@ -311,12 +357,18 @@ class ViterbiFretboardMapper:
         ]
         history: list[list[tuple[int, int | None]]] = [states]
         back: list[list[int]] = []
-        for current in fingerings[1:]:
+        for k in range(1, len(fingerings)):
+            current = fingerings[k]
+            onset = voicings[k][0].onset
             best: dict[tuple[int, int | None], tuple[float, int]] = {}
-            for before, (_, hand) in enumerate(states):
+            for before, (held_index, hand) in enumerate(states):
+                held = fingerings[k - 1][held_index]
                 for index, option in enumerate(current):
                     move, landing = self._transition(hand, option)
-                    total = round(totals[before] + move + option.cost, COST_PLACES)
+                    ring = self._ring(voicings[k - 1], held, onset, option)
+                    total = round(
+                        totals[before] + move + ring + option.cost, COST_PLACES
+                    )
                     key = (index, landing)
                     if key not in best or total < best[key][0]:
                         best[key] = (total, before)
