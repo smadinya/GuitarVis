@@ -111,7 +111,8 @@ frame threshold 0.4, minimum note length 93 ms, `melodia_trick` off and the
 plain ghost rule at 0.7. basic-pitch's defaults are 0.5, 0.3, 127.7 ms, on, and
 no ghost rule. All nine jobs succeeded. `HIDE` is 0.5 and `FULL` is 0.6, as
 before. *Before* and *Stage 4* link the same song's jobs in the two rounds
-above.
+above. This is the plain ghost rule, which did not ship. *Stage 2, as shipped*
+follows it.
 
 | Song | Job | Before | Stage 4 | Notes | At or below `HIDE` | Partly faded | Hidden | Passages | Median confidence | Warnings |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -191,6 +192,146 @@ The median confidence rose in all nine songs, by 0.03 to 0.11. `HIDE` and
 note's mean frame activation, which the frame threshold changes. So these
 shares are not the same notes cut at the same line.
 
+## Stage 2, as shipped
+
+Round `R=stage2b`, run on 2026-10-19 at commit `679ce9e`, on a worker started
+after it. The settings are the ones that ship: onset threshold 0.5, frame
+threshold 0.4, minimum note length 93 ms, `melodia_trick` off, and the
+alone-only ghost rule at 0.8. `CACHE_VERSION` is 2, as before. All nine jobs
+succeeded. `HIDE` is 0.5 and `FULL` is 0.6, as before.
+
+The user looked at the rounds above, the last with the plain rule at 0.7,
+and chose from them (see *Sign-off*). This round was run afterwards, at the
+code that ships, so that the file holds its numbers. Between the two rounds the code
+differs in the ghost rule alone: `ghost_ratio` 0.7 and `ghost_alone_only`
+false, against 0.8 and true. Each round uploads a new copy of each song and
+separates it afresh, so the notes also differ by separation noise.
+*Before*, *Stage 4* and *Stage 2 (plain 0.7)* link the same song's jobs in the
+three rounds above.
+
+| Song | Job | Before | Stage 4 | Stage 2 (plain 0.7) | Notes | At or below `HIDE` | Partly faded | Hidden | Passages | Median confidence | Warnings |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Test | [e475f776](http://localhost:5173/songs/e475f776-48ac-4c28-bfe9-0260d0c18419) | [86a54243](http://localhost:5173/songs/86a54243-c5dd-4c09-bddf-db194052af72) | [c7a6aed1](http://localhost:5173/songs/c7a6aed1-f73d-4803-92b2-5d0a4483a1e4) | [4ed6e011](http://localhost:5173/songs/4ed6e011-5236-47dd-8109-17771343eb41) | 26 | 58% | 4% | 50% | 1 | 0.48 | none |
+| Test2 | [edc30db7](http://localhost:5173/songs/edc30db7-4761-4adb-82e9-617e30a85fa0) | [380d903f](http://localhost:5173/songs/380d903f-efa6-41a6-83b6-6554f20c7a4c) | [f942f153](http://localhost:5173/songs/f942f153-cd6e-411a-9d85-d4dbb76ecc37) | [e5fcfabd](http://localhost:5173/songs/e5fcfabd-ce09-4bd3-821a-c49900090498) | 13 | 62% | 15% | 31% | 1 | 0.49 | 1 note outside the guitar's range was dropped. |
+| Test4 | [18b1169b](http://localhost:5173/songs/18b1169b-551f-4cec-8132-a02c0b802d12) | [161510fc](http://localhost:5173/songs/161510fc-2016-4526-85d4-62a01bb07e41) | [76dbc7eb](http://localhost:5173/songs/76dbc7eb-744a-44bf-bb4f-9bb15ad377ae) | [7bd40a00](http://localhost:5173/songs/7bd40a00-b5ed-4fcf-8b42-b27361686085) | 19 | 16% | 16% | 0% | 0 | 0.65 | none |
+| Test5 | [e50c3246](http://localhost:5173/songs/e50c3246-e8c4-4de6-8702-c0f473819922) | [84a4cc5f](http://localhost:5173/songs/84a4cc5f-589d-40bc-9b11-a17d4c907891) | [0923c576](http://localhost:5173/songs/0923c576-cd42-4e56-8124-3bf7fc75e691) | [aad902b8](http://localhost:5173/songs/aad902b8-e520-48d2-9c4f-147094b12428) | 39 | 10% | 33% | 0% | 0 | 0.67 | 1 note outside the guitar's range was dropped. |
+| momsong | [6871ca84](http://localhost:5173/songs/6871ca84-bcaf-4b30-8572-b88ddda0df86) | [d65ba56e](http://localhost:5173/songs/d65ba56e-1903-4c1d-833c-89b2cbb41a07) | [60dfde77](http://localhost:5173/songs/60dfde77-5f78-42b8-8ab4-4c37226c5847) | [8127355c](http://localhost:5173/songs/8127355c-62a5-410b-94de-2107b87eacfe) | 226 | 21% | 36% | 2% | 1 | 0.58 | 1 note in chords no hand could play was dropped. |
+| mysong | [a574e092](http://localhost:5173/songs/a574e092-4d4f-4cd8-9602-7588843df85a) | [7b4313de](http://localhost:5173/songs/7b4313de-7a49-498f-b9ba-418898562a34) | [36bd1c25](http://localhost:5173/songs/36bd1c25-fae9-4cf5-8dc2-44ed50671d66) | [bee31c12](http://localhost:5173/songs/bee31c12-6964-4f84-a55d-31298bb4622d) | 426 | 25% | 36% | 5% | 5 | 0.57 | 11 notes in chords no hand could play were dropped. |
+| nutshell | [8c467d87](http://localhost:5173/songs/8c467d87-9f13-4882-93c4-b13cd6f2a253) | [9896637e](http://localhost:5173/songs/9896637e-6c15-42cf-bf33-64b698c34a00) | [be2d156b](http://localhost:5173/songs/be2d156b-dd33-4f1f-81ca-f6e1a243aef0) | [f0732097](http://localhost:5173/songs/f0732097-f422-4926-bdeb-5502f65ceb41) | 121 | 24% | 40% | 2% | 1 | 0.57 | 7 notes in chords no hand could play were dropped. |
+| nutshellandsolo | [774e45e9](http://localhost:5173/songs/774e45e9-a871-46aa-a711-5b608ee08aaa) | [10cb6ffb](http://localhost:5173/songs/10cb6ffb-d90c-496a-a155-a2b7b0586b80) | [552bb023](http://localhost:5173/songs/552bb023-ff11-4413-a95e-41586d1d3b30) | [4dca5f38](http://localhost:5173/songs/4dca5f38-1dc1-483b-a269-ef55eead8ff8) | 577 | 13% | 33% | 0% | 0 | 0.61 | 2 notes in chords no hand could play were dropped. |
+| test3 | [33e02bc8](http://localhost:5173/songs/33e02bc8-c4db-456b-ab0f-a9e9bb7fd97f) | [8960e818](http://localhost:5173/songs/8960e818-7b86-4566-a7ef-7672f9d86c47) | [d94ebcc8](http://localhost:5173/songs/d94ebcc8-a92d-4152-a1ae-2d0e60f9de4d) | [d336ae68](http://localhost:5173/songs/d336ae68-4203-4a3e-afce-54c6f8cccf1a) | 7 | 14% | 14% | 0% | 0 | 0.74 | none |
+
+### Flags
+
+The same two flags as above: a song whose note count fell by more than a third
+from the Stage 4 round, or whose share of hidden notes rose by more than 10
+points. Each song, Stage 4 to Stage 2 as shipped:
+
+| Song | Notes, Stage 4 | Notes, shipped | Change | Hidden, Stage 4 | Hidden, shipped | Change | Flag |
+|---|---|---|---|---|---|---|---|
+| Test | 30 | 26 | -4 (-13%) | 47% | 50% | +3 points | none |
+| Test2 | 24 | 13 | -11 (-46%) | 75% | 31% | -44 points | **count** |
+| Test4 | 24 | 19 | -5 (-21%) | 13% | 0% | -13 points | none |
+| Test5 | 46 | 39 | -7 (-15%) | 0% | 0% | 0 points | none |
+| momsong | 280 | 226 | -54 (-19%) | 11% | 2% | -9 points | none |
+| mysong | 523 | 426 | -97 (-19%) | 16% | 5% | -11 points | none |
+| nutshell | 148 | 121 | -27 (-18%) | 16% | 2% | -14 points | none |
+| nutshellandsolo | 683 | 577 | -106 (-16%) | 6% | 0% | -6 points | none |
+| test3 | 11 | 7 | -4 (-36%) | 36% | 0% | -36 points | **count** |
+
+Two songs flag, both on note count: Test2 (24 to 13, a drop of 46%) and test3
+(11 to 7, a drop of 36%; a third is 33%). No song flags on hidden share. It
+fell in seven songs, held in Test5, and rose in Test by 3 points (14 of 30
+notes to 13 of 26). Test2 flagged in the plain round too (24 to 14, -42%).
+test3 did not (11 to 8, -27%).
+
+Against the separation noise from the Stage 4 section, where a song's note
+count moved by -20% to +5% (-6 to +7 notes), its share at or below `HIDE` by
+at most 8 points, its hidden share by up to 15 points, and the total by 5
+notes:
+
+- **Test2.** A drop of 46%, 11 notes, is more than twice the largest drop the
+  noise gave and outside its range in notes.
+- **test3.** Its drop is 4 notes of 11. That is past the noise's -20% but
+  inside its range in notes, and the noise moved test3 by one note, on one
+  measurement. One note separates it from the plain round, which did not flag.
+  The song is too small to settle it.
+- **The direction.** All nine songs fell again, and the total fell 17.8%
+  (1,769 notes to 1,454), where the noise left it at +0.3%. The plain round's
+  total fell 18.4%.
+- **The other seven.** Test, Test4, Test5, momsong, mysong, nutshell and
+  nutshellandsolo fell by 13% to 21%, inside the noise's -20% apart from
+  Test4's -21% (5 notes). For them the common direction is the evidence, not
+  the song.
+- **The share at or below `HIDE`.** It fell in all nine songs, by 5 to 26
+  points. Test, at 5, is inside the noise; the other eight, at 16 to 26, are
+  not.
+
+What cannot be told is what the earlier round could not: which setting removed
+a note, and whether a removed note was played. Only the tab in the client
+shows that.
+
+Plain 0.7 to shipped, per song. The two rounds separate independently, so this
+is noise as much as the rule:
+
+| Song | Notes, plain 0.7 | Notes, shipped | Change | Hidden, plain 0.7 | Hidden, shipped | Change |
+|---|---|---|---|---|---|---|
+| Test | 28 | 26 | -2 (-7%) | 46% | 50% | +4 points |
+| Test2 | 14 | 13 | -1 (-7%) | 29% | 31% | +2 points |
+| Test4 | 18 | 19 | +1 (+6%) | 0% | 0% | 0 points |
+| Test5 | 39 | 39 | 0 (0%) | 0% | 0% | 0 points |
+| momsong | 227 | 226 | -1 (0%) | 6% | 2% | -4 points |
+| mysong | 420 | 426 | +6 (+1%) | 5% | 5% | 0 points |
+| nutshell | 115 | 121 | +6 (+5%) | 3% | 2% | -1 point |
+| nutshellandsolo | 575 | 577 | +2 (0%) | 0% | 0% | 0 points |
+| test3 | 8 | 7 | -1 (-13%) | 0% | 0% | 0 points |
+
+Per song the note count moved by -2 to +6 notes, inside the noise's -6 to +7.
+In total the shipped rule left 10 more notes than the plain one, 1,454 against
+1,444 (+0.7%). The two rules cut about as many notes from Stage 4: 17.8% and
+18.4%.
+
+### What changed overall
+
+Pooled over the nine songs:
+
+| Round | Notes | At or below `HIDE` | Partly faded | Hidden | Passages | Above `HIDE` |
+|---|---|---|---|---|---|---|
+| Stage 4 | 1,769 | 706 (39.9%) | 462 (26.1%) | 214 (12.1%) | 51 | 1,063 |
+| Stage 2, plain 0.7 | 1,444 | 274 (19.0%) | 503 (34.8%) | 56 (3.9%) | 13 | 1,170 |
+| Stage 2, shipped | 1,454 | 290 (19.9%) | 494 (34.0%) | 45 (3.1%) | 9 | 1,164 |
+
+The notes above `HIDE` went from 1,063 to 1,164 between Stage 4 and shipped.
+Seven songs have more of them, Test has the same (11), and test3 has one fewer
+(7 to 6); in the plain round no song had fewer. The median confidence rose in
+all nine songs from Stage 4, by 0.02 to 0.10 (Test, 0.46 to 0.48; Test5, 0.57
+to 0.67). Between Before and Stage 4 it moved by at most 0.05 (Test4). The
+caveat above stands: `HIDE` and `FULL` are still the values measured on the
+old settings, and the frame threshold changes what confidence is, so these
+shares are not the same notes cut at the same line.
+
 ### Sign-off
 
-Awaits the user, after they open the three links per song.
+**Decision:** stage 2 ships with the alone-only ghost rule at 0.8, with the
+decoding settings of the round above: onset threshold 0.5, frame threshold
+0.4, minimum note length 93 ms and `melodia_trick` off.
+
+**Date:** 2026-10-19.
+
+The user looked at the Before, Stage 4 and Stage 2 (plain 0.7) rounds, not at
+the shipped one. The plain rule at 0.7 had failed spec condition 6 in comp on
+test ([tuning.md](tuning.md#the-decision)), and the user chose the alone-only
+rule at 0.8. Round `stage2b` was run after that, at the shipped code, for the
+record. This is the sign-off spec condition 7 asks for.
+
+The user's words, given on the plain-0.7 round:
+
+> Honestly stage2 was significantly more accurate in certain chords and solos,
+> but only because it cuts out a lot more. Stage4 is better but has similar
+> problems to the before proximity is important for fret placement. Sometimes
+> when a chord is being strummed, it'll randomly switch to a different voicing
+> mid strum. Everything I just said is stuff to think about and make an issue
+> for in the repo.
+
+The points they raised are tracked in
+[issue #25](https://github.com/smadinya/GuitarVis/issues/25).

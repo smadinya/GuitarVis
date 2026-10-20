@@ -589,7 +589,8 @@ On 2026-10-19 the user chose to ship the alone-only ghost rule at 0.8.
   stand.
 - `CACHE_VERSION` stays at 2.
 - The real-song round for stage 2 (`real-songs.md`) ran at `dc315bd` with the
-  plain rule at 0.7. No round was made at the reverted code.
+  plain rule at 0.7. Round `stage2b`, in the same file, was made afterwards at
+  `679ce9e`, which has the reverted code and the alone-only rule at 0.8.
 
 ### `fa69e14`: the alone-only rule at 0.8 (current)
 
