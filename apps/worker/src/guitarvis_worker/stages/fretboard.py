@@ -14,6 +14,7 @@ emits must satisfy guitarvis_core.fretboard.check_invariant — a note that
 cannot be placed correctly is dropped with a warning, never approximated.
 """
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -83,15 +84,20 @@ class MapperCosts:
         # The hand covers at least the fret under the index finger.
         if self.hand_window < 1:
             raise ValueError(f"hand_window must be at least 1, not {self.hand_window}")
-        weights = (
-            self.move_weight,
-            self.span_weight,
-            self.height_weight,
-            self.open_weight,
-            self.ring_weight,
-            self.gap_weight,
-        )
-        if any(weight < 0 for weight in weights):
+        weights = {
+            "move_weight": self.move_weight,
+            "span_weight": self.span_weight,
+            "height_weight": self.height_weight,
+            "open_weight": self.open_weight,
+            "ring_weight": self.ring_weight,
+            "gap_weight": self.gap_weight,
+        }
+        # An infinite weight times a zero count is nan, and one nan poisons
+        # every total it is added to, so the comparisons stop meaning anything.
+        for name, value in {**weights, "ring_tolerance": self.ring_tolerance}.items():
+            if not math.isfinite(value):
+                raise ValueError(f"{name} must be finite, not {value}")
+        if any(weight < 0 for weight in weights.values()):
             raise ValueError("cost weights cannot be negative")
         if self.ring_tolerance < 0:
             raise ValueError(

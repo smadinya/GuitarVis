@@ -10,6 +10,7 @@ can implement the same interface later. This is the single upgrade point the
 staged architecture exists to protect.
 """
 
+import math
 from bisect import bisect_left, bisect_right
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -58,6 +59,11 @@ class TranscriptionSettings:
             value = getattr(self, name)
             if not 0 < value <= 1:
                 raise ValueError(f"{name} must be in (0, 1], not {value}")
+        if not math.isfinite(self.minimum_note_length_ms):
+            raise ValueError(
+                "minimum_note_length_ms must be finite, "
+                f"not {self.minimum_note_length_ms}"
+            )
         if self.minimum_note_length_ms < 0:
             raise ValueError(
                 "minimum_note_length_ms cannot be negative, "

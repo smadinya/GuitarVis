@@ -5,6 +5,7 @@ tests pin the mechanics — grouping, playability, the costs' intent, the drop
 rules — and the one invariant that holds whatever the costs are.
 """
 
+import math
 import random
 from collections.abc import Sequence
 
@@ -552,6 +553,20 @@ def test_an_exact_tie_goes_to_the_lower_frets() -> None:
         {"ring_weight": -0.1},
         {"ring_tolerance": -0.1},
         {"gap_weight": -0.1},
+        # Not finite: inf * 0 is nan, and a nan poisons every total it meets.
+        *(
+            {name: value}
+            for name in (
+                "move_weight",
+                "span_weight",
+                "height_weight",
+                "open_weight",
+                "ring_weight",
+                "gap_weight",
+                "ring_tolerance",
+            )
+            for value in (math.inf, math.nan)
+        ),
     ],
 )
 def test_costs_that_could_never_place_a_note_are_refused(

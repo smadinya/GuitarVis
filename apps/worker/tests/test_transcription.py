@@ -4,6 +4,7 @@ _predict is stubbed: what is under test is the clamping, filtering, and
 ordering, none of which should require the ml extra to verify.
 """
 
+import math
 import sys
 import types
 from collections.abc import Sequence
@@ -130,6 +131,8 @@ def test_settings_reach_predict(monkeypatch: pytest.MonkeyPatch) -> None:
         {"frame_threshold": 0},
         {"onset_threshold": 1.5},
         {"minimum_note_length_ms": -1},
+        {"minimum_note_length_ms": math.inf},
+        {"minimum_note_length_ms": math.nan},
         {"ghost_ratio": 0},
         {"ghost_ratio": 1.5},
     ],

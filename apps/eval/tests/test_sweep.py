@@ -107,6 +107,9 @@ def test_build_reads_none_for_an_optional_float() -> None:
         ({"ring_weight": "heavy"}, "ring_weight"),
         ({"hand_window": "none"}, "hand_window"),  # none is only for float | None
         ({"hand_window": "0"}, "hand_window must be at least 1"),  # __post_init__
+        ({"ring_weight": "inf"}, "ring_weight must be finite"),
+        ({"ring_weight": "nan"}, "ring_weight must be finite"),
+        ({"ring_tolerance": "inf"}, "ring_tolerance must be finite"),
     ],
 )
 def test_build_refuses_a_value_that_does_not_fit(
@@ -157,6 +160,22 @@ def test_a_value_the_dataclass_refuses_is_reported_not_raised(
     assert captured.err.count("\n") == 1  # one line
     assert "hand_window must be at least 1" in captured.err
     assert "Traceback" not in captured.err
+
+
+@pytest.mark.parametrize("value", ["inf", "nan"])
+def test_a_non_finite_cost_is_reported_in_one_line(
+    value: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _dev_set(tmp_path)
+
+    code = main(["--cost", f"ring_weight={value}", "--data-dir", str(tmp_path)])
+
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.err.count("\n") == 1  # one line
+    assert "ring_weight must be finite" in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""  # nothing scored
 
 
 def test_transcription_without_full_is_refused(
