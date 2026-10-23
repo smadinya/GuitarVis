@@ -1,0 +1,104 @@
+// @vitest-environment jsdom
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { buildSong } from "../song";
+import { fakeEngine } from "../test/engine";
+import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
+import type { TabDocument } from "../types/tabDocument";
+import { useTransportKeys } from "./keys";
+import { Scrubber } from "./Scrubber";
+
+const FIRST_SONG: TabDocument = firstSongJson;
+
+const SECTIONS = [
+  { t: 0, dur: 5, label: "Intro" },
+  { t: 5, dur: 5, label: "Verse 1" },
+  { t: 10, dur: 10, label: "Chorus" },
+];
+const RECT = { left: 100, width: 400, top: 0, right: 500, bottom: 24, height: 24, x: 100, y: 0, toJSON: () => ({}) } as DOMRect;
+
+function mount() {
+  const song = buildSong({ ...FIRST_SONG, sections: SECTIONS });
+  const fake = fakeEngine(song, { duration: 20 });
+  render(<Scrubber engine={fake.engine} sections={song.sections} section="Verse 1" />);
+  const slider = screen.getByRole("slider", { name: "Position" });
+  vi.spyOn(slider, "getBoundingClientRect").mockReturnValue(RECT);
+  return { ...fake, slider };
+}
+const part = (slider: HTMLElement, name: string) => slider.querySelector(`.${name}`) as HTMLElement;
+
+describe("Scrubber", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("is a slider over the song, speaking the time and the section", () => {
+    const { slider, at } = mount();
+    at(7);
+    expect(["aria-valuemin", "aria-valuemax", "aria-valuenow", "aria-valuetext"].map((a) => slider.getAttribute(a))).toEqual(["0", "20", "7", "0:07, Verse 1"]);
+  });
+
+  it("moves the knob and the played part with each frame", () => {
+    const { slider, at } = mount();
+    at(5);
+    expect(part(slider, "scrub-head").style.transform).toBe("translateX(25%)");
+    expect(part(slider, "scrub-played").style.transform).toBe("scaleX(0.25)");
+  });
+
+  it("draws a tick at each section after the first, and the loop", () => {
+    const { slider, engine, at } = mount();
+    at(5);
+    act(() => void engine.setLoopPoint("a"));
+    at(15);
+    act(() => void engine.setLoopPoint("b"));
+    expect([...slider.querySelectorAll<HTMLElement>(".scrub-tick")].map((t) => t.style.left)).toEqual(["25%", "50%"]);
+    const band = part(slider, "scrub-band");
+    expect([band.style.left, band.style.width]).toEqual(["25%", "50%"]);
+    expect(slider.querySelectorAll(".scrub-edge")).toHaveLength(2);
+  });
+
+  it("previews a drag without seeking, and seeks once on release, whatever the frames do meanwhile", () => {
+    const { slider, engine, frames } = mount();
+    const seek = vi.spyOn(engine, "seek");
+
+    fireEvent.pointerDown(slider, { clientX: 200, pointerId: 1 });
+    expect(screen.getByText("0:05")).toBeTruthy();
+    act(() => {
+      engine.redraw(); // a frame at t = 0, mid-drag
+      frames.flush();
+    });
+    expect(part(slider, "scrub-head").style.transform).toBe("translateX(25%)");
+
+    fireEvent.pointerMove(slider, { clientX: 300, pointerId: 1 });
+    expect(part(slider, "scrub-head").style.transform).toBe("translateX(50%)");
+    expect(seek).not.toHaveBeenCalled();
+
+    fireEvent.pointerUp(slider, { clientX: 300, pointerId: 1 });
+    expect(seek).toHaveBeenCalledTimes(1);
+    expect(seek).toHaveBeenCalledWith(10);
+    expect(screen.queryByText("0:10")).toBeNull();
+  });
+
+  it("drops a cancelled drag without seeking", () => {
+    const { slider, engine, frames } = mount();
+    const seek = vi.spyOn(engine, "seek");
+    fireEvent.pointerDown(slider, { clientX: 300, pointerId: 1 });
+    fireEvent.pointerCancel(slider, { pointerId: 1 });
+    act(() => frames.flush());
+    expect(seek).not.toHaveBeenCalled();
+    expect(part(slider, "scrub-head").style.transform).toBe("translateX(0%)");
+  });
+
+  it("seeks five seconds once per arrow key, though the page's keys listen too", () => {
+    const { slider, engine } = mount();
+    renderHook(() => useTransportKeys(engine));
+    const key = (k: string) => act(() => void fireEvent.keyDown(slider, { key: k }));
+    key("ArrowRight");
+    expect(engine.getState().time).toBe(5);
+    key("ArrowLeft");
+    expect(engine.getState().time).toBe(0);
+    key("End");
+    expect(engine.getState().time).toBe(20);
+    key("Home");
+    expect(engine.getState().time).toBe(0);
+  });
+});

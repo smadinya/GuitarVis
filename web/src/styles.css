@@ -519,6 +519,98 @@ main {
   text-align: center;
 }
 
+/* The scrubber: a track with the played part over it, the loop's band and
+   edges and a tick at each section on top, and the knob last. It is a slider
+   the pointer drags, so the browser must not take the gesture for a pan. The
+   knob (.scrub-head) and the played part are moved by script on every frame,
+   through transform only, so the page never styles them: .scrub-played starts
+   at scaleX(0), which is where the first frame will leave it for a song at 0.
+   .scrub-head spans the scrubber, so a translateX in percent is a fraction of
+   the track. */
+.scrubber {
+  position: relative;
+  height: 24px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.scrubber:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.scrub-track {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.scrub-played {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.scrub-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--tab-loop);
+  opacity: 0.25;
+}
+
+.scrub-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--tab-loop);
+}
+
+.scrub-tick {
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  width: 1px;
+  background: var(--muted);
+}
+
+.scrub-head {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scrub-knob {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.scrub-preview {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  transform: translateX(-50%);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: nowrap;
+}
+
 .controls {
   display: flex;
   flex-wrap: wrap;
