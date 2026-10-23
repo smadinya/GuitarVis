@@ -213,6 +213,9 @@ describe("Player", () => {
   it("keeps the audio playing on one engine through a switch to Tab only and back", async () => {
     const media = mount();
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    // The guitar's chunk loads lazily: without waiting for it, the null check
+    // below would hold whether or not Tab only had unmounted anything.
+    await screen.findByRole("img", { name: "Guitar" });
     const loads = media.loads.length;
 
     fireEvent.click(screen.getByRole("button", { name: "Tab only" }));
