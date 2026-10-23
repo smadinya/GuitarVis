@@ -213,6 +213,66 @@ main {
   font: bold 32px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+/* The chord now, and the one after, in the panel's top-left. It wears the
+   message's halo, so the strings do not strike through it. */
+.guitar-chords {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  pointer-events: none;
+  text-shadow:
+    0 0 3px var(--guitar-background),
+    0 0 3px var(--guitar-background),
+    0 0 3px var(--guitar-background),
+    0 0 3px var(--guitar-background);
+}
+
+/* display: flex above would beat the hidden attribute. */
+.guitar-chords[hidden] {
+  display: none;
+}
+
+.guitar-chords .now {
+  color: var(--guitar-chord);
+  font: bold 32px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.guitar-chords .next {
+  color: var(--muted);
+  font: 15px system-ui, sans-serif;
+}
+
+/* What the dots mean, in the panel's bottom-left. */
+.guitar-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 8px;
+  display: flex;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+  color: var(--guitar-text);
+  font: 13px system-ui, sans-serif;
+}
+
+.guitar-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--guitar-dot);
+}
+
 /* The way back, the title and what is known of the song, the choice of view.
    Below 900px the view switch drops onto a row of its own. */
 .song-header {

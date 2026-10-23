@@ -5,6 +5,7 @@ import { GUITAR_FAILED } from "../labels";
 import type { PlaybackEngine } from "../playback/engine";
 import type { Song } from "../song";
 import type { View } from "./camera";
+import { Legend, NowNext } from "./NowNext";
 import { Stage, type Renderer } from "./stage";
 
 /** True when WebGL is off, when only WebGL 1 exists (three needs 2), and when
@@ -33,9 +34,11 @@ function keepFocus(event: MouseEvent) {
 
 /**
  * The guitar panel. React renders its chrome: the canvas's box, the message
- * overlay and "Reset view". Everything per frame is the Stage's, so React
- * renders only on mount, on a view change, when WebGL stays lost or comes
- * back, and when a draw throws. A throw's message wins over the WebGL one.
+ * overlay, "Reset view", the chord now and next, and the legend. Everything
+ * per frame is the Stage's, so this component renders only on mount, on a
+ * view change, when WebGL stays lost or comes back, and when a draw throws.
+ * (NowNext renders on its own, when the chord changes, never per frame.) A
+ * throw's message wins over the WebGL one.
  */
 export function Guitar({ song, engine, createRenderer = webGLRenderer, view = "3d" }: GuitarProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -115,6 +118,8 @@ export function Guitar({ song, engine, createRenderer = webGLRenderer, view = "3
           <button type="button" className="guitar-reset" onMouseDown={keepFocus} onClick={reset}>
             Reset view
           </button>
+          <NowNext song={song} engine={engine} />
+          <Legend />
         </>
       )}
     </div>

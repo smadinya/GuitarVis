@@ -109,11 +109,13 @@ describe("Guitar", () => {
     const view = render(<Guitar song={song} engine={engine} createRenderer={() => renderer} />);
     engine.seek(1);
     frames.flush();
-    expect(engine.onFrame).toHaveBeenCalledTimes(1);
+    // The Stage and the chord overlay each subscribe; every one is released.
+    const subscribed = vi.mocked(engine.onFrame).mock.calls.length;
+    expect(subscribed).toBeGreaterThanOrEqual(1);
     expect(renderer.render).toHaveBeenCalled();
 
     view.unmount();
-    expect(stopped).toHaveBeenCalledTimes(1);
+    expect(stopped).toHaveBeenCalledTimes(subscribed);
     expect(renderer.dispose).toHaveBeenCalledTimes(1);
   });
 
@@ -347,6 +349,22 @@ describe("Guitar", () => {
 
     at(5);
     expect(overlay.hidden).toBe(true);
+  });
+
+  it("shows the legend and the chord overlay, and neither without WebGL", () => {
+    const first = mount();
+    expect(screen.getByText("Sounding")).toBeTruthy();
+    expect(screen.getByText("Less sure")).toBeTruthy();
+    expect(screen.queryByText("Next")).toBeNull();
+    expect(first.view.container.querySelector(".guitar-chords")).toBeTruthy();
+    first.view.unmount();
+
+    const noWebGL = () => {
+      throw new Error("Error creating WebGL context.");
+    };
+    const second = mount(FIRST_SONG, fakeRenderer(), noWebGL);
+    expect(screen.queryByText("Sounding")).toBeNull();
+    expect(second.view.container.querySelector(".guitar-chords")).toBeNull();
   });
 
   it("shows the empty message for a document with no notes", () => {
