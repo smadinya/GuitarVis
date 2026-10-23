@@ -21,8 +21,8 @@ function sameShown(a: Shown, b: Shown): boolean {
 
 /** The chord now, in the guitar's top-left, and the one after it. Hidden
  * inside a hidden passage, where the guitar shows the chord itself in the
- * middle of the panel. Faded by confidence as the chord lane fades it, and
- * never hidden for being weak.
+ * middle of the panel. Both are faded by confidence as the chord lane fades
+ * its cells, and never hidden for being weak.
  *
  * It follows playback through `onFrame` and sets state only when the chord,
  * the next chord or the hidden state changes, so it never renders at frame
@@ -62,7 +62,11 @@ export function NowNext({ song, engine }: { song: Song; engine: PlaybackEngine }
           {now.symbol}
         </span>
       )}
-      {next !== null && <span className="next">next {next.symbol}</span>}
+      {next !== null && (
+        <span className="next" style={{ opacity: emphasis(next.confidence, CHORD_THRESHOLDS) }}>
+          next {next.symbol}
+        </span>
+      )}
     </div>
   );
 }

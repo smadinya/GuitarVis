@@ -52,6 +52,12 @@ describe("NowNext", () => {
     expect((box()?.querySelector(".now") as HTMLElement).style.opacity).toBe(String(FADED));
   });
 
+  it("fades a weak next chord as the lane does", () => {
+    const { at, box } = mount({ ...FIRST_SONG, notes: [], chords: [chord(1, "Am"), chord(2, "C", CHORD_HIDE)] });
+    at(1.5);
+    expect((box()?.querySelector(".next") as HTMLElement).style.opacity).toBe(String(FADED));
+  });
+
   it("hides inside a hidden passage, where the guitar shows the chord itself", () => {
     const hiddenAm = {
       ...FIRST_SONG,
