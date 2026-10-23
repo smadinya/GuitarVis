@@ -6,7 +6,8 @@ import { Player } from "../player/Player";
 import { buildSong, canRead, type Song } from "../song";
 import type { JobView } from "../types/api";
 import type { TabDocument } from "../types/tabDocument";
-import { Failure, UploadAnother } from "./Failure";
+import { UploadAnother } from "../UploadAnother";
+import { Failure } from "./Failure";
 import { POLL_MS, backoff, retryText, stageText } from "./progress";
 
 export interface SongApi {
@@ -108,6 +109,8 @@ export interface SongPageProps {
 export function SongPage({ jobId, api = API, createMedia = newAudio }: SongPageProps) {
   const { job, missing, reconnecting } = useJob(jobId, api);
   const [loaded, retry] = useSong(jobId, job?.status === "succeeded", api);
+  // The player's header carries the title from then on.
+  const showsPlayer = job?.status === "succeeded" && loaded.kind === "ready";
 
   if (missing) {
     return (
@@ -120,7 +123,7 @@ export function SongPage({ jobId, api = API, createMedia = newAudio }: SongPageP
 
   return (
     <main className="song-page">
-      <h1>{job?.title ?? "Loading…"}</h1>
+      {!showsPlayer && <h1>{job?.title ?? "Loading…"}</h1>}
       {reconnecting && <p role="status">Reconnecting…</p>}
       {job !== null && <JobBody job={job} loaded={loaded} retry={retry} jobId={jobId} createMedia={createMedia} />}
     </main>

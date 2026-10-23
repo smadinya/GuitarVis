@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { NO_WEBGL } from "../guitar/Guitar";
@@ -8,7 +9,6 @@ import { FakeMedia } from "../test/fakeMedia";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
 import { JOB_ID } from "../test/jobs";
 import type { TabDocument } from "../types/tabDocument";
-import { clock } from "./Controls";
 import { Player } from "./Player";
 
 const FIRST_SONG: TabDocument = firstSongJson;
@@ -33,42 +33,20 @@ describe("Player", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // The chosen view persists, so one test's choice must not reach the next.
+    localStorage.clear();
   });
 
-  it("plays and pauses from its button", () => {
-    const media = mount();
+  it("shows its header, with the title, before its engine exists", () => {
+    // Effects do not run in a server render, so this is the render before the
+    // engine effect has: the one a song page would paint if it dropped its own
+    // title as soon as the document was ready.
+    const html = renderToString(
+      <Player song={buildSong(FIRST_SONG)} jobId={JOB_ID} createMedia={() => new FakeMedia()} />,
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
-
-    expect(media.paused).toBe(false);
-    expect(screen.getByRole("button", { name: "Pause" })).toBeTruthy();
-  });
-
-  it("sets the speed, and shows which is on", () => {
-    const media = mount();
-
-    fireEvent.click(screen.getByRole("button", { name: "0.5×" }));
-
-    expect(media.playbackRate).toBe(0.5);
-    expect(screen.getByRole("button", { name: "0.5×" }).getAttribute("aria-pressed")).toBe("true");
-  });
-
-  it("offers no speed control where pitch cannot be kept", () => {
-    const media = new FakeMedia();
-    Reflect.deleteProperty(media, "preservesPitch");
-    Reflect.deleteProperty(media, "webkitPreservesPitch");
-
-    mount({}, media);
-
-    expect(screen.queryByRole("group", { name: "Speed" })).toBeNull();
-  });
-
-  it("switches to the guitar stem", () => {
-    const media = mount();
-
-    fireEvent.click(screen.getByRole("button", { name: "Guitar only" }));
-
-    expect(media.src).toBe(`/jobs/${JOB_ID}/audio/guitar`);
+    expect(html).toMatch(/<h1>Test<\/h1>/);
+    expect(html).not.toContain("Transport");
   });
 
   it("plays and pauses on Space, and seeks on the arrows", () => {
@@ -105,14 +83,6 @@ describe("Player", () => {
     expect(media.paused).toBe(true);
   });
 
-  it("keeps a mouse click from leaving focus on a control", () => {
-    mount();
-
-    const allowed = fireEvent.mouseDown(screen.getByRole("button", { name: "0.5×" }));
-
-    expect(allowed).toBe(false); // default prevented: the button never takes focus
-  });
-
   it("sizes the tab strip's canvas to its container, whatever the stylesheet says", () => {
     mount();
 
@@ -144,6 +114,22 @@ describe("Player", () => {
     expect(guitar.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("lays out the header, then warnings, guitar, chord lane and tab strip, with the sections after them, and the transport last", async () => {
+    mount({ warnings: ["w"] });
+    const order = [
+      screen.getByRole("heading", { level: 1 }),
+      screen.getByRole("complementary", { name: "Warnings" }),
+      await screen.findByRole("img", { name: "Guitar" }),
+      screen.getByRole("list", { name: "Chord lane" }),
+      screen.getByLabelText("Tab"),
+      screen.getByRole("complementary", { name: "Sections" }),
+      screen.getByRole("region", { name: "Transport" }),
+    ];
+    for (let i = 1; i < order.length; i++) {
+      expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
   it("keeps playing from its controls when the guitar has no WebGL", async () => {
     const media = mount();
 
@@ -166,54 +152,31 @@ describe("Player", () => {
     expect(screen.queryByRole("complementary", { name: "Warnings" })).toBeNull();
   });
 
-  it("says when the audio cannot be played, and offers the other track and a reload", () => {
+  it("keeps the audio playing on one engine through a switch to Tab only and back", async () => {
     const media = mount();
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    // The guitar's chunk loads lazily: without waiting for it, the null check
+    // below would hold whether or not Tab only had unmounted anything.
+    await screen.findByRole("img", { name: "Guitar" });
+    const loads = media.loads.length;
 
-    act(() => {
-      for (let i = 0; i < 3; i++) media.emit("error");
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Tab only" }));
+    expect(screen.queryByRole("img", { name: "Guitar" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "3D" }));
+    await screen.findByRole("img", { name: "Guitar" });
 
-    const alert = screen.getByRole("alert").textContent;
-    expect(alert).toContain("We couldn't play this audio.");
-    expect(alert).toContain("Try Guitar only, or reload the page.");
-    expect(screen.getByRole("button", { name: "Reload" })).toBeTruthy();
+    expect(media.paused).toBe(false);
+    expect(media.loads).toHaveLength(loads);
   });
 
-  it("suggests the mix when the guitar is what failed", () => {
-    const media = mount();
-    fireEvent.click(screen.getByRole("button", { name: "Guitar only" }));
-    act(() => media.loadMetadata(13.871));
+  it("keeps the chord lane in Tab only", async () => {
+    mount();
+    // Wait for the guitar, or the null check below holds whatever Tab only does.
+    await screen.findByRole("img", { name: "Guitar" });
 
-    act(() => {
-      for (let i = 0; i < 3; i++) media.emit("error");
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Tab only" }));
 
-    expect(screen.getByRole("alert").textContent).toContain("Try Full mix, or reload the page.");
-  });
-
-  it("keeps the audio toggle usable in the error state, and clears the alert with it", () => {
-    const media = mount();
-    act(() => {
-      for (let i = 0; i < 3; i++) media.emit("error");
-    });
-    expect(screen.getByRole("alert")).toBeTruthy();
-
-    const guitar = screen.getByRole("button", { name: "Guitar only" });
-    expect((guitar as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(guitar);
-
-    expect(media.src).toBe(`/jobs/${JOB_ID}/audio/guitar`);
-    expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.getByRole("button", { name: "Guitar only" }).getAttribute("aria-pressed")).toBe(
-      "true",
-    );
-  });
-});
-
-describe("clock", () => {
-  it("formats m:ss", () => {
-    expect(clock(0)).toBe("0:00");
-    expect(clock(65.9)).toBe("1:05");
-    expect(clock(Number.NaN)).toBe("0:00");
+    expect(screen.getByRole("list", { name: "Chord lane" })).toBeTruthy();
+    expect(screen.queryByRole("img", { name: "Guitar" })).toBeNull();
   });
 });

@@ -8,6 +8,8 @@
   --accent: #c2410c;
   --border: #d8d3c8;
   --panel: #f1ede4;
+  --bg-raised: #ffffff;
+  --on-accent: #ffffff;
 
   --tab-background: #fbfaf7;
   --tab-text: #1f1d1a;
@@ -34,6 +36,8 @@
     --accent: #fb923c;
     --border: #3a3631;
     --panel: #23211e;
+    --bg-raised: #1f1d1b;
+    --on-accent: #171614;
 
     --tab-background: #171614;
     --tab-text: #ece8df;
@@ -64,15 +68,30 @@ body {
   font: 16px/1.5 system-ui, sans-serif;
 }
 
+/* The page fills the window, so a short song page still puts its transport
+   at the window's bottom rather than mid-screen. */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
 main {
+  width: 100%;
   max-width: 1100px;
   margin: 0 auto;
   padding: 16px;
 }
 
+/* The wordmark lines up with the page's content column, not the window's
+   edge: 1100px on the upload page, 1280px beside a song. */
 .masthead {
-  padding: 12px 16px;
+  padding: 12px max(16px, calc((100% - 1100px) / 2 + 16px));
   border-bottom: 1px solid var(--border);
+}
+
+body:has(.song-page) .masthead {
+  padding-inline: max(16px, calc((100% - 1280px) / 2 + 16px));
 }
 
 .masthead a {
@@ -113,11 +132,41 @@ main {
 }
 
 .warnings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 12px;
   padding: 8px 16px;
   border-radius: 8px;
   background: var(--panel);
   color: var(--muted);
+}
+
+.warnings svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.warnings p {
+  margin: 0;
+}
+
+.warnings button {
+  margin-left: auto;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-raised);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.warnings ul {
+  flex-basis: 100%;
+  margin: 0;
+  padding-left: 20px;
 }
 
 /* No border or padding: they would take from the content box the canvas
@@ -131,13 +180,15 @@ main {
 
 /* The canvas fills the box, and three.js sizes its bitmap from the box. The
    box's size never depends on the canvas's. */
+/* Its height follows the window's on a wide screen, so a tall window gives
+   the guitar the room rather than leaving a band above the transport. The
+   540px is what the header, lane, tab strip and transport take. Below 900px
+   it keeps the 2.8 aspect, which fits a narrow column. */
 .guitar {
   position: relative;
   width: 100%;
-  aspect-ratio: 2.8;
-  min-height: 260px;
-  max-height: 460px;
-  margin-bottom: 12px;
+  height: clamp(260px, 100dvh - 540px, 560px);
+  margin-bottom: 0;
   border-radius: 8px;
   overflow: hidden;
   background: var(--guitar-background);
@@ -179,12 +230,330 @@ main {
   font: bold 32px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-.guitar-views {
+/* The chord now, and the one after, in the panel's top-left. It wears the
+   message's halo, so the strings do not strike through it. */
+/* A chip on the panel's ground, not a halo: the 3D neck passes under this
+   corner, and a halo over wood leaves the text unreadable. */
+.guitar-chords {
   position: absolute;
   top: 8px;
   left: 8px;
   display: flex;
-  gap: 4px;
+  align-items: baseline;
+  gap: 12px;
+  padding: 2px 12px;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  box-shadow: 0 0 0 1px var(--border);
+  pointer-events: none;
+}
+
+/* display: flex above would beat the hidden attribute. */
+.guitar-chords[hidden] {
+  display: none;
+}
+
+.guitar-chords .now {
+  color: var(--guitar-chord);
+  font: bold 32px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.guitar-chords .next {
+  padding: 6px 0;
+  color: var(--muted);
+  font: 15px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* What the dots mean, in the panel's bottom-left. */
+.guitar-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 8px;
+  display: flex;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+  color: var(--guitar-text);
+  font: 13px system-ui, sans-serif;
+}
+
+.guitar-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--guitar-dot);
+}
+
+/* The way back, the title and what is known of the song, the choice of view.
+   Below 900px the view switch drops onto a row of its own. The title is an
+   upload's file name, so it can be one unbroken word. minmax(0, 1fr), not a
+   bare 1fr, lets its column shrink below that word, and the h1 breaks the
+   word where it must, so the view switch never leaves the window. */
+.song-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px 16px;
+  align-items: center;
+  margin: 4px 0 16px;
+}
+
+/* The way out of the song, set as a quiet button at the row's end. */
+.song-header .back {
+  order: 3;
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.song-header .back:hover {
+  background: var(--panel);
+  color: var(--fg);
+}
+
+.song-header h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.song-header .details {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+@media (max-width: 899px) {
+  .song-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .song-header .segmented {
+    grid-column: 1 / -1;
+    order: 4;
+    justify-self: start;
+  }
+}
+
+/* The page's two columns: the views, and the sections beside them. minmax(0,
+   1fr), not a bare 1fr: a bare 1fr will not shrink below its content, and the
+   lane's overflow would widen the column. Below 900px the sidebar follows the
+   views. */
+.song-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  max-width: 1280px;
+}
+
+.song-page > .player {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.player-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 248px;
+  gap: 16px;
+  align-items: start;
+}
+
+.player-main {
+  min-width: 0;
+}
+
+@media (max-width: 899px) {
+  .player-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The chord lane: one cell per chord, scrolled sideways under the guitar. It is
+   position: relative so that a cell's offsetLeft is measured from the lane,
+   which is what centres the current one. A cell's own opacity is how sure the
+   analysis was, so state is told by colour and a ring, never by fading. The
+   padding is room for that ring: overflow-x: auto makes overflow-y auto too,
+   which would clip a 2px box-shadow at the lane's top, bottom and first
+   edge. offsetLeft and scrollLeft are both padding-box coordinates, so the
+   padding leaves the centring formula as it was. */
+/* The lane scrolls itself to the playhead, so it hides its scrollbar and
+   fades its ends to say there is more either side. */
+@media (max-width: 899px) {
+  .guitar {
+    height: auto;
+    aspect-ratio: 2.8;
+    min-height: 260px;
+    max-height: 460px;
+  }
+}
+
+.chord-lane {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 3px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  list-style: none;
+  mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+}
+
+.chord-lane::-webkit-scrollbar {
+  display: none;
+}
+
+.chord-cell {
+  flex: 0 0 64px;
+  padding: 10px 0;
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--muted);
+  font: 700 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-align: center;
+}
+
+.chord-cell[data-state="played"] {
+  color: var(--fg);
+}
+
+.chord-cell[data-state="current"] {
+  background: var(--bg-raised);
+  color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chord-lane {
+    scroll-behavior: auto;
+  }
+}
+
+/* The sections, each a jump to its start, and the song's chords. The row that
+   is playing takes the accent, with a bar at its left edge. */
+.sections {
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.sections h2 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sections h2:not(:first-child) {
+  margin-top: 16px;
+}
+
+.sections p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.sections .chord-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sections .chord-list li {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--bg-raised);
+  box-shadow: 0 0 0 1px var(--border);
+  font: 600 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.sections ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sections button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sections button:hover {
+  background: var(--bg-raised);
+}
+
+.sections button[aria-current="true"] {
+  background: var(--bg-raised);
+  color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.sections .time {
+  font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.sections button[aria-current="true"] .time {
+  color: inherit;
+}
+
+/* A choice of one: the view, the speed, the audio. The group is a --panel
+   trough and the chosen button is raised out of it in --bg-raised, which is
+   the transport's own colour, so without the trough the choice would show by
+   text colour alone. In the dark theme --panel is lighter than --bg-raised by
+   too little to see, so the chosen button also wears a ring, as the pressed
+   loop buttons and the current chord cell do. */
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+/* The padding is the transport's other buttons'. */
+.segmented button {
+  min-width: 40px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--bg-raised);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .guitar-reset {
@@ -193,7 +562,7 @@ main {
   right: 8px;
 }
 
-/* As .controls button. */
+/* As the transport's other buttons. */
 .guitar button {
   min-width: 40px;
   padding: 6px 10px;
@@ -203,11 +572,6 @@ main {
   color: var(--fg);
   font: inherit;
   cursor: pointer;
-}
-
-.guitar button[aria-pressed="true"] {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 /* Over the canvas and the message, which a lost context leaves behind. */
@@ -224,20 +588,204 @@ main {
   text-align: center;
 }
 
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 12px;
+/* The scrubber: a track with the played part over it, the loop's band and
+   edges and a tick at each section on top, and the knob last. It is a slider
+   the pointer drags, so the browser must not take the gesture for a pan. The
+   knob (.scrub-head) and the played part are moved by script on every frame,
+   through transform only, so the page never styles them: .scrub-played starts
+   at scaleX(0), which is where the first frame will leave it for a song at 0.
+   .scrub-head spans the scrubber, so a translateX in percent is a fraction of
+   the track. */
+.scrubber {
+  position: relative;
+  height: 24px;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
 }
 
-.controls .group {
+.scrubber:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.scrub-track {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.scrub-played {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.scrub-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--tab-loop);
+  opacity: 0.25;
+}
+
+.scrub-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--tab-loop);
+}
+
+.scrub-tick {
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  width: 1px;
+  background: var(--muted);
+}
+
+.scrub-head {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scrub-knob {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.scrub-preview {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  transform: translateX(-50%);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: nowrap;
+}
+
+/* The transport, docked to the bottom of the window. It is sticky inside the
+   player, and its negative side and bottom margins are main's 16px padding, so
+   the bar reaches the page's edges, and at the end of the page sits flush
+   with the window rather than 16px above it.
+
+   overflow-x: clip, not hidden. The scrubber's knob spans the track and moves
+   by translateX in percent, so near the song's end it is a whole track's
+   width to the right of the bar, and unclipped it would give the page a
+   horizontal scrollbar as the song plays. clip makes no scroll container, so
+   sticky is unaffected, and it leaves overflow-y visible, so the scrubber's
+   preview still rises above the bar. */
+.transport {
+  position: sticky;
+  bottom: 12px;
+  z-index: 1;
+  margin-top: auto;
+  padding: 12px 16px;
+  overflow-x: clip;
+  border-radius: 12px;
+  background: var(--bg-raised);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+/* The dock floats over the page, so the browser does not know it covers the
+   bottom of the window: a focused control that is already inside the window,
+   under the dock, would be left where it is, hidden. scroll-padding-bottom
+   tells it where the page's visible part ends. It is the dock's height, plus
+   the 12px it floats above the window's edge, plus 16px of air.
+
+   The heights are measured, in Chromium, with a loop set and the speed
+   buttons shown. From 900px up the bar is two rows, 120px, until about
+   1040px, and one row, 72px, beyond. Below 900px it wraps onto two to five
+   rows: 129px at 860px, 177px from 840px down to 490px, then 225px, and
+   273px at 424px and narrower. Each value is the tallest of its range, so a
+   control is never left under the dock, and a shorter dock leaves more air
+   than 16px. An audio error adds a row above the bar for as long as it
+   shows; that is not reserved.
+
+   Not while focus is in the dock. The dock is sticky, so a control in it is
+   always on screen, but it sits inside the padded band, and the browser would
+   scroll the page by hundreds of pixels to bring it out of the band, on every
+   Tab within the bar. */
+html:has(.transport):not(:has(.transport:focus-within)) {
+  scroll-padding-bottom: 148px;
+}
+
+@media (max-width: 899px) {
+  html:has(.transport):not(:has(.transport:focus-within)) {
+    scroll-padding-bottom: 301px;
+  }
+}
+
+/* What the dock is pushed down by: the views end where the dock begins. */
+.player-body {
+  margin-bottom: 16px;
+}
+
+.transport-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.transport-error p {
+  margin: 0;
+}
+
+.transport-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.transport-play,
+.loop {
   display: flex;
   gap: 4px;
   align-items: center;
 }
 
-.controls button {
+.transport-play {
+  gap: 8px;
+}
+
+/* The basis is what the bar's wrapping counts, so it is small: at 1024px the
+   buttons take most of the row, and the scrubber takes what is left. */
+.transport-scrub {
+  flex: 1 1 160px;
+}
+
+/* Back, forward, A, B, clear and Reload share the button the sidebar and the
+   guitar's reset also wear. The speed and audio buttons are .segmented's. */
+.transport-play button,
+.loop button,
+.transport-error button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 40px;
   padding: 6px 10px;
   border: 1px solid var(--border);
@@ -248,9 +796,71 @@ main {
   cursor: pointer;
 }
 
-.controls button[aria-pressed="true"] {
-  border-color: var(--accent);
-  color: var(--accent);
+/* A set point is the loop's blue, as the band on the scrubber and the tab
+   strip is: blue means the loop and nothing else. */
+.loop button[aria-pressed="true"] {
+  border-color: var(--tab-loop);
+  color: var(--tab-loop);
+}
+
+/* Back and forward are icons beside the play button, so they go without a
+   box and let the play button lead. */
+.transport-play button:not(.play) {
+  border-color: transparent;
+  background: transparent;
+}
+
+.transport-play button:not(.play):hover {
+  background: var(--panel);
+}
+
+.transport-bar button {
+  height: 36px;
+}
+
+/* Inside its 1px border and 2px trough, a segment is 30px, so a group stands
+   as tall as the loop's buttons beside it. */
+.transport-bar .segmented button {
+  height: 30px;
+  padding-block: 0;
+}
+
+.transport-play .play {
+  width: 48px;
+  height: 48px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* A and B read "A" until a point is set and "A 0:40" after, and a bar that
+   wraps differently once a loop is set jumps by a row under the person's
+   hand. Both keep the width of a set time, m:ss, so setting one reflows
+   nothing. The digits are tabular so that 1:11 is as wide as 0:40. Past ten
+   minutes the label outgrows the floor, and only then does the bar move. */
+.loop .loop-point {
+  min-width: 74px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Below 900px the scrubber takes a row to itself, first, and the buttons the
+   one beneath. */
+@media (max-width: 899px) {
+  .transport-scrub {
+    order: -1;
+    flex-basis: 100%;
+  }
+}
+
+.transport .time {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
 }
 
 .time {

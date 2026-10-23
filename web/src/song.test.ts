@@ -47,6 +47,12 @@ describe("buildSong", () => {
     expect(song.hidden).toEqual([]);
     expect(song.tuning).toEqual(["E2", "A2", "D3", "G3", "B3", "E4"]);
   });
+
+  it("reads the tempo, and null when there is none", () => {
+    expect(buildSong(FIRST_SONG).tempo).toBeCloseTo(117.454, 3);
+    expect(buildSong({ ...FIRST_SONG, timing: {} }).tempo).toBeNull();
+    expect(buildSong({ ...FIRST_SONG, timing: { tempo_bpm_avg: 0 } }).tempo).toBeNull();
+  });
 });
 
 describe("canRead", () => {

@@ -299,6 +299,11 @@ The tab strip stays pinned in every mode because it is what the user reads
 *ahead* from; the fretboard views show the present moment. They answer
 different questions and should not compete for the same space.
 
+**Superseded by [011](../011-player-redesign/spec.md#layout):** the view switch
+(3D · Fretboard · Tab only) is in the page header. A chord lane runs under the
+guitar, the sections sit in a sidebar, and the transport docks to the bottom of
+the window. The tab strip is still always shown.
+
 ### Practice controls
 
 A/B loop, speed reduction, and a mix/stem toggle. The isolated guitar stem

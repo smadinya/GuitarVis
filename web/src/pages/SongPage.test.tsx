@@ -86,6 +86,16 @@ describe("SongPage", () => {
     expect(media.src).toBe(`/jobs/${JOB_ID}/audio/mix`);
   });
 
+  it("titles the page once, in the player's header", async () => {
+    const { api } = scripted([jobView({ status: "succeeded" })]);
+    render(<SongPage jobId={JOB_ID} api={api} createMedia={createMedia} />);
+    await settle();
+    await wait(POLL_MS);
+
+    expect(screen.getByRole("button", { name: "Play" })).toBeTruthy();
+    expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual([FIRST_SONG.source.title]);
+  });
+
   it("stops polling once the job is finished", async () => {
     const { api, calls } = scripted([jobView({ status: "succeeded" })]);
     render(<SongPage jobId={JOB_ID} api={api} createMedia={createMedia} />);
