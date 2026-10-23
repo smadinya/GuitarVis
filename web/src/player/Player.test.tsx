@@ -145,6 +145,20 @@ describe("Player", () => {
     expect(guitar.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("lays out the header, then warnings, guitar and tab strip, with the sections after them", async () => {
+    mount({ warnings: ["w"] });
+    const order = [
+      screen.getByRole("heading", { level: 1 }),
+      screen.getByRole("complementary", { name: "Warnings" }),
+      await screen.findByRole("img", { name: "Guitar" }),
+      screen.getByLabelText("Tab"),
+      screen.getByRole("complementary", { name: "Sections" }),
+    ];
+    for (let i = 1; i < order.length; i++) {
+      expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
   it("keeps playing from its controls when the guitar has no WebGL", async () => {
     const media = mount();
 

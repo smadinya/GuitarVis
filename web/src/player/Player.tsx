@@ -8,6 +8,7 @@ import { Controls } from "./Controls";
 import { GuitarBoundary, GuitarChunkError } from "./GuitarBoundary";
 import { Header } from "./Header";
 import { useTransportKeys } from "./keys";
+import { Sections } from "./Sections";
 import { useStoredView } from "./ViewSwitch";
 import { Warnings } from "./Warnings";
 
@@ -30,7 +31,8 @@ export interface PlayerProps {
 }
 
 /** One engine per song; every view subscribes to it. The guitar sits above
- * the tab strip; each is one more onFrame listener. The page chooses the view
+ * the tab strip, with the sections beside them; each is one more onFrame
+ * listener. The page chooses the view
  * here, beside the engine, so a switch never rebuilds the engine: "Tab only"
  * unmounts the guitar, and the audio plays on. */
 export function Player({ song, jobId, createMedia }: PlayerProps) {
@@ -49,15 +51,20 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
   return (
     <section className="player">
       <Header song={song} view={view} onView={setView} />
-      <Warnings warnings={song.warnings} />
-      {view !== "tab" && (
-        <GuitarBoundary>
-          <Suspense fallback={<div className="guitar" />}>
-            <Guitar song={song} engine={engine} view={view} />
-          </Suspense>
-        </GuitarBoundary>
-      )}
-      <TabStrip song={song} engine={engine} />
+      <div className="player-body">
+        <div className="player-main">
+          <Warnings warnings={song.warnings} />
+          {view !== "tab" && (
+            <GuitarBoundary>
+              <Suspense fallback={<div className="guitar" />}>
+                <Guitar song={song} engine={engine} view={view} />
+              </Suspense>
+            </GuitarBoundary>
+          )}
+          <TabStrip song={song} engine={engine} />
+        </div>
+        <Sections song={song} engine={engine} />
+      </div>
       <Controls engine={engine} />
     </section>
   );

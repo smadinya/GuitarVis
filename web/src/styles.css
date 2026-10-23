@@ -256,6 +256,102 @@ main {
   }
 }
 
+/* The page's two columns: the views, and the sections beside them. minmax(0,
+   1fr), not a bare 1fr: a bare 1fr will not shrink below its content, and the
+   lane's overflow would widen the column. Below 900px the sidebar follows the
+   views. */
+.song-page {
+  max-width: 1280px;
+}
+
+.player-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 248px;
+  gap: 16px;
+  align-items: start;
+}
+
+.player-main {
+  min-width: 0;
+}
+
+@media (max-width: 899px) {
+  .player-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The sections, each a jump to its start, and the song's chords. The row that
+   is playing takes the accent, with a bar at its left edge. */
+.sections {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.sections h2 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sections h2:not(:first-child) {
+  margin-top: 16px;
+}
+
+.sections p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.sections .chord-list {
+  color: var(--fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.sections ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sections button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sections button:hover {
+  background: var(--bg-raised);
+}
+
+.sections button[aria-current="true"] {
+  background: var(--bg-raised);
+  color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.sections .time {
+  font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.sections button[aria-current="true"] .time {
+  color: inherit;
+}
+
 /* The page's view choice: one group, the chosen button raised. */
 .segmented {
   display: inline-flex;
