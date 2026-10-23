@@ -68,15 +68,30 @@ body {
   font: 16px/1.5 system-ui, sans-serif;
 }
 
+/* The page fills the window, so a short song page still puts its transport
+   at the window's bottom rather than mid-screen. */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
 main {
+  width: 100%;
   max-width: 1100px;
   margin: 0 auto;
   padding: 16px;
 }
 
+/* The wordmark lines up with the page's content column, not the window's
+   edge: 1100px on the upload page, 1280px beside a song. */
 .masthead {
-  padding: 12px 16px;
+  padding: 12px max(16px, calc((100% - 1100px) / 2 + 16px));
   border-bottom: 1px solid var(--border);
+}
+
+body:has(.song-page) .masthead {
+  padding-inline: max(16px, calc((100% - 1280px) / 2 + 16px));
 }
 
 .masthead a {
@@ -165,13 +180,15 @@ main {
 
 /* The canvas fills the box, and three.js sizes its bitmap from the box. The
    box's size never depends on the canvas's. */
+/* Its height follows the window's on a wide screen, so a tall window gives
+   the guitar the room rather than leaving a band above the transport. The
+   540px is what the header, lane, tab strip and transport take. Below 900px
+   it keeps the 2.8 aspect, which fits a narrow column. */
 .guitar {
   position: relative;
   width: 100%;
-  aspect-ratio: 2.8;
-  min-height: 260px;
-  max-height: 460px;
-  margin-bottom: 12px;
+  height: clamp(260px, 100dvh - 540px, 560px);
+  margin-bottom: 0;
   border-radius: 8px;
   overflow: hidden;
   background: var(--guitar-background);
@@ -215,19 +232,20 @@ main {
 
 /* The chord now, and the one after, in the panel's top-left. It wears the
    message's halo, so the strings do not strike through it. */
+/* A chip on the panel's ground, not a halo: the 3D neck passes under this
+   corner, and a halo over wood leaves the text unreadable. */
 .guitar-chords {
   position: absolute;
   top: 8px;
-  left: 12px;
+  left: 8px;
   display: flex;
   align-items: baseline;
   gap: 12px;
+  padding: 2px 12px;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  box-shadow: 0 0 0 1px var(--border);
   pointer-events: none;
-  text-shadow:
-    0 0 3px var(--guitar-background),
-    0 0 3px var(--guitar-background),
-    0 0 3px var(--guitar-background),
-    0 0 3px var(--guitar-background);
 }
 
 /* display: flex above would beat the hidden attribute. */
@@ -241,8 +259,9 @@ main {
 }
 
 .guitar-chords .next {
+  padding: 6px 0;
   color: var(--muted);
-  font: 15px system-ui, sans-serif;
+  font: 15px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* What the dots mean, in the panel's bottom-left. */
@@ -280,26 +299,32 @@ main {
    word where it must, so the view switch never leaves the window. */
 .song-header {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px 16px;
   align-items: center;
-  margin-bottom: 12px;
+  margin: 4px 0 16px;
 }
 
+/* The way out of the song, set as a quiet button at the row's end. */
 .song-header .back {
+  order: 3;
+  padding: 6px 12px;
+  border-radius: 6px;
   color: var(--muted);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .song-header .back:hover {
-  color: var(--accent);
+  background: var(--panel);
+  color: var(--fg);
 }
 
 .song-header h1 {
   margin: 0;
-  font-size: 22px;
-  line-height: 1.3;
+  font-size: 26px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 
@@ -311,11 +336,12 @@ main {
 
 @media (max-width: 899px) {
   .song-header {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .song-header .segmented {
     grid-column: 1 / -1;
+    order: 4;
     justify-self: start;
   }
 }
@@ -325,7 +351,16 @@ main {
    lane's overflow would widen the column. Below 900px the sidebar follows the
    views. */
 .song-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   max-width: 1280px;
+}
+
+.song-page > .player {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
 }
 
 .player-body {
@@ -353,20 +388,37 @@ main {
    which would clip a 2px box-shadow at the lane's top, bottom and first
    edge. offsetLeft and scrollLeft are both padding-box coordinates, so the
    padding leaves the centring formula as it was. */
+/* The lane scrolls itself to the playhead, so it hides its scrollbar and
+   fades its ends to say there is more either side. */
+@media (max-width: 899px) {
+  .guitar {
+    height: auto;
+    aspect-ratio: 2.8;
+    min-height: 260px;
+    max-height: 460px;
+  }
+}
+
 .chord-lane {
   position: relative;
   display: flex;
   gap: 6px;
-  margin: 0 0 12px;
+  margin: 12px 0;
   padding: 3px;
   overflow-x: auto;
   scroll-behavior: smooth;
+  scrollbar-width: none;
   list-style: none;
+  mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+}
+
+.chord-lane::-webkit-scrollbar {
+  display: none;
 }
 
 .chord-cell {
   flex: 0 0 64px;
-  padding: 8px 0;
+  padding: 10px 0;
   border-radius: 6px;
   background: var(--panel);
   color: var(--muted);
@@ -393,7 +445,7 @@ main {
 /* The sections, each a jump to its start, and the song's chords. The row that
    is playing takes the accent, with a bar at its left edge. */
 .sections {
-  padding: 12px;
+  padding: 16px;
   border-radius: 8px;
   background: var(--panel);
 }
@@ -417,9 +469,20 @@ main {
 }
 
 .sections .chord-list {
-  color: var(--fg);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  overflow-wrap: anywhere;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sections .chord-list li {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--bg-raised);
+  box-shadow: 0 0 0 1px var(--border);
+  font: 600 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .sections ol {
@@ -631,13 +694,19 @@ main {
    preview still rises above the bar. */
 .transport {
   position: sticky;
-  bottom: 0;
+  bottom: 12px;
   z-index: 1;
-  margin: 12px -16px -16px;
+  margin-top: auto;
   padding: 12px 16px;
   overflow-x: clip;
+  border-radius: 12px;
   background: var(--bg-raised);
-  border-top: 1px solid var(--border);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+/* What the dock is pushed down by: the views end where the dock begins. */
+.player-body {
+  margin-bottom: 16px;
 }
 
 .transport-error {
@@ -660,7 +729,7 @@ main {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px 12px;
+  gap: 12px 20px;
 }
 
 .transport-play,
@@ -698,9 +767,33 @@ main {
   cursor: pointer;
 }
 
+/* A set point is the loop's blue, as the band on the scrubber and the tab
+   strip is: blue means the loop and nothing else. */
 .loop button[aria-pressed="true"] {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--tab-loop);
+  color: var(--tab-loop);
+}
+
+/* Back and forward are icons beside the play button, so they go without a
+   box and let the play button lead. */
+.transport-play button:not(.play) {
+  border-color: transparent;
+  background: transparent;
+}
+
+.transport-play button:not(.play):hover {
+  background: var(--panel);
+}
+
+.transport-bar button {
+  height: 36px;
+}
+
+/* Inside its 1px border and 2px trough, a segment is 30px, so a group stands
+   as tall as the loop's buttons beside it. */
+.transport-bar .segmented button {
+  height: 30px;
+  padding-block: 0;
 }
 
 .transport-play .play {

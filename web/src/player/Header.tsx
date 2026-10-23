@@ -28,7 +28,7 @@ export function Header({ song, view, onView }: { song: Song; view: PageView; onV
   return (
     <header className="song-header">
       <a href="/" onClick={followLink} className="back">
-        <span aria-hidden="true">‹</span> Upload another song
+        Upload another song
       </a>
       <div className="song-title">
         <h1>{song.title}</h1>

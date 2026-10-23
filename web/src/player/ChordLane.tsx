@@ -54,9 +54,9 @@ export function ChordLane({ song, engine }: { song: Song; engine: PlaybackEngine
             className="chord-cell"
             data-state={state}
             aria-current={state === "current" ? "true" : undefined}
-            style={{ opacity: cell.opacity }}
           >
-            {cell.symbol}
+            {/* The symbol fades, not the cell, so the lane stays one unbroken row. */}
+            <span style={{ opacity: cell.opacity }}>{cell.symbol}</span>
           </li>
         );
       })}

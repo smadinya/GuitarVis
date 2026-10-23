@@ -48,7 +48,11 @@ export function Sections({ song, engine }: { song: Song; engine: PlaybackEngine 
       {chords.length > 0 && (
         <>
           <h2>Chords</h2>
-          <p className="chord-list">{chords.join(" ")}</p>
+          <ul className="chord-list">
+            {chords.map((symbol) => (
+              <li key={symbol}>{symbol}</li>
+            ))}
+          </ul>
         </>
       )}
     </aside>

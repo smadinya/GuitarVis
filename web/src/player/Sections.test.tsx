@@ -85,7 +85,8 @@ describe("Sections", () => {
     const chord = (t: number, symbol: string) => ({ t, dur: 1, symbol, confidence: 0.9 });
     mount({ sections: SECTIONS, chords: [chord(0, "Am"), chord(1, "C"), chord(2, "Am"), chord(3, "G")] });
     expect(screen.getByRole("heading", { name: "Chords" })).toBeTruthy();
-    expect(screen.getByText("Am C G")).toBeTruthy();
+    const list = screen.getByRole("heading", { name: "Chords" }).nextElementSibling;
+    expect([...(list?.children ?? [])].map((item) => item.textContent)).toEqual(["Am", "C", "G"]);
   });
 
   it("keeps a mouse click on a section from taking focus", () => {

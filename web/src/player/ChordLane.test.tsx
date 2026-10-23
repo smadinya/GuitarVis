@@ -73,7 +73,7 @@ describe("ChordLane", () => {
 
   it("fades a weak chord by the chord thresholds", () => {
     mount([chord(0, "Am", CHORD_HIDE), chord(2, "C", CHORD_FULL)]);
-    expect(cells().map((c) => c.style.opacity)).toEqual([String(FADED), "1"]);
+    expect(cells().map((c) => (c.firstElementChild as HTMLElement).style.opacity)).toEqual([String(FADED), "1"]);
   });
 
   it("renders again only when the current chord changes", () => {
