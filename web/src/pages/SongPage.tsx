@@ -6,7 +6,8 @@ import { Player } from "../player/Player";
 import { buildSong, canRead, type Song } from "../song";
 import type { JobView } from "../types/api";
 import type { TabDocument } from "../types/tabDocument";
-import { Failure, UploadAnother } from "./Failure";
+import { UploadAnother } from "../UploadAnother";
+import { Failure } from "./Failure";
 import { POLL_MS, backoff, retryText, stageText } from "./progress";
 
 export interface SongApi {

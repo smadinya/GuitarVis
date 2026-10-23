@@ -2,10 +2,10 @@
  * The client: an upload page, and a song page whose views all subscribe to
  * one PlaybackEngine and hold no playback state of their own.
  */
-import { UploadAnother } from "./pages/Failure";
 import { SongPage } from "./pages/SongPage";
 import { UploadPage } from "./pages/UploadPage";
 import { followLink, useRoute } from "./routing";
+import { UploadAnother } from "./UploadAnother";
 
 export function App() {
   const route = useRoute();

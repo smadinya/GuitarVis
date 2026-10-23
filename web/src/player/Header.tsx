@@ -1,6 +1,6 @@
 import { stringLabels } from "../labels";
-import { followLink } from "../routing";
 import { STANDARD_TUNING, type Song } from "../song";
+import { UploadAnother } from "../UploadAnother";
 import { clock } from "./time";
 import { ViewSwitch, type PageView } from "./ViewSwitch";
 
@@ -27,9 +27,7 @@ export function details(song: Song): string {
 export function Header({ song, view, onView }: { song: Song; view: PageView; onView: (view: PageView) => void }) {
   return (
     <header className="song-header">
-      <a href="/" onClick={followLink} className="back">
-        Upload another song
-      </a>
+      <UploadAnother className="back" />
       <div className="song-title">
         <h1>{song.title}</h1>
         <p className="details">{details(song)}</p>
