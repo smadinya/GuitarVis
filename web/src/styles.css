@@ -717,13 +717,18 @@ body:has(.song-page) .masthead {
    273px at 424px and narrower. Each value is the tallest of its range, so a
    control is never left under the dock, and a shorter dock leaves more air
    than 16px. An audio error adds a row above the bar for as long as it
-   shows; that is not reserved. */
-html:has(.transport) {
+   shows; that is not reserved.
+
+   Not while focus is in the dock. The dock is sticky, so a control in it is
+   always on screen, but it sits inside the padded band, and the browser would
+   scroll the page by hundreds of pixels to bring it out of the band, on every
+   Tab within the bar. */
+html:has(.transport):not(:has(.transport:focus-within)) {
   scroll-padding-bottom: 148px;
 }
 
 @media (max-width: 899px) {
-  html:has(.transport) {
+  html:has(.transport):not(:has(.transport:focus-within)) {
     scroll-padding-bottom: 301px;
   }
 }
