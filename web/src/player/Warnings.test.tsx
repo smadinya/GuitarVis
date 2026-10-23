@@ -23,17 +23,29 @@ describe("Warnings", () => {
     expect(region().textContent).toContain("3 things to know about this tab");
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
 
-    fireEvent.click(screen.getByRole("button", { name: "Show" }));
-    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual(["one", "two", "three"]);
-    expect(screen.getByRole("button", { name: "Hide" }).getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("button", { name: "Details" }).getAttribute("aria-expanded")).toBe("false");
 
-    fireEvent.click(screen.getByRole("button", { name: "Hide" }));
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual(["one", "two", "three"]);
+    expect(screen.getByRole("button", { name: "Details" }).getAttribute("aria-expanded")).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
-    expect(screen.getByRole("button", { name: "Show" }).getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getByRole("button", { name: "Details" }).getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("keeps a mouse click on Show from taking focus", () => {
+  it("names its button once, whether the list is open or shut: the state is aria-expanded's to say", () => {
     render(<Warnings warnings={["one", "two"]} />);
-    expect(fireEvent.mouseDown(screen.getByRole("button", { name: "Show" }))).toBe(false);
+    const name = () => screen.getByRole("button").textContent;
+    expect(name()).toBe("Details");
+
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(name()).toBe("Details");
+  });
+
+  it("keeps a mouse click on Details from taking focus", () => {
+    render(<Warnings warnings={["one", "two"]} />);
+    expect(fireEvent.mouseDown(screen.getByRole("button", { name: "Details" }))).toBe(false);
   });
 });

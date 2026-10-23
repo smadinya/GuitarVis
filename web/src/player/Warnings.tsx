@@ -5,8 +5,11 @@ import { Button } from "./Button";
 
 /** The document's warnings. A tab the user cannot tell is degraded is worse
  * than one labelled as such. One warning shows its text. Several collapse to
- * a count with a Show button, so they do not push the player down the page;
- * the choice is not remembered, as the warnings are a note about this load. */
+ * a count with a Details button, so they do not push the player down the page;
+ * the choice is not remembered, as the warnings are a note about this load.
+ * The button keeps one name, and `aria-expanded` says whether the list is
+ * open: a name that turned into "Hide" would be announced as a different
+ * button, on top of the state. */
 export function Warnings({ warnings }: { warnings: readonly string[] }) {
   const [open, setOpen] = useState(false);
   if (warnings.length === 0) return null;
@@ -18,7 +21,7 @@ export function Warnings({ warnings }: { warnings: readonly string[] }) {
       <p>{several ? `${warnings.length} things to know about this tab` : warnings[0]}</p>
       {several && (
         <Button expanded={open} onClick={() => setOpen(!open)}>
-          {open ? "Hide" : "Show"}
+          Details
         </Button>
       )}
       {several && open && (
