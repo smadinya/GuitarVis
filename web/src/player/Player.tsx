@@ -52,7 +52,7 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
   if (engine === null) return null;
   return (
     <section className="player">
-      <Header song={song} view={view} onView={setView} />
+      <Header song={song} engine={engine} view={view} onView={setView} />
       <div className="player-body">
         <div className="player-main">
           <Warnings warnings={song.warnings} />
