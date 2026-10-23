@@ -129,7 +129,7 @@ Inputs the spec implies but its test list never exercises, most likely first. Ea
   export function samePosition(a: Position, b: Position): boolean;
   ```
 
-- [ ] **Step 1: Write the failing tests** — a new `describe("TrackCursor")` in `cursor.test.ts`
+- [x] **Step 1: Write the failing tests** — a new `describe("TrackCursor")` in `cursor.test.ts`
 
 ```ts
 const span = (t: number, dur: number) => ({ t, dur });
@@ -169,21 +169,21 @@ describe("TrackCursor", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/playback/cursor.test.ts`
 Expected: FAIL in `tsc`: `TrackCursor` is not exported.
 
-- [ ] **Step 3: Implement `TrackCursor` in `cursor.ts`**
+- [x] **Step 3: Implement `TrackCursor` in `cursor.ts`**
 
 It holds its own `NoteCursor<T>` and a `Map<T, number>` from item to index, both built once. `current` is the index of `window(t, t).at(-1)`, the same reading `sounding()` uses for the guitar's centre chord, so the lane, the overlay and the centre never disagree. `next` is `firstIndex(items, (item) => item.t > t)`, reusing the module's private binary search. `samePosition` compares both fields. The class's doc comment says that each view keeps its own, as with `NoteCursor`.
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `npm --prefix web test -- src/playback/cursor.test.ts`
 Expected: PASS, with the existing `NoteCursor` and `inWindow` tests unchanged.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/playback/cursor.ts web/src/playback/cursor.test.ts
@@ -214,7 +214,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   export function distinctSymbols(chords: readonly Chord[]): string[];
   ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 const chord = (t: number, symbol: string, confidence = 0.9) => ({ t, dur: 2, symbol, confidence });
@@ -257,19 +257,19 @@ describe("distinctSymbols", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/player/lane.test.ts`
 Expected: FAIL: `./lane` does not exist.
 
-- [ ] **Step 3: Implement the three functions in `lane.ts`**
+- [x] **Step 3: Implement the three functions in `lane.ts`**
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `npm --prefix web test -- src/player/lane.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/player/lane.ts web/src/player/lane.test.ts
@@ -305,7 +305,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   export function scrubMarks(duration: number, sections: readonly Section[], loop: LoopPoints): ScrubMarks;
   ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 const section = (t: number, label = "s") => ({ t, dur: 10, label });
@@ -360,21 +360,21 @@ describe("fraction and timeAt", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/player/scrub.test.ts`
 Expected: FAIL: `./scrub` does not exist.
 
-- [ ] **Step 3: Implement `fraction`, `timeAt` and `scrubMarks` in `scrub.ts`**
+- [x] **Step 3: Implement `fraction`, `timeAt` and `scrubMarks` in `scrub.ts`**
 
 `scrubMarks` returns the empty marks when `fraction` would be meaningless (`!(duration > 0)` or not finite). Every position goes through `fraction`.
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `npm --prefix web test -- src/player/scrub.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/player/scrub.ts web/src/player/scrub.test.ts
@@ -408,7 +408,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   ```
   It builds the engine with `requestFrame: frames.request`, `cancelFrame: frames.cancel` and `JOB_ID`, then calls `media.loadMetadata(duration)`.
 
-- [ ] **Step 1: Write `fakeEngine` in `web/src/test/engine.ts`, then the failing tests**
+- [x] **Step 1: Write `fakeEngine` in `web/src/test/engine.ts`, then the failing tests**
 
 ```tsx
 // @vitest-environment jsdom
@@ -453,21 +453,21 @@ describe("useTransportKeys", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/player/keys.test.tsx`
 Expected: FAIL on the first test: the loop stays `{ a: null, b: null }`.
 
-- [ ] **Step 3: Add two branches to `useTransportKeys`**
+- [x] **Step 3: Add two branches to `useTransportKeys`**
 
 `"["` and `"]"` each call `event.preventDefault()` and then `engine.setLoopPoint("a")` or `("b")`. They sit after the existing guards, so text fields, modifiers and `defaultPrevented` already leave them alone. Add the two keys to the doc comment.
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `npm --prefix web test -- src/player/keys.test.tsx src/player/Player.test.tsx`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/test/engine.ts web/src/player/keys.ts web/src/player/keys.test.tsx
@@ -510,11 +510,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   export function Warnings({ warnings }: { warnings: readonly string[] }): JSX.Element | null;
   ```
 
-- [ ] **Step 1: Move `clock` and its test**
+- [x] **Step 1: Move `clock` and its test**
 
 Move `clock` to `time.ts`, and the `describe("clock")` block from `Player.test.tsx` to `time.test.ts`. Delete `Player.test.tsx`'s `import { clock } from "./Controls"`. Move `Button` and `keepFocus` to `Button.tsx`. `Controls.tsx` imports all three from their new homes, so the page still works until Task 12 deletes it.
 
-- [ ] **Step 2: Write `icons.tsx`**
+- [x] **Step 2: Write `icons.tsx`**
 
 Each icon is `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true" focusable="false">`:
 
@@ -526,7 +526,7 @@ Each icon is `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor
 | `ForwardIcon` | `<path d="M4 13c0 4.4 3.6 8 8 8s8-3.6 8-8h-2c0 3.3-2.7 6-6 6s-6-2.7-6-6 2.7-6 6-6v4l5-5-5-5v4c-4.4 0-8 3.6-8 8z"/>` and the same `<text>` |
 | `AlertIcon` | `<path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>` |
 
-- [ ] **Step 3: Write the failing warnings tests**
+- [x] **Step 3: Write the failing warnings tests**
 
 ```tsx
 // @vitest-environment jsdom
@@ -565,25 +565,25 @@ describe("Warnings", () => {
 });
 ```
 
-- [ ] **Step 4: Run them to verify the collapse tests fail**
+- [x] **Step 4: Run them to verify the collapse tests fail**
 
 Run: `npm --prefix web test -- src/player/Warnings.test.tsx src/player/time.test.ts`
 Expected: the two tests with several warnings FAIL. The others PASS.
 
-- [ ] **Step 5: Rewrite `Warnings`**
+- [x] **Step 5: Rewrite `Warnings`**
 
 It keeps `<aside className="warnings" aria-label="Warnings">` and its doc comment's reason. With one warning it shows `AlertIcon` and that warning's text in a `<p>`. With more than one, it shows `AlertIcon`, a `<p>` saying "{n} things to know about this tab", and a `Button` with `expanded={open}` reading "Show" / "Hide". While `open`, the `<ul>` follows. `open` is `useState(false)` and is never persisted.
 
-- [ ] **Step 6: Add the tokens and the warnings line to `styles.css`**
+- [x] **Step 6: Add the tokens and the warnings line to `styles.css`**
 
 Add `--bg-raised` and `--on-accent` to both `:root` blocks, with the values under *Global Constraints*. `.warnings` becomes a flex row (`align-items: center; gap: 8px`), with the icon in `--accent` and the button pushed to the end (`margin-left: auto`). `.warnings ul` takes the full width (`flex-basis: 100%`).
 
-- [ ] **Step 7: Run the web suite**
+- [x] **Step 7: Run the web suite**
 
 Run: `npm --prefix web test`
 Expected: PASS, including `Player.test.tsx`'s two warnings tests, which pass unchanged.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add web/src/player/time.ts web/src/player/time.test.ts web/src/player/Button.tsx web/src/icons.tsx \
@@ -616,7 +616,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   export interface GuitarProps { song; engine; createRenderer?; view?: View } // view defaults to "3d"
   ```
 
-- [ ] **Step 1: Move the toggle tests to `ViewSwitch.test.tsx`, and write the new ones**
+- [x] **Step 1: Move the toggle tests to `ViewSwitch.test.tsx`, and write the new ones**
 
 ```tsx
 // @vitest-environment jsdom
@@ -727,33 +727,33 @@ it("fetches the guitar's chunk only once a guitar view is chosen", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/player src/guitar/Guitar.test.tsx`
 Expected: FAIL in `tsc`: `./ViewSwitch` does not exist, and `Guitar` has no `view` prop.
 
-- [ ] **Step 3: Write `ViewSwitch.tsx`**
+- [x] **Step 3: Write `ViewSwitch.tsx`**
 
 `readView` and `writeView` come from `Guitar.tsx`, with `"tab"` accepted and the same try/catch fallbacks. `useStoredView` is `useState(readView)` plus a setter that writes. `ViewSwitch` renders `<div className="segmented" role="group" aria-label="View">` holding three `Button`s with `pressed`.
 
-- [ ] **Step 4: Make `Guitar` take `view`**
+- [x] **Step 4: Make `Guitar` take `view`**
 
 Delete `VIEW_KEY`, `VIEWS`, `readView`, `writeView`, the `view` state and the `.guitar-views` group. `view` becomes a prop, defaulting to `"3d"`. The `[view]` effect keeps `viewRef.current = view; stageRef.current?.setView(view);` and loses `writeView`. In the doc comment, "on a view toggle" becomes "on a view change".
 
-- [ ] **Step 5: `Player` owns the view**
+- [x] **Step 5: `Player` owns the view**
 
 `const [view, setView] = useStoredView();` goes before the `engine === null` return. Render `<ViewSwitch view={view} onChange={setView} />` above `<Warnings>` for now; Task 7 moves it into the header. Wrap the guitar's boundary, `Suspense` and `<Guitar … view={view} />` in `view !== "tab" && (…)`.
 
-- [ ] **Step 6: Styles**
+- [x] **Step 6: Styles**
 
 Delete `.guitar-views`. Add `.segmented`: an inline-flex group with a 1 px `--border` border, an 8 px radius and 2 px padding. Its buttons are borderless on a transparent background and use `.controls button`'s padding. `[aria-pressed="true"]` gets the `--bg-raised` background and `--accent` text.
 
-- [ ] **Step 7: Run the web suite**
+- [x] **Step 7: Run the web suite**
 
 Run: `npm --prefix web test`
 Expected: PASS
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add web/src/player/ViewSwitch.tsx web/src/player/ViewSwitch.test.tsx web/src/player/TabOnly.test.tsx \
@@ -790,7 +790,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   export function Header(props: { song: Song; view: PageView; onView: (view: PageView) => void }): JSX.Element;
   ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `song.test.ts`:
 
@@ -843,12 +843,12 @@ it("titles the page once, in the player's header", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/song.test.ts src/player/Header.test.tsx src/pages/SongPage.test.tsx`
 Expected: FAIL: there is no `tempo` and no `./Header`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `song.ts`: export `STANDARD_TUNING`, and set `tempo` from `doc.timing.tempo_bpm_avg`, or `null` unless it is a positive finite number.
 - `Header.tsx`: a `<header className="song-header">` holding the back link (`<a href="/" onClick={followLink} className="back"><span aria-hidden="true">‹</span> Upload another song</a>`), then the `<h1>` and `<p className="details">`, then `ViewSwitch`. `tuningName` compares element-wise with `STANDARD_TUNING`, and otherwise joins `stringLabels(tuning)` with spaces. `details` uses `clock(song.duration)` and `Math.round(tempo)`.
@@ -856,12 +856,12 @@ Expected: FAIL: there is no `tempo` and no `./Header`.
 - `SongPage.tsx`: `const showsPlayer = job?.status === "succeeded" && loaded.kind === "ready";`, and the `<h1>` renders only when `!showsPlayer`.
 - `styles.css`: `.song-header` is a grid of `auto 1fr auto` with `align-items: center`. The `h1` has no margin and is about 22 px. `.details` is `--muted` at 14 px. Below 900 px the view switch wraps onto its own row.
 
-- [ ] **Step 4: Run the web suite**
+- [x] **Step 4: Run the web suite**
 
 Run: `npm --prefix web test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/song.ts web/src/song.test.ts web/src/player/Header.tsx web/src/player/Header.test.tsx \
@@ -883,7 +883,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes: `TrackCursor`, `samePosition` (Task 1); `distinctSymbols` (Task 2); `fakeEngine` (Task 4); `Button`, `clock` (Task 5).
 - Produces: `export function Sections({ song, engine }: { song: Song; engine: PlaybackEngine }): JSX.Element`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // @vitest-environment jsdom
@@ -985,18 +985,18 @@ it("lays out the header, then warnings, guitar and tab strip, with the sections 
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/player/Sections.test.tsx src/player/Player.test.tsx`
 Expected: FAIL: there is no `./Sections`.
 
-- [ ] **Step 3: Write `Sections`**
+- [x] **Step 3: Write `Sections`**
 
 `<aside className="sections" aria-label="Sections">` holds an `<h2>Sections</h2>`. Under it is either `<p>No sections found</p>` or an `<ol>` with one `<li>` per section. Each `<li>` holds a `Button` containing the label, a space, then `<span className="time">{clock(section.t)}</span>`. A click calls `engine.seek(section.t)`. The current one is passed `current`, so it gets `aria-current="true"` and the rest get no attribute. When there are chords, `<h2>Chords</h2><p className="chord-list">{distinctSymbols(song.chords).join(" ")}</p>` follows.
 
 Following playback: a `TrackCursor(song.sections)` and the last `Position`, both made inside an effect on `[song, engine]`. Its `engine.onFrame` callback calls `setCurrent(position.current)` only when `!samePosition(last, position)`.
 
-- [ ] **Step 4: Lay out the page**
+- [x] **Step 4: Lay out the page**
 
 `Player` renders `Header`, then `<div className="player-body">` holding `<div className="player-main">` (warnings, guitar, tab strip) and `<Sections>`, then `Controls`. In `styles.css`:
 - `.song-page { max-width: 1280px; }`
@@ -1004,12 +1004,12 @@ Following playback: a `TrackCursor(song.sections)` and the last `Position`, both
 - `@media (max-width: 899px) { .player-body { grid-template-columns: minmax(0, 1fr); } }`
 - `.sections`: `--panel` background, 8 px radius, 12 px padding. `h2` is small uppercase `--muted`. Its buttons are full width with the label left and the time right in monospace. `[aria-current="true"]` has `--accent` text on `--bg-raised`, with a 3 px `--accent` bar on the left as an inset shadow.
 
-- [ ] **Step 5: Run the web suite**
+- [x] **Step 5: Run the web suite**
 
 Run: `npm --prefix web test`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add web/src/player/Sections.tsx web/src/player/Sections.test.tsx \
@@ -1031,7 +1031,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes: `TrackCursor`, `samePosition` (Task 1); `laneCells`, `cellState` (Task 2); `fakeEngine` (Task 4).
 - Produces: `export function ChordLane({ song, engine }: { song: Song; engine: PlaybackEngine }): JSX.Element | null`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // @vitest-environment jsdom
@@ -1107,12 +1107,12 @@ it("keeps the chord lane in Tab only", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/player/ChordLane.test.tsx src/player/Player.test.tsx`
 Expected: FAIL: there is no `./ChordLane`.
 
-- [ ] **Step 3: Write `ChordLane`**
+- [x] **Step 3: Write `ChordLane`**
 
 - `cells = useMemo(() => laneCells(song.chords), [song])`.
 - A `Position` in state, starting at `{ current: -1, next: 0 }`. It follows playback as `Sections` does: own `TrackCursor`, and `setState` only when `!samePosition`.
@@ -1120,7 +1120,7 @@ Expected: FAIL: there is no `./ChordLane`.
 - When `position` changes, an effect centres the current cell, or the next one between chords: `lane.scrollLeft = cell.offsetLeft + cell.offsetWidth / 2 - lane.clientWidth / 2`. Do not use `scrollIntoView`, which would also scroll the page when the lane is off screen (and jsdom lacks it).
 - When there are no chords it returns `null`. Put that return after the hooks, or split the component in two.
 
-- [ ] **Step 4: Place it, and style it**
+- [x] **Step 4: Place it, and style it**
 
 In `Player`, `<ChordLane>` goes between the guitar block and `<TabStrip>`, outside the `view !== "tab"` condition. In `styles.css`:
 - `.chord-lane` is `position: relative` (so that cells' `offsetLeft` is measured from it) and `display: flex` with a 6 px gap. It has `overflow-x: auto`, `scroll-behavior: smooth`, no list style, and a 12 px bottom margin.
@@ -1128,12 +1128,12 @@ In `Player`, `<ChordLane>` goes between the guitar block and `<TabStrip>`, outsi
 - The states take the colours under *Global Constraints*. `current` gets `box-shadow: 0 0 0 2px var(--accent)`.
 - `@media (prefers-reduced-motion: reduce) { .chord-lane { scroll-behavior: auto; } }`
 
-- [ ] **Step 5: Run the web suite**
+- [x] **Step 5: Run the web suite**
 
 Run: `npm --prefix web test`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add web/src/player/ChordLane.tsx web/src/player/ChordLane.test.tsx web/src/player/Player.tsx \
@@ -1161,7 +1161,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   export function Legend(): JSX.Element;
   ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `NowNext.test.tsx` (jsdom). With `notes: []` there are no hidden passages, so only the chords matter:
 
@@ -1241,12 +1241,12 @@ it("shows the legend and the chord overlay, and neither without WebGL", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/guitar/NowNext.test.tsx src/guitar/Guitar.test.tsx`
 Expected: FAIL: there is no `./NowNext`.
 
-- [ ] **Step 3: Write `NowNext` and `Legend`**
+- [x] **Step 3: Write `NowNext` and `Legend`**
 
 `NowNext` follows playback in an effect on `[song, engine]`, with its own `TrackCursor(song.chords)`. On each frame it works out `{ now: Chord | null, next: Chord | null, hidden }`:
 - `now` is `chords[position.current]`, or null.
@@ -1257,11 +1257,11 @@ It calls `setState` only when one of the three changes (compare the chords by id
 
 `Legend` renders `<ul className="guitar-legend" aria-label="Legend">` with two items: a `.legend-dot` then "Sounding", and a `.legend-dot` at `style={{ opacity: FADED }}` then "Less sure".
 
-- [ ] **Step 4: Put them in the panel**
+- [x] **Step 4: Put them in the panel**
 
 `Guitar` renders `<NowNext song={song} engine={engine} />` and `<Legend />` in the branch with "Reset view", never over the WebGL or failure message.
 
-- [ ] **Step 5: Styles**
+- [x] **Step 5: Styles**
 
 - `.guitar-chords` sits absolutely at `top: 8px; left: 12px`. It is a flex row with a 12 px gap and baseline alignment, has `pointer-events: none`, and wears `.guitar-message`'s halo `text-shadow`.
 - `.guitar-chords[hidden] { display: none; }`. Flex would beat the attribute, as the comment on `.guitar-message[hidden]` says.
@@ -1269,12 +1269,12 @@ It calls `setState` only when one of the three changes (compare the chords by id
 - `.guitar-legend` sits absolutely at `left: 12px; bottom: 8px`. It is a flex row of 13 px `--guitar-text` with no list style and `pointer-events: none`.
 - `.legend-dot` is a 10 px `--guitar-dot` circle.
 
-- [ ] **Step 6: Run the web suite**
+- [x] **Step 6: Run the web suite**
 
 Run: `npm --prefix web test`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add web/src/guitar/NowNext.tsx web/src/guitar/NowNext.test.tsx web/src/guitar/Guitar.tsx \
@@ -1307,7 +1307,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   export function Scrubber(props: ScrubberProps): JSX.Element;
   ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // @vitest-environment jsdom
@@ -1404,12 +1404,12 @@ describe("Scrubber", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/player/Scrubber.test.tsx`
 Expected: FAIL: there is no `./Scrubber`.
 
-- [ ] **Step 3: Write `Scrubber`**
+- [x] **Step 3: Write `Scrubber`**
 
 It reads `duration`, `time` and `loop` through `useSyncExternalStore(engine.subscribe, engine.getState)`, and `marks = scrubMarks(duration, sections, loop)`.
 
@@ -1435,19 +1435,19 @@ It reads `duration`, `time` and `loop` through `useSyncExternalStore(engine.subs
 - `pointercancel` and `lostpointercapture`: clear the drag and the preview, then `engine.redraw()` so the knob returns. After a `pointerup` there is no drag left, so they do nothing.
 - `keydown`: ArrowRight and ArrowUp call `engine.seekBy(SEEK_STEP_SEC)`. ArrowLeft and ArrowDown call `engine.seekBy(-SEEK_STEP_SEC)`. Home calls `engine.seek(0)` and End calls `engine.seek(duration)`. Each one calls `preventDefault()`, which is what stops the window's handler seeking again. Other keys pass through.
 
-- [ ] **Step 4: Styles**
+- [x] **Step 4: Styles**
 
 - `.scrubber` is `position: relative`, about 24 px tall, `touch-action: none`, with `cursor: pointer`. It has a `:focus-visible` outline in `--accent`.
 - `.scrub-track` is a 4 px `--border` bar, centred vertically. `.scrub-played` is `inset: 0`, in `--accent`, with `transform-origin: left`.
 - `.scrub-band` is a `--tab-loop` fill at `opacity: 0.25`. `.scrub-edge` is a 2 px `--tab-loop` line. `.scrub-tick` is a 1 px `--muted` line on the middle half of the height.
 - `.scrub-head` is `position: absolute; inset: 0; pointer-events: none`. The percentage in its `translateX` is of its own width, which is the track's. `.scrub-knob` is a 14 px `--accent` circle centred on the head's left edge. `.scrub-preview` sits above the knob in monospace.
 
-- [ ] **Step 5: Run them to verify they pass**
+- [x] **Step 5: Run them to verify they pass**
 
 Run: `npm --prefix web test -- src/player/Scrubber.test.tsx`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add web/src/player/Scrubber.tsx web/src/player/Scrubber.test.tsx web/src/styles.css
@@ -1472,7 +1472,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes: `TrackCursor` (Task 1); `fakeEngine` (Task 4); `Button`, `clock`, icons (Task 5); `Scrubber` (Task 11).
 - Produces: `export function Transport({ song, engine }: { song: Song; engine: PlaybackEngine }): JSX.Element`
 
-- [ ] **Step 1: Move the control tests, and write the new ones**
+- [x] **Step 1: Move the control tests, and write the new ones**
 
 Move these tests from `Player.test.tsx` to `Transport.test.tsx` unchanged, except that they call the `mount` below and take `media` from its result (`const { media } = mount()`). The no-stretch test passes its prepared media as `mount({}, { media })`:
 - "plays and pauses from its button"
@@ -1557,12 +1557,12 @@ describe("Transport", () => {
 
 The eleven are back, play, forward, three speeds, A, B, ×, and two sources. In `Player.test.tsx`, append `screen.getByRole("region", { name: "Transport" })` to the layout test's order.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/player/Transport.test.tsx src/player/Player.test.tsx`
 Expected: FAIL: there is no `./Transport`.
 
-- [ ] **Step 3: Write `Transport`, and delete `Controls.tsx`**
+- [x] **Step 3: Write `Transport`, and delete `Controls.tsx`**
 
 It keeps every behaviour of `Controls`, including `SOURCES`, `otherSource` and the error wording:
 
@@ -1588,7 +1588,7 @@ It keeps every behaviour of `Controls`, including `SOURCES`, `otherSource` and t
 - `label`: `useMemo(() => new TrackCursor(song.sections), [song])`, read in render at `state.time`. That runs at the readout's 4 Hz, not per frame. It is `song.sections[current].label`, or `null`.
 - The loop buttons' text is `A` or `` `A ${clock(a)}` ``. Their `label` is `"Set loop start"` or `` `Set loop start (${clock(a)})` ``, and the same for B. × keeps "Clear loop".
 
-- [ ] **Step 4: Dock it**
+- [x] **Step 4: Dock it**
 
 `Player` renders `<Transport song={song} engine={engine} />` last, in place of `Controls`. In `styles.css`:
 - Delete `.controls` and its rules.
@@ -1597,12 +1597,12 @@ It keeps every behaviour of `Controls`, including `SOURCES`, `otherSource` and t
 - `.play` is 48 × 48 px with `border-radius: 50%`, an `--accent` background and `color: var(--on-accent)`. The other transport buttons share the old `.controls button` look.
 - `@media (max-width: 899px) { .transport-scrub { order: -1; flex-basis: 100%; } }` makes the scrubber its own first row and the buttons the second.
 
-- [ ] **Step 5: Run the web suite and the gate**
+- [x] **Step 5: Run the web suite and the gate**
 
 Run: `npm --prefix web test && npm --prefix web run lint && npm --prefix web run build`
 Expected: PASS. Vite still lists the guitar as its own chunk of about 600 kB, and the entry chunk stays near the 168 kB that `vite.config.ts` records. An entry chunk that has grown by hundreds of kB means something outside `guitar/` imported a guitar module.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git rm web/src/player/Controls.tsx
@@ -1625,11 +1625,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `docs/specs/011-player-redesign/acceptance.md`
 - Modify: `docs/specs/001-guitarvis-design/spec.md` (*Client → Layout*)
 
-- [ ] **Step 1: Point the parent spec at 011**
+- [x] **Step 1: Point the parent spec at 011**
 
 Under *Layout*, after the paragraph that ends "should not compete for the same space.", add: "**Superseded by [011](../011-player-redesign/spec.md#layout):** the view switch (3D · Fretboard · Tab only) is in the page header. A chord lane runs under the guitar, the sections sit in a sidebar, and the transport docks to the bottom of the window. The tab strip is still always shown."
 
-- [ ] **Step 2: Write `acceptance.md`, blank**
+- [x] **Step 2: Write `acceptance.md`, blank**
 
 Use 008's layout: a **Spec:** link to [the spec's *Manual acceptance*](spec.md#manual-acceptance), a sentence on what it is for, and "Filled in before the PR is merged." Then:
 - *Setup*: commit; machine and OS; browsers and versions; the song's title, length, number of sections and number of chords. Use a song this database has not seen, or delete its job row first, as 008's record explains.
@@ -1648,7 +1648,7 @@ Use 008's layout: a **Spec:** link to [the spec's *Manual acceptance*](spec.md#m
   - "Section labels on this song: good enough / numbered fallback needed, because …"
   - "The legend without "Next": missed / not missed, because …"
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/specs/001-guitarvis-design/spec.md docs/specs/011-player-redesign/acceptance.md
