@@ -63,4 +63,41 @@ describe("useTransportKeys", () => {
     press("[", { altKey: true });
     expect(engine.getState().loop).toEqual({ a: null, b: null });
   });
+
+  describe("on a layout where [ and ] are typed with AltGr", () => {
+    it("sets A and B when Windows reports AltGr as Ctrl and Alt together", () => {
+      const { engine, at } = setup();
+      at(2);
+      press("[", { ctrlKey: true, altKey: true });
+      at(6);
+      press("]", { ctrlKey: true, altKey: true });
+      expect(engine.getState().loop).toEqual({ a: 2, b: 6 });
+    });
+
+    it("sets A and B when the event reports the AltGraph modifier", () => {
+      const { engine, at } = setup();
+      at(2);
+      press("[", { modifierAltGraph: true });
+      at(6);
+      press("]", { modifierAltGraph: true, altKey: true });
+      expect(engine.getState().loop).toEqual({ a: 2, b: 6 });
+    });
+
+    it("still ignores Meta, and a held AltGr key, as it does a held [", () => {
+      const { engine, at } = setup();
+      at(2);
+      press("[", { ctrlKey: true, altKey: true, metaKey: true });
+      press("[", { ctrlKey: true, altKey: true, repeat: true });
+      expect(engine.getState().loop).toEqual({ a: null, b: null });
+    });
+
+    it("gives Space and the arrows no such leave: Ctrl+Alt+Space does not toggle, Ctrl+Alt+→ does not seek", () => {
+      const { engine } = setup();
+      press(" ", { ctrlKey: true, altKey: true });
+      press("ArrowRight", { ctrlKey: true, altKey: true });
+      press("ArrowRight", { modifierAltGraph: true, altKey: true });
+      expect(engine.getState().playing).toBe(false);
+      expect(engine.getState().time).toBe(0);
+    });
+  });
 });
