@@ -704,6 +704,30 @@ body:has(.song-page) .masthead {
   box-shadow: 0 0 0 1px var(--border);
 }
 
+/* The dock floats over the page, so the browser does not know it covers the
+   bottom of the window: a focused control that is already inside the window,
+   under the dock, would be left where it is, hidden. scroll-padding-bottom
+   tells it where the page's visible part ends. It is the dock's height, plus
+   the 12px it floats above the window's edge, plus 16px of air.
+
+   The heights are measured, in Chromium, with a loop set and the speed
+   buttons shown. From 900px up the bar is two rows, 120px, until about
+   1040px, and one row, 72px, beyond. Below 900px it wraps onto two to five
+   rows: 129px at 860px, 177px from 840px down to 490px, then 225px, and
+   273px at 424px and narrower. Each value is the tallest of its range, so a
+   control is never left under the dock, and a shorter dock leaves more air
+   than 16px. An audio error adds a row above the bar for as long as it
+   shows; that is not reserved. */
+html:has(.transport) {
+  scroll-padding-bottom: 148px;
+}
+
+@media (max-width: 899px) {
+  html:has(.transport) {
+    scroll-padding-bottom: 301px;
+  }
+}
+
 /* What the dock is pushed down by: the views end where the dock begins. */
 .player-body {
   margin-bottom: 16px;
