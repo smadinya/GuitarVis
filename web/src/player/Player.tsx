@@ -5,11 +5,11 @@ import { PlaybackEngine } from "../playback/engine";
 import type { Song } from "../song";
 import { TabStrip } from "../tab/TabStrip";
 import { ChordLane } from "./ChordLane";
-import { Controls } from "./Controls";
 import { GuitarBoundary, GuitarChunkError } from "./GuitarBoundary";
 import { Header } from "./Header";
 import { useTransportKeys } from "./keys";
 import { Sections } from "./Sections";
+import { Transport } from "./Transport";
 import { useStoredView } from "./ViewSwitch";
 import { Warnings } from "./Warnings";
 
@@ -33,9 +33,10 @@ export interface PlayerProps {
 
 /** One engine per song; every view subscribes to it. The guitar sits above
  * the chord lane and the tab strip, with the sections beside them; each is one
- * more onFrame listener. The page chooses the view here, beside the engine, so
- * a switch never rebuilds the engine: "Tab only" unmounts the guitar, and the
- * audio plays on. The lane stays, since it is not three.js. */
+ * more onFrame listener. The transport is docked below them all. The page
+ * chooses the view here, beside the engine, so a switch never rebuilds the
+ * engine: "Tab only" unmounts the guitar, and the audio plays on. The lane
+ * stays, since it is not three.js. */
 export function Player({ song, jobId, createMedia }: PlayerProps) {
   const [engine, setEngine] = useState<PlaybackEngine | null>(null);
   const [view, setView] = useStoredView();
@@ -67,7 +68,7 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
         </div>
         <Sections song={song} engine={engine} />
       </div>
-      <Controls engine={engine} />
+      <Transport song={song} engine={engine} />
     </section>
   );
 }
