@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { NoteCursor, type Span } from "./cursor";
+import { NoteCursor, samePosition, TrackCursor, type Span } from "./cursor";
 
 interface Tagged extends Span {
   id: number;
@@ -84,5 +84,49 @@ describe("NoteCursor", () => {
 
   it("answers an empty song", () => {
     expect(new NoteCursor<Tagged>([]).window(0, 10)).toEqual([]);
+  });
+});
+
+const span = (t: number, dur: number) => ({ t, dur });
+
+describe("TrackCursor", () => {
+  it("has nothing current in an empty list", () => {
+    expect(new TrackCursor([]).at(3)).toEqual({ current: -1, next: 0 });
+  });
+
+  it("follows a single span, both ends included", () => {
+    const cursor = new TrackCursor([span(1, 1)]);
+    expect(cursor.at(0)).toEqual({ current: -1, next: 0 });
+    expect(cursor.at(1)).toEqual({ current: 0, next: 1 });
+    expect(cursor.at(2)).toEqual({ current: 0, next: 1 });
+    expect(cursor.at(2.01)).toEqual({ current: -1, next: 1 });
+  });
+
+  it("has nothing current in a gap", () => {
+    expect(new TrackCursor([span(0, 1), span(2, 1)]).at(1.5)).toEqual({ current: -1, next: 1 });
+  });
+
+  it("gives a shared boundary to the later span", () => {
+    expect(new TrackCursor([span(0, 1), span(1, 1)]).at(1)).toEqual({ current: 1, next: 2 });
+  });
+
+  it("takes the latest onset among overlapping spans, and the earlier once the later ends", () => {
+    const cursor = new TrackCursor([span(0, 4), span(1, 1)]);
+    expect(cursor.at(1.5)).toEqual({ current: 1, next: 2 });
+    expect(cursor.at(3)).toEqual({ current: 0, next: 2 });
+  });
+
+  it("finds the earlier span after a backward jump", () => {
+    const cursor = new TrackCursor([span(0, 10), span(10, 10), span(20, 10)]);
+    expect(cursor.at(25).current).toBe(2);
+    expect(cursor.at(5)).toEqual({ current: 0, next: 1 });
+  });
+});
+
+describe("samePosition", () => {
+  it("is true only when both the current and the next span match", () => {
+    expect(samePosition({ current: 1, next: 2 }, { current: 1, next: 2 })).toBe(true);
+    expect(samePosition({ current: 1, next: 2 }, { current: 0, next: 2 })).toBe(false);
+    expect(samePosition({ current: 1, next: 2 }, { current: 1, next: 3 })).toBe(false);
   });
 });

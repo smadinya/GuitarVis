@@ -55,6 +55,58 @@ export class NoteCursor<T extends Span> {
   }
 }
 
+/** Where a sorted list of spans stands at one moment. */
+export interface Position {
+  /** The span sounding at t, read as NoteCursor reads it (both ends
+   * included), the latest onset winning; -1 when none is. */
+  current: number;
+  /** The first span with onset after t; the list's length when none is. */
+  next: number;
+}
+
+/**
+ * Which span of a list is current at a moment, and which comes next. The
+ * chord lane, the sections sidebar, the transport and the guitar's chord
+ * overlay all ask this of their own lists.
+ *
+ * `current` is read through a NoteCursor, the same reading `sounding()` gives
+ * the guitar's centre chord, so the lane, the overlay and the centre never
+ * disagree. It follows playback forward cheaply and re-seats after a seek in
+ * either direction. `next` is a binary search.
+ *
+ * Stateful, as NoteCursor is, so each view keeps its own:
+ * `new TrackCursor(song.chords)`.
+ */
+export class TrackCursor<T extends Span> {
+  private readonly items: readonly T[];
+  private readonly cursor: NoteCursor<T>;
+  private readonly index: Map<T, number>;
+
+  /** `items` must be sorted by onset. */
+  constructor(items: readonly T[]) {
+    this.items = items;
+    this.cursor = new NoteCursor(items);
+    this.index = new Map(items.map((item, i) => [item, i]));
+  }
+
+  /** The current and next span at `t`, in seconds. */
+  at(t: number): Position {
+    const sounding = this.cursor.window(t, t).at(-1);
+    return {
+      current: sounding === undefined ? -1 : (this.index.get(sounding) ?? -1),
+      next: firstIndex(this.items, (item) => item.t > t),
+    };
+  }
+}
+
+/**
+ * Whether two positions name the same spans, so a view calls `setState` only
+ * when the playhead has moved on to another one.
+ */
+export function samePosition(a: Position, b: Position): boolean {
+  return a.current === b.current && a.next === b.next;
+}
+
 /**
  * The items whose [start, end] overlaps [from, to], for items sorted so that
  * both their starts and their ends rise: beats, whose start is their end, or
