@@ -34,7 +34,8 @@ export function timeAt(clientX: number, left: number, width: number, duration: n
 
 /** What the scrubber draws over its track. */
 export interface ScrubMarks {
-  /** A tick at each section start after the first, strictly inside (0, 1). */
+  /** A tick at each section start, strictly inside (0, 1): a start at 0 is
+   * the track's own start, and one at or past the end is off the track. */
   ticks: number[];
   /** Both points set: min to max, as the engine and the tab strip read them. */
   band: { from: number; to: number } | null;
@@ -52,10 +53,10 @@ export interface ScrubMarks {
  */
 export function scrubMarks(duration: number, sections: readonly Section[], loop: LoopPoints): ScrubMarks {
   if (!usable(duration)) return { ticks: [], band: null, edges: [] };
-  // The first section starts the song, so it has nothing to mark; the rest
-  // sit strictly inside the track, which drops a start at or past the end.
+  // Strictly inside the track drops a start at 0 and a start at or past the
+  // end. The first section is no exception: it may begin after 0, and that
+  // boundary is as real as any other.
   const ticks = sections
-    .slice(1)
     .map((s) => fraction(s.t, duration))
     .filter((at) => at > 0 && at < 1);
   const edges: ScrubMarks["edges"] = [];

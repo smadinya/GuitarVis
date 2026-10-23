@@ -6,8 +6,15 @@ const section = (t: number, label = "s") => ({ t, dur: 10, label });
 const NO_LOOP = { a: null, b: null };
 
 describe("scrubMarks", () => {
-  it("ticks each section start after the first", () => {
+  it("ticks each section start, but not the one at 0, which is the track's own start", () => {
     expect(scrubMarks(40, [section(0), section(10), section(20)], NO_LOOP).ticks).toEqual([0.25, 0.5]);
+  });
+
+  it("ticks the first section's start too when it begins after 0", () => {
+    const marks = scrubMarks(60, [section(12), section(40)], NO_LOOP);
+    expect(marks.ticks).toHaveLength(2);
+    expect(marks.ticks[0]).toBeCloseTo(0.2);
+    expect(marks.ticks[1]).toBeCloseTo(2 / 3);
   });
 
   it("drops a section that starts at or past the end", () => {
