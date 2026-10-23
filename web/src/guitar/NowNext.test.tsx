@@ -89,7 +89,7 @@ describe("NowNext", () => {
     expect(onRender).toHaveBeenCalledTimes(renders);
   });
 
-  it("reads where the playhead stands when it mounts, as no frame comes while paused", () => {
+  it("reads where the playhead stands when it mounts, before the first frame arrives", () => {
     const song = buildSong(AM_C);
     const fake = fakeEngine(song);
     fake.at(1.5);

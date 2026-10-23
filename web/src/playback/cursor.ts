@@ -71,8 +71,11 @@ export interface Position {
  *
  * `current` is read through a NoteCursor, the same reading `sounding()` gives
  * the guitar's centre chord, so the lane, the overlay and the centre never
- * disagree. It follows playback forward cheaply and re-seats after a seek in
- * either direction. `next` is a binary search.
+ * disagree. The window asked of it has no width, and a NoteCursor follows only
+ * a window that moves forward while it still overlaps the last one, so every
+ * call re-seats by binary search, as after a seek. That is O(log n) plus the
+ * spans in reach, which stays cheap, and costs the same in either direction.
+ * `next` is a binary search too.
  *
  * Stateful, as NoteCursor is, so each view keeps its own:
  * `new TrackCursor(song.chords)`.

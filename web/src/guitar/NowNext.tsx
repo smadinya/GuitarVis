@@ -48,7 +48,9 @@ export function NowNext({ song, engine }: { song: Song; engine: PlaybackEngine }
       last = next;
       setShown(next);
     };
-    // Mounted at a paused playhead no frame comes, so read where it stands.
+    // Read where the playhead stands now. onFrame asks for a frame, but it
+    // comes later, and until it does the initial state above (no chord now,
+    // the first next) would show, wrongly, for a mount mid-song.
     update(engine.getState().time);
     return engine.onFrame(update);
   }, [song, engine]);
