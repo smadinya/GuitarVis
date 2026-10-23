@@ -31,9 +31,13 @@ export interface PlayerProps {
   createMedia: () => MediaLike;
 }
 
-/** One engine per song; every view subscribes to it. The guitar sits above
- * the chord lane and the tab strip, with the sections beside them; each is one
- * more onFrame listener. The transport is docked below them all. The page
+/** One engine per song; every view subscribes to it. The header shows from
+ * the first render, and the rest once the engine exists: the song page drops
+ * its own title as soon as the document is ready, so a player that painted
+ * nothing until its effect ran would blink the title out for a frame. The
+ * guitar sits above the chord lane and the tab strip, with the sections
+ * beside them; each is one more onFrame listener. The transport is docked
+ * below them all. The page
  * chooses the view here, beside the engine, so a switch never rebuilds the
  * engine: "Tab only" unmounts the guitar, and the audio plays on. The lane
  * stays, since it is not three.js. */
@@ -49,26 +53,29 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
 
   useTransportKeys(engine);
 
-  if (engine === null) return null;
   return (
     <section className="player">
       <Header song={song} engine={engine} view={view} onView={setView} />
-      <div className="player-body">
-        <div className="player-main">
-          <Warnings warnings={song.warnings} />
-          {view !== "tab" && (
-            <GuitarBoundary>
-              <Suspense fallback={<div className="guitar" />}>
-                <Guitar song={song} engine={engine} view={view} />
-              </Suspense>
-            </GuitarBoundary>
-          )}
-          <ChordLane song={song} engine={engine} />
-          <TabStrip song={song} engine={engine} />
-        </div>
-        <Sections song={song} engine={engine} />
-      </div>
-      <Transport song={song} engine={engine} />
+      {engine !== null && (
+        <>
+          <div className="player-body">
+            <div className="player-main">
+              <Warnings warnings={song.warnings} />
+              {view !== "tab" && (
+                <GuitarBoundary>
+                  <Suspense fallback={<div className="guitar" />}>
+                    <Guitar song={song} engine={engine} view={view} />
+                  </Suspense>
+                </GuitarBoundary>
+              )}
+              <ChordLane song={song} engine={engine} />
+              <TabStrip song={song} engine={engine} />
+            </div>
+            <Sections song={song} engine={engine} />
+          </div>
+          <Transport song={song} engine={engine} />
+        </>
+      )}
     </section>
   );
 }

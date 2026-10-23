@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { NO_WEBGL } from "../guitar/Guitar";
@@ -34,6 +35,18 @@ describe("Player", () => {
     vi.restoreAllMocks();
     // The chosen view persists, so one test's choice must not reach the next.
     localStorage.clear();
+  });
+
+  it("shows its header, with the title, before its engine exists", () => {
+    // Effects do not run in a server render, so this is the render before the
+    // engine effect has: the one a song page would paint if it dropped its own
+    // title as soon as the document was ready.
+    const html = renderToString(
+      <Player song={buildSong(FIRST_SONG)} jobId={JOB_ID} createMedia={() => new FakeMedia()} />,
+    );
+
+    expect(html).toMatch(/<h1>Test<\/h1>/);
+    expect(html).not.toContain("Transport");
   });
 
   it("plays and pauses on Space, and seeks on the arrows", () => {
