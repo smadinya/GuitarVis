@@ -6,8 +6,9 @@ import type { Song } from "../song";
 import { TabStrip } from "../tab/TabStrip";
 import { Controls } from "./Controls";
 import { GuitarBoundary, GuitarChunkError } from "./GuitarBoundary";
+import { Header } from "./Header";
 import { useTransportKeys } from "./keys";
-import { useStoredView, ViewSwitch } from "./ViewSwitch";
+import { useStoredView } from "./ViewSwitch";
 import { Warnings } from "./Warnings";
 
 /** three.js is about 150 kB gzipped, so the guitar is its own chunk, fetched
@@ -47,7 +48,7 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
   if (engine === null) return null;
   return (
     <section className="player">
-      <ViewSwitch view={view} onChange={setView} />
+      <Header song={song} view={view} onView={setView} />
       <Warnings warnings={song.warnings} />
       {view !== "tab" && (
         <GuitarBoundary>
