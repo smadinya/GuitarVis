@@ -3,9 +3,10 @@ import { useEffect } from "react";
 import { SEEK_STEP_SEC, type PlaybackEngine } from "../playback/engine";
 
 /**
- * Space plays and pauses; ← and → seek five seconds. The handler sits on the
- * window. It leaves keys aimed at text fields alone, and leaves Space to a
- * focused button or link, which Space activates.
+ * Space plays and pauses; ← and → seek five seconds; [ and ] set the loop's A
+ * and B at the current time. The handler sits on the window. It leaves keys
+ * aimed at text fields alone, and leaves Space to a focused button or link,
+ * which Space activates.
  */
 export function useTransportKeys(engine: PlaybackEngine | null): void {
   useEffect(() => {
@@ -23,6 +24,12 @@ export function useTransportKeys(engine: PlaybackEngine | null): void {
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
         engine.seekBy(SEEK_STEP_SEC);
+      } else if (event.key === "[") {
+        event.preventDefault();
+        engine.setLoopPoint("a");
+      } else if (event.key === "]") {
+        event.preventDefault();
+        engine.setLoopPoint("b");
       }
     };
     window.addEventListener("keydown", onKeyDown);
