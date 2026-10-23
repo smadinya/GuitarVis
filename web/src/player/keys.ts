@@ -6,7 +6,9 @@ import { SEEK_STEP_SEC, type PlaybackEngine } from "../playback/engine";
  * Space plays and pauses; ← and → seek five seconds; [ and ] set the loop's A
  * and B at the current time. The handler sits on the window. It leaves keys
  * aimed at text fields alone, and leaves Space to a focused button or link,
- * which Space activates.
+ * which Space activates. A held Space, [ or ] acts once: auto-repeat would
+ * otherwise flip the audio on and off, or drag a loop point along with the
+ * playhead. (← and → repeat on purpose, to scrub.)
  */
 export function useTransportKeys(engine: PlaybackEngine | null): void {
   useEffect(() => {
@@ -26,10 +28,10 @@ export function useTransportKeys(engine: PlaybackEngine | null): void {
         engine.seekBy(SEEK_STEP_SEC);
       } else if (event.key === "[") {
         event.preventDefault();
-        engine.setLoopPoint("a");
+        if (!event.repeat) engine.setLoopPoint("a");
       } else if (event.key === "]") {
         event.preventDefault();
-        engine.setLoopPoint("b");
+        if (!event.repeat) engine.setLoopPoint("b");
       }
     };
     window.addEventListener("keydown", onKeyDown);

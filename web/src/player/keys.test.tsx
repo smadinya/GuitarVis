@@ -41,6 +41,21 @@ describe("useTransportKeys", () => {
     field.remove();
   });
 
+  it("ignores a held [ or ], so a point does not follow the playhead", () => {
+    const { engine, at } = setup();
+    at(2);
+    press("[");
+    at(6);
+    press("]");
+    at(8);
+    press("[", { repeat: true });
+    press("]", { repeat: true });
+    expect(engine.getState().loop).toEqual({ a: 2, b: 6 });
+    // The next press, after the key came up, sets the point again.
+    press("]");
+    expect(engine.getState().loop).toEqual({ a: 2, b: 8 });
+  });
+
   it("leaves [ and ] with a modifier alone", () => {
     const { engine } = setup();
     press("[", { ctrlKey: true });
