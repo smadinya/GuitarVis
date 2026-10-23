@@ -284,13 +284,17 @@ main {
 /* The chord lane: one cell per chord, scrolled sideways under the guitar. It is
    position: relative so that a cell's offsetLeft is measured from the lane,
    which is what centres the current one. A cell's own opacity is how sure the
-   analysis was, so state is told by colour and a ring, never by fading. */
+   analysis was, so state is told by colour and a ring, never by fading. The
+   padding is room for that ring: overflow-x: auto makes overflow-y auto too,
+   which would clip a 2px box-shadow at the lane's top, bottom and first
+   edge. offsetLeft and scrollLeft are both padding-box coordinates, so the
+   padding leaves the centring formula as it was. */
 .chord-lane {
   position: relative;
   display: flex;
   gap: 6px;
   margin: 0 0 12px;
-  padding: 0;
+  padding: 3px;
   overflow-x: auto;
   scroll-behavior: smooth;
   list-style: none;
