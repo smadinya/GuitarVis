@@ -145,12 +145,13 @@ describe("Player", () => {
     expect(guitar.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("lays out the header, then warnings, guitar and tab strip, with the sections after them", async () => {
+  it("lays out the header, then warnings, guitar, chord lane and tab strip, with the sections after them", async () => {
     mount({ warnings: ["w"] });
     const order = [
       screen.getByRole("heading", { level: 1 }),
       screen.getByRole("complementary", { name: "Warnings" }),
       await screen.findByRole("img", { name: "Guitar" }),
+      screen.getByRole("list", { name: "Chord lane" }),
       screen.getByLabelText("Tab"),
       screen.getByRole("complementary", { name: "Sections" }),
     ];
@@ -239,5 +240,16 @@ describe("Player", () => {
 
     expect(media.paused).toBe(false);
     expect(media.loads).toHaveLength(loads);
+  });
+
+  it("keeps the chord lane in Tab only", async () => {
+    mount();
+    // Wait for the guitar, or the null check below holds whatever Tab only does.
+    await screen.findByRole("img", { name: "Guitar" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Tab only" }));
+
+    expect(screen.getByRole("list", { name: "Chord lane" })).toBeTruthy();
+    expect(screen.queryByRole("img", { name: "Guitar" })).toBeNull();
   });
 });

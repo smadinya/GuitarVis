@@ -281,6 +281,47 @@ main {
   }
 }
 
+/* The chord lane: one cell per chord, scrolled sideways under the guitar. It is
+   position: relative so that a cell's offsetLeft is measured from the lane,
+   which is what centres the current one. A cell's own opacity is how sure the
+   analysis was, so state is told by colour and a ring, never by fading. */
+.chord-lane {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  list-style: none;
+}
+
+.chord-cell {
+  flex: 0 0 64px;
+  padding: 8px 0;
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--muted);
+  font: 700 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-align: center;
+}
+
+.chord-cell[data-state="played"] {
+  color: var(--fg);
+}
+
+.chord-cell[data-state="current"] {
+  background: var(--bg-raised);
+  color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chord-lane {
+    scroll-behavior: auto;
+  }
+}
+
 /* The sections, each a jump to its start, and the song's chords. The row that
    is playing takes the accent, with a bar at its left edge. */
 .sections {
