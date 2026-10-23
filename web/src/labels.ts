@@ -17,12 +17,21 @@ export const GUITAR_FAILED = "The guitar hit an error and stopped. The tab and t
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 /**
+ * Each string's pitch by letter and accidental, without the octave, lowest
+ * first: "Eb2" is "Eb". Never lowercased, so a tuning reads as the notes it
+ * is, where `stringLabels` writes the top string as tab does.
+ */
+export function pitchNames(tuning: readonly string[]): string[] {
+  return tuning.map((name) => /^[A-Ga-g][#b]?/.exec(name)?.[0] ?? name);
+}
+
+/**
  * Letter names by string, lowest first. The top string is lowercased when it
  * shares a letter with the bottom one: e … E in standard tuning, while drop D
  * keeps its capital E.
  */
 export function stringLabels(tuning: readonly string[]): string[] {
-  const labels = tuning.map((name) => /^[A-Ga-g][#b]?/.exec(name)?.[0] ?? name);
+  const labels = pitchNames(tuning);
   const top = labels.length - 1;
   if (top > 0 && labels[top].toLowerCase() === labels[0].toLowerCase()) {
     labels[top] = labels[top].toLowerCase();

@@ -1,16 +1,17 @@
-import { stringLabels } from "../labels";
+import { pitchNames } from "../labels";
 import { STANDARD_TUNING, type Song } from "../song";
 import { UploadAnother } from "../UploadAnother";
 import { clock } from "./time";
 import { ViewSwitch, type PageView } from "./ViewSwitch";
 
-/** "Standard tuning", or the strings' letters, lowest first: "D A D G B E
- * tuning". The letters say which tuning it is without a table of names to
- * maintain. */
+/** "Standard tuning", or the strings' pitches, lowest first: "D A D G B E
+ * tuning". The pitches say which tuning it is without a table of names to
+ * maintain. Each is named for its pitch, not as tab writes it: a half step
+ * down is "Eb Ab Db Gb Bb Eb", with the same capital E at both ends. */
 export function tuningName(tuning: readonly string[]): string {
   const standard =
     tuning.length === STANDARD_TUNING.length && tuning.every((name, i) => name === STANDARD_TUNING[i]);
-  return standard ? "Standard tuning" : `${stringLabels(tuning).join(" ")} tuning`;
+  return standard ? "Standard tuning" : `${pitchNames(tuning).join(" ")} tuning`;
 }
 
 /** Length, tuning, and the tempo when there is one, joined by " · ". The

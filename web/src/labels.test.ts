@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { noteName, stringLabels } from "./labels";
+import { noteName, pitchNames, stringLabels } from "./labels";
 
 describe("stringLabels", () => {
   it("labels standard tuning E A D G B e, lowest first", () => {
@@ -15,6 +15,16 @@ describe("stringLabels", () => {
 
   it("names sharps and flats", () => {
     expect(stringLabels(["C#2", "Bb2"])).toEqual(["C#", "Bb"]);
+  });
+});
+
+describe("pitchNames", () => {
+  it("names each string's pitch without its octave, never lowercased", () => {
+    expect(pitchNames(["E2", "A2", "D3", "G3", "B3", "E4"])).toEqual(["E", "A", "D", "G", "B", "E"]);
+  });
+
+  it("names sharps and flats", () => {
+    expect(pitchNames(["C#2", "Bb2"])).toEqual(["C#", "Bb"]);
   });
 });
 

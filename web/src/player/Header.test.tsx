@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { buildSong } from "../song";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
 import type { TabDocument } from "../types/tabDocument";
-import { details, Header } from "./Header";
+import { details, Header, tuningName } from "./Header";
 
 const FIRST_SONG: TabDocument = firstSongJson;
 
@@ -24,6 +24,21 @@ describe("details", () => {
     expect(details(song({ instrument: { tuning: ["D2", "A2", "D3", "G3", "B3", "E4"] } }))).toBe(
       "0:13 · D A D G B E tuning · about 117 bpm",
     );
+  });
+});
+
+describe("tuningName", () => {
+  it("calls the standard tuning standard", () => {
+    expect(tuningName(["E2", "A2", "D3", "G3", "B3", "E4"])).toBe("Standard tuning");
+  });
+
+  it("names a tuning by the pitch of each string, with its accidental", () => {
+    expect(tuningName(["Eb2", "Ab2", "Db3", "Gb3", "Bb3", "Eb4"])).toBe("Eb Ab Db Gb Bb Eb tuning");
+  });
+
+  it("keeps the top string's capital where it shares a letter with the bottom one", () => {
+    expect(tuningName(["D2", "A2", "D3", "G3", "A3", "D4"])).toBe("D A D G A D tuning");
+    expect(tuningName(["D2", "A2", "D3", "G3", "B3", "E4"])).toBe("D A D G B E tuning");
   });
 });
 
