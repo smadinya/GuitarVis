@@ -8,7 +8,6 @@ import { FakeMedia } from "../test/fakeMedia";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
 import { JOB_ID } from "../test/jobs";
 import type { TabDocument } from "../types/tabDocument";
-import { clock } from "./Controls";
 import { Player } from "./Player";
 
 const FIRST_SONG: TabDocument = firstSongJson;
@@ -207,13 +206,5 @@ describe("Player", () => {
     expect(screen.getByRole("button", { name: "Guitar only" }).getAttribute("aria-pressed")).toBe(
       "true",
     );
-  });
-});
-
-describe("clock", () => {
-  it("formats m:ss", () => {
-    expect(clock(0)).toBe("0:00");
-    expect(clock(65.9)).toBe("1:05");
-    expect(clock(Number.NaN)).toBe("0:00");
   });
 });

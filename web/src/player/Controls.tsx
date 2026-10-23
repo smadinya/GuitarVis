@@ -1,4 +1,4 @@
-import { useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
+import { useSyncExternalStore } from "react";
 
 import {
   RATES,
@@ -7,6 +7,8 @@ import {
   type Rate,
   type Source,
 } from "../playback/engine";
+import { Button } from "./Button";
+import { clock } from "./time";
 
 const SOURCES: Array<[Source, string]> = [
   ["mix", "Full mix"],
@@ -16,36 +18,6 @@ const SOURCES: Array<[Source, string]> = [
 /** The label of the track the player is not on. */
 function otherSource(source: Source): string {
   return SOURCES.find(([candidate]) => candidate !== source)?.[1] ?? "the other track";
-}
-
-/** A clicked button does not keep focus, so Space stays play/pause rather
- * than clicking the last button again. Keyboard focus still works. */
-function keepFocus(event: MouseEvent) {
-  event.preventDefault();
-}
-
-function Button({
-  onClick,
-  pressed,
-  label,
-  children,
-}: {
-  onClick: () => void;
-  pressed?: boolean;
-  label?: string;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onMouseDown={keepFocus}
-      onClick={onClick}
-      aria-pressed={pressed}
-      aria-label={label}
-    >
-      {children}
-    </button>
-  );
 }
 
 export function Controls({ engine }: { engine: PlaybackEngine }) {
@@ -114,10 +86,4 @@ export function Controls({ engine }: { engine: PlaybackEngine }) {
       )}
     </div>
   );
-}
-
-/** m:ss */
-export function clock(seconds: number): string {
-  const whole = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
