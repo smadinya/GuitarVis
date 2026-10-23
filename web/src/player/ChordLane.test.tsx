@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { Profiler } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -44,6 +44,7 @@ const scrollLeft = () => screen.getByRole("list", { name: "Chord lane" }).scroll
 describe("ChordLane", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("draws one cell per chord, in order", () => {
@@ -106,6 +107,55 @@ describe("ChordLane", () => {
     expect(scrollLeft()).toBe(140 + 12);
     at(0.5);
     expect(scrollLeft()).toBe(12);
+  });
+
+  it("centres the current cell again when the lane's width changes, with no change of chord", () => {
+    layOut();
+    const observers: Array<{ callback: () => void; observed: Element[]; disconnected: boolean }> = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        private readonly seen = { callback: () => {}, observed: [] as Element[], disconnected: false };
+        constructor(callback: () => void) {
+          this.seen.callback = callback;
+          observers.push(this.seen);
+        }
+        observe(target: Element) {
+          this.seen.observed.push(target);
+        }
+        disconnect() {
+          this.seen.disconnected = true;
+        }
+      },
+    );
+    const { at } = mount([chord(0, "Am", 0.9, 1), chord(2, "C", 0.9, 1), chord(4, "G", 0.9, 1)]);
+    at(2.5);
+    expect(scrollLeft()).toBe(70 + 12);
+
+    // The window narrows across the 900 px breakpoint: the lane is 60 px wide.
+    expect(observers).toHaveLength(1);
+    expect(observers[0].observed).toEqual([screen.getByRole("list", { name: "Chord lane" })]);
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(60);
+    act(() => observers[0].callback());
+
+    expect(scrollLeft()).toBe(70 + 32 - 30);
+  });
+
+  it("stops watching the lane's size when it goes", () => {
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect = disconnect;
+      },
+    );
+    const song = buildSong({ ...FIRST_SONG, chords: FOUR });
+    const view = render(<ChordLane song={song} engine={fakeEngine(song).engine} />);
+
+    view.unmount();
+
+    expect(disconnect).toHaveBeenCalled();
   });
 
   it("stays on the last cell after the last chord", () => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { samePosition, TrackCursor } from "../playback/cursor";
 import type { PlaybackEngine } from "../playback/engine";
@@ -24,16 +24,37 @@ export function ChordLane({ song, engine }: { song: Song; engine: PlaybackEngine
   // one coming.
   const target = position.current >= 0 ? position.current : Math.min(position.next, cells.length - 1);
 
-  // Centre the current cell. Set the lane's own scrollLeft: scrollIntoView
-  // would scroll the page as well whenever the lane is off screen.
-  useEffect(() => {
+  // Set the lane's own scrollLeft: scrollIntoView would scroll the page as
+  // well whenever the lane is off screen.
+  const centre = useCallback(() => {
     const lane = laneRef.current;
     const cell = lane?.children[target];
     if (lane === null || !(cell instanceof HTMLElement)) return;
     lane.scrollLeft = cell.offsetLeft + cell.offsetWidth / 2 - lane.clientWidth / 2;
   }, [target, cells]);
 
-  if (cells.length === 0) return null;
+  // What the lane's size observer calls: always the latest, so one observer
+  // serves the lane for as long as it is drawn.
+  const latest = useRef(centre);
+  useEffect(() => {
+    latest.current = centre;
+    centre();
+  }, [centre]);
+
+  // A chord that holds, or a song that is paused, would otherwise stay where
+  // the lane's old width put it: the lane's scrollbar is hidden, so nothing
+  // else would bring it back. The window crossing 900 px is such a change.
+  // jsdom, and browsers older than the ResizeObserver, have none.
+  const drawn = cells.length > 0;
+  useEffect(() => {
+    const lane = laneRef.current;
+    if (lane === null || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => latest.current());
+    observer.observe(lane);
+    return () => observer.disconnect();
+  }, [drawn]);
+
+  if (!drawn) return null;
   return (
     <ol className="chord-lane" aria-label="Chord lane" ref={laneRef}>
       {cells.map((cell, index) => {
