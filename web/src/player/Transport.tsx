@@ -1,7 +1,6 @@
-import { useMemo, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import { BackIcon, ForwardIcon, PauseIcon, PlayIcon } from "../icons";
-import { TrackCursor } from "../playback/cursor";
 import {
   RATES,
   SEEK_STEP_SEC,
@@ -12,6 +11,7 @@ import {
 import type { Song } from "../song";
 import { Button } from "./Button";
 import { Scrubber } from "./Scrubber";
+import { useCurrentSection } from "./section";
 import { clock } from "./time";
 
 const SOURCES: Array<[Source, string]> = [
@@ -41,16 +41,17 @@ function loopLabels(letter: "A" | "B", noun: "start" | "end", at: number | null)
  * choice that mends it is.
  *
  * It renders from the engine's own state, which changes about four times a
- * second, so the section is read from a cursor in render and costs nothing per
- * frame. The scrubber's knob follows the frames on its own. The bar clips its
- * overflow sideways only (styles.css), so the scrubber's preview still rises
- * above it, over the track's ends.
+ * second, and that is all the clock readout needs. The section it names comes
+ * from the frames, as the sidebar's does, and sets state only when the section
+ * changes: read from the readout's time it would trail the sidebar by up to a
+ * quarter second. The scrubber's knob follows the frames on its own. The bar
+ * clips its overflow sideways only (styles.css), so the scrubber's preview
+ * still rises above it, over the track's ends.
  */
 export function Transport({ song, engine }: { song: Song; engine: PlaybackEngine }) {
   const state = useSyncExternalStore(engine.subscribe, engine.getState);
-  const cursor = useMemo(() => new TrackCursor(song.sections), [song]);
-  const { current } = cursor.at(state.time);
-  const label = current >= 0 ? song.sections[current].label : null;
+  const current = useCurrentSection(song, engine);
+  const label = song.sections[current]?.label ?? null;
   const { a, b } = state.loop;
   const start = loopLabels("A", "start", a);
   const end = loopLabels("B", "end", b);

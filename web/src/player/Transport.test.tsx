@@ -138,6 +138,26 @@ describe("Transport", () => {
     expect(screen.getByRole("slider", { name: "Position" }).getAttribute("aria-valuetext")).toBe("1:07, Verse 1");
   });
 
+  it("names the section from the frame's own time, not the readout's, which lags by up to 250 ms", () => {
+    const { engine, media, frames } = mount({ sections: SECTIONS }, { duration: 120 });
+    // Paused, the readout is exact: 59.9 s, still in the intro.
+    act(() => {
+      engine.seek(59.9);
+      frames.flush();
+    });
+    expect(screen.getByText("0:59 · Intro")).toBeTruthy();
+
+    // Playing, the readout updates only after a quarter second. The frame at
+    // 60.1 s is in the verse, and the sidebar already says so.
+    act(() => void engine.play());
+    media.currentTime = 60.1;
+    act(() => frames.flush());
+
+    expect(engine.getState().time).toBe(59.9);
+    expect(screen.getByText("0:59 · Verse 1")).toBeTruthy();
+    expect(screen.getByRole("slider", { name: "Position" }).getAttribute("aria-valuetext")).toBe("0:59, Verse 1");
+  });
+
   it("puts the audio error above the bar", () => {
     const { media } = mount();
     act(() => {
