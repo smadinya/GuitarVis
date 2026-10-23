@@ -42,8 +42,9 @@ function loopLabels(letter: "A" | "B", noun: "start" | "end", at: number | null)
  *
  * It renders from the engine's own state, which changes about four times a
  * second, so the section is read from a cursor in render and costs nothing per
- * frame. The scrubber's knob follows the frames on its own. No part of the bar
- * clips its overflow: the scrubber's preview rises over the track's ends.
+ * frame. The scrubber's knob follows the frames on its own. The bar clips its
+ * overflow sideways only (styles.css), so the scrubber's preview still rises
+ * above it, over the track's ends.
  */
 export function Transport({ song, engine }: { song: Song; engine: PlaybackEngine }) {
   const state = useSyncExternalStore(engine.subscribe, engine.getState);
@@ -105,10 +106,20 @@ export function Transport({ song, engine }: { song: Song; engine: PlaybackEngine
         )}
 
         <div className="loop" role="group" aria-label="Loop">
-          <Button pressed={a !== null} onClick={() => engine.setLoopPoint("a")} label={start.label}>
+          <Button
+            className="loop-point"
+            pressed={a !== null}
+            onClick={() => engine.setLoopPoint("a")}
+            label={start.label}
+          >
             {start.text}
           </Button>
-          <Button pressed={b !== null} onClick={() => engine.setLoopPoint("b")} label={end.label}>
+          <Button
+            className="loop-point"
+            pressed={b !== null}
+            onClick={() => engine.setLoopPoint("b")}
+            label={end.label}
+          >
             {end.text}
           </Button>
           <Button onClick={() => engine.clearLoop()} label="Clear loop">
