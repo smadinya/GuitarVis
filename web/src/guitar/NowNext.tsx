@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 
 import { CHORD_THRESHOLDS, FADED, emphasis, isHidden } from "../confidence";
 import { TrackCursor, inWindow } from "../playback/cursor";
 import type { PlaybackEngine } from "../playback/engine";
+import { useFollowed } from "../playback/follow";
 import type { Song } from "../song";
 import type { Chord } from "../types/tabDocument";
 
@@ -28,35 +29,20 @@ function sameShown(a: Shown, b: Shown): boolean {
  * the next chord or the hidden state changes, so it never renders at frame
  * rate. A song with no chords draws nothing. */
 export function NowNext({ song, engine }: { song: Song; engine: PlaybackEngine }) {
-  // Before the first frame nothing has played: no chord is current, and the
-  // first is next.
-  const [shown, setShown] = useState<Shown>({ now: null, next: song.chords[0] ?? null, hidden: false });
-
-  useEffect(() => {
+  const follow = useMemo(() => {
     const cursor = new TrackCursor(song.chords);
-    // Null until the first update, which always sets: after a change of song
-    // the state is the old song's, whatever the new one's position is.
-    let last: Shown | null = null;
-    const update = (t: number) => {
+    return (t: number): Shown => {
       const position = cursor.at(t);
-      const next: Shown = {
+      return {
         now: song.chords[position.current] ?? null,
         next: song.chords[position.next] ?? null,
         hidden: isHidden(inWindow(song.hidden, t, t, (p) => p.from, (p) => p.to), t),
       };
-      if (last !== null && sameShown(last, next)) return;
-      last = next;
-      setShown(next);
     };
-    // Read where the playhead stands now. onFrame asks for a frame, but it
-    // comes later, and until it does the initial state above (no chord now,
-    // the first next) would show, wrongly, for a mount mid-song.
-    update(engine.getState().time);
-    return engine.onFrame(update);
-  }, [song, engine]);
+  }, [song]);
+  const { now, next, hidden } = useFollowed(engine, follow, sameShown);
 
   if (song.chords.length === 0) return null;
-  const { now, next, hidden } = shown;
   return (
     <div className="guitar-chords" hidden={hidden}>
       {now !== null && (

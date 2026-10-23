@@ -75,6 +75,16 @@ describe("Sections", () => {
     expect(onRender).toHaveBeenCalledTimes(renders + 1);
   });
 
+  it("marks the section the playhead is in as it mounts, before the first frame arrives", () => {
+    const song = buildSong({ ...FIRST_SONG, sections: SECTIONS });
+    const fake = fakeEngine(song);
+    fake.at(10);
+
+    render(<Sections song={song} engine={fake.engine} />);
+
+    expect(current()).toEqual(["Chorus 0:09"]);
+  });
+
   it("says when there are no sections", () => {
     mount({ sections: [] });
     expect(screen.getByRole("heading", { name: "Sections" })).toBeTruthy();

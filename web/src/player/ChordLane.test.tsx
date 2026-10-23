@@ -65,6 +65,16 @@ describe("ChordLane", () => {
     expect(states()).toEqual(["current", "coming", "coming", "coming"]);
   });
 
+  it("marks the cells as the playhead stands when it mounts, before the first frame arrives", () => {
+    const song = buildSong({ ...FIRST_SONG, chords: FOUR });
+    const fake = fakeEngine(song);
+    fake.at(3);
+
+    render(<ChordLane song={song} engine={fake.engine} />);
+
+    expect(states()).toEqual(["played", "current", "coming", "coming"]);
+  });
+
   it("has no current cell between chords", () => {
     const { at } = mount([chord(0, "Am", 0.9, 1), chord(2, "C", 0.9, 1)]);
     at(1.5);

@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
-
-import { samePosition, TrackCursor, type Position } from "../playback/cursor";
 import type { PlaybackEngine } from "../playback/engine";
 import type { Song } from "../song";
 import { Button } from "./Button";
 import { distinctSymbols } from "./lane";
+import { useCurrentSection } from "./section";
 import { clock } from "./time";
 
 /** The song's sections, each a jump to its start, with the one playing
@@ -13,20 +11,7 @@ import { clock } from "./time";
  * it never renders at frame rate. A section click seeks and nothing else: a
  * loop that is set stays set. */
 export function Sections({ song, engine }: { song: Song; engine: PlaybackEngine }) {
-  const [current, setCurrent] = useState(-1);
-
-  useEffect(() => {
-    const cursor = new TrackCursor(song.sections);
-    // Null until the first frame, which always sets: after a change of song
-    // the state is the old song's, whatever the new one's position is.
-    let last: Position | null = null;
-    return engine.onFrame((t) => {
-      const position = cursor.at(t);
-      if (last !== null && samePosition(last, position)) return;
-      last = position;
-      setCurrent(position.current);
-    });
-  }, [song, engine]);
+  const current = useCurrentSection(song, engine);
 
   const chords = distinctSymbols(song.chords);
   return (

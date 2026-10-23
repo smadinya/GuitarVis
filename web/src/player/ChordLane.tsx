@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
-import { samePosition, TrackCursor, type Position } from "../playback/cursor";
+import { samePosition, TrackCursor } from "../playback/cursor";
 import type { PlaybackEngine } from "../playback/engine";
+import { useFollowed } from "../playback/follow";
 import type { Song } from "../song";
 import { cellState, laneCells } from "./lane";
-
-/** Before the first frame nothing has played: no chord is current, and the
- * first is next. */
-const START: Position = { current: -1, next: 0 };
 
 /** The song's chords as a row of cells under the guitar: the ones played, the
  * one sounding and the ones to come, each faded by how sure the analysis was,
@@ -16,32 +13,25 @@ const START: Position = { current: -1, next: 0 };
  * frame rate. A song with no chords draws nothing. */
 export function ChordLane({ song, engine }: { song: Song; engine: PlaybackEngine }) {
   const cells = useMemo(() => laneCells(song.chords), [song]);
-  const [position, setPosition] = useState(START);
+  const follow = useMemo(() => {
+    const cursor = new TrackCursor(song.chords);
+    return (t: number) => cursor.at(t);
+  }, [song]);
+  const position = useFollowed(engine, follow, samePosition);
   const laneRef = useRef<HTMLOListElement>(null);
 
-  useEffect(() => {
-    const cursor = new TrackCursor(song.chords);
-    // Null until the first frame, which always sets: after a change of song
-    // the state is the old song's, whatever the new one's position is.
-    let last: Position | null = null;
-    return engine.onFrame((t) => {
-      const position = cursor.at(t);
-      if (last !== null && samePosition(last, position)) return;
-      last = position;
-      setPosition(position);
-    });
-  }, [song, engine]);
+  // The cell to keep in the middle: the current one, or between chords the
+  // one coming.
+  const target = position.current >= 0 ? position.current : Math.min(position.next, cells.length - 1);
 
-  // Centre the current cell, or between chords the one coming. Set the lane's
-  // own scrollLeft: scrollIntoView would scroll the page as well whenever the
-  // lane is off screen.
+  // Centre the current cell. Set the lane's own scrollLeft: scrollIntoView
+  // would scroll the page as well whenever the lane is off screen.
   useEffect(() => {
     const lane = laneRef.current;
-    const index = position.current >= 0 ? position.current : Math.min(position.next, cells.length - 1);
-    const cell = lane?.children[index];
+    const cell = lane?.children[target];
     if (lane === null || !(cell instanceof HTMLElement)) return;
     lane.scrollLeft = cell.offsetLeft + cell.offsetWidth / 2 - lane.clientWidth / 2;
-  }, [position, cells]);
+  }, [target, cells]);
 
   if (cells.length === 0) return null;
   return (
