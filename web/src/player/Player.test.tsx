@@ -32,6 +32,8 @@ describe("Player", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // The chosen view persists, so one test's choice must not reach the next.
+    localStorage.clear();
   });
 
   it("plays and pauses from its button", () => {
@@ -206,5 +208,19 @@ describe("Player", () => {
     expect(screen.getByRole("button", { name: "Guitar only" }).getAttribute("aria-pressed")).toBe(
       "true",
     );
+  });
+
+  it("keeps the audio playing on one engine through a switch to Tab only and back", async () => {
+    const media = mount();
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    const loads = media.loads.length;
+
+    fireEvent.click(screen.getByRole("button", { name: "Tab only" }));
+    expect(screen.queryByRole("img", { name: "Guitar" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "3D" }));
+    await screen.findByRole("img", { name: "Guitar" });
+
+    expect(media.paused).toBe(false);
+    expect(media.loads).toHaveLength(loads);
   });
 });

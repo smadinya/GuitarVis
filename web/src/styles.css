@@ -213,12 +213,29 @@ main {
   font: bold 32px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-.guitar-views {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  display: flex;
-  gap: 4px;
+/* The page's view choice: one group, the chosen button raised. */
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* The padding is .controls button's. */
+.segmented button {
+  min-width: 40px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--bg-raised);
+  color: var(--accent);
 }
 
 .guitar-reset {

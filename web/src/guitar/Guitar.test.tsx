@@ -11,8 +11,8 @@ import { FakeFrames, FakeMedia } from "../test/fakeMedia";
 import firstSongJson from "../test/fixtures/first-song.tabdoc.json";
 import { JOB_ID } from "../test/jobs";
 import type { TabDocument } from "../types/tabDocument";
-import { Guitar, NO_WEBGL, VIEW_KEY } from "./Guitar";
-import { LOST_GRACE_MS, type Renderer } from "./stage";
+import { Guitar, NO_WEBGL } from "./Guitar";
+import { LOST_GRACE_MS, Stage, type Renderer } from "./stage";
 
 const FIRST_SONG: TabDocument = firstSongJson;
 
@@ -60,7 +60,7 @@ function mount(
     frames.flush();
     own.flush();
   };
-  return { engine, renderer, view, at };
+  return { song, engine, renderer, view, at };
 }
 
 /** Fake only the timers. The animation frames stay the stubs mount() sets. */
@@ -117,54 +117,24 @@ describe("Guitar", () => {
     expect(renderer.dispose).toHaveBeenCalledTimes(1);
   });
 
-  it("opens in 3D on a first visit", () => {
-    mount();
-
-    expect(button("3D").getAttribute("aria-pressed")).toBe("true");
-    expect(button("2D").getAttribute("aria-pressed")).toBe("false");
-  });
-
-  it("switches views from the toggle, and remembers the choice", () => {
-    const { view } = mount();
-
-    fireEvent.click(button("2D"));
-    expect(button("2D").getAttribute("aria-pressed")).toBe("true");
-    expect(button("3D").getAttribute("aria-pressed")).toBe("false");
-    expect(localStorage.getItem(VIEW_KEY)).toBe("2d");
-
-    view.unmount();
-    mount();
-    expect(button("2D").getAttribute("aria-pressed")).toBe("true");
-  });
-
-  it("opens in 3D when the browser's storage throws, and still switches", () => {
-    const denied = () => {
-      throw new DOMException("denied", "SecurityError");
-    };
-    vi.spyOn(Storage.prototype, "getItem").mockImplementation(denied);
-    vi.spyOn(Storage.prototype, "setItem").mockImplementation(denied);
-
-    mount();
-    expect(button("3D").getAttribute("aria-pressed")).toBe("true");
-
-    fireEvent.click(button("2D"));
-    expect(button("2D").getAttribute("aria-pressed")).toBe("true");
-  });
-
-  it("ignores a stored view it does not know", () => {
-    localStorage.setItem(VIEW_KEY, "4d");
-
-    mount();
-
-    expect(button("3D").getAttribute("aria-pressed")).toBe("true");
-  });
-
-  it("keeps a mouse click on the toggle from taking focus", () => {
+  it("keeps a mouse click on Reset view from taking focus", () => {
     mount();
 
     // fireEvent returns false when a handler called preventDefault.
-    expect(fireEvent.mouseDown(button("2D"))).toBe(false);
     expect(fireEvent.mouseDown(button("Reset view"))).toBe(false);
+  });
+
+  it("moves the camera when its view changes, on the same Stage and renderer", () => {
+    const renderer = fakeRenderer();
+    const createRenderer = vi.fn(() => renderer);
+    const setView = vi.spyOn(Stage.prototype, "setView");
+    const { song, engine, view } = mount(FIRST_SONG, renderer, createRenderer);
+
+    view.rerender(<Guitar song={song} engine={engine} createRenderer={createRenderer} view="2d" />);
+
+    expect(setView).toHaveBeenLastCalledWith("2d");
+    expect(createRenderer).toHaveBeenCalledTimes(1);
+    expect(renderer.dispose).not.toHaveBeenCalled();
   });
 
   it("says the guitar needs WebGL when the renderer cannot be made, and offers no camera buttons", () => {
@@ -177,7 +147,6 @@ describe("Guitar", () => {
 
     expect(screen.getByText(NO_WEBGL)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
-    expect(screen.queryByRole("group", { name: "View" })).toBeNull();
     expect(screen.getByRole("img", { name: "Guitar" })).toBeTruthy();
   });
 
@@ -313,7 +282,6 @@ describe("Guitar", () => {
     view.rerender(<Guitar song={buildSong(FIRST_SONG)} engine={engine} createRenderer={createRenderer} />);
 
     expect(screen.queryByText(NO_WEBGL)).toBeNull();
-    expect(screen.getByRole("group", { name: "View" })).toBeTruthy();
     expect(button("Reset view")).toBeTruthy();
   });
 
@@ -329,7 +297,6 @@ describe("Guitar", () => {
 
     expect(screen.getByText(GUITAR_FAILED)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
-    expect(screen.queryByRole("group", { name: "View" })).toBeNull();
   });
 
   it("says the guitar stopped, not that WebGL is missing, when a draw throws while the context is lost", () => {

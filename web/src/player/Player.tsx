@@ -7,6 +7,7 @@ import { TabStrip } from "../tab/TabStrip";
 import { Controls } from "./Controls";
 import { GuitarBoundary, GuitarChunkError } from "./GuitarBoundary";
 import { useTransportKeys } from "./keys";
+import { useStoredView, ViewSwitch } from "./ViewSwitch";
 import { Warnings } from "./Warnings";
 
 /** three.js is about 150 kB gzipped, so the guitar is its own chunk, fetched
@@ -28,9 +29,12 @@ export interface PlayerProps {
 }
 
 /** One engine per song; every view subscribes to it. The guitar sits above
- * the tab strip; each is one more onFrame listener. */
+ * the tab strip; each is one more onFrame listener. The page chooses the view
+ * here, beside the engine, so a switch never rebuilds the engine: "Tab only"
+ * unmounts the guitar, and the audio plays on. */
 export function Player({ song, jobId, createMedia }: PlayerProps) {
   const [engine, setEngine] = useState<PlaybackEngine | null>(null);
+  const [view, setView] = useStoredView();
 
   useEffect(() => {
     const created = new PlaybackEngine({ media: createMedia(), jobId, duration: song.duration });
@@ -43,12 +47,15 @@ export function Player({ song, jobId, createMedia }: PlayerProps) {
   if (engine === null) return null;
   return (
     <section className="player">
+      <ViewSwitch view={view} onChange={setView} />
       <Warnings warnings={song.warnings} />
-      <GuitarBoundary>
-        <Suspense fallback={<div className="guitar" />}>
-          <Guitar song={song} engine={engine} />
-        </Suspense>
-      </GuitarBoundary>
+      {view !== "tab" && (
+        <GuitarBoundary>
+          <Suspense fallback={<div className="guitar" />}>
+            <Guitar song={song} engine={engine} view={view} />
+          </Suspense>
+        </GuitarBoundary>
+      )}
       <TabStrip song={song} engine={engine} />
       <Controls engine={engine} />
     </section>
