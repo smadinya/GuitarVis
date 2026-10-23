@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 
+import { TrackCursor } from "../playback/cursor";
 import { SEEK_STEP_SEC, type PlaybackEngine } from "../playback/engine";
 import type { Section } from "../types/tabDocument";
 import { fraction, scrubMarks, timeAt } from "./scrub";
@@ -9,7 +10,9 @@ import { clock } from "./time";
 export interface ScrubberProps {
   engine: PlaybackEngine;
   sections: readonly Section[];
-  /** The current section's label, spoken with the time; null when none is current. */
+  /** The playhead's section label, spoken with the time; null when none is
+   * current. During a drag the slider speaks the section under the pointer
+   * instead, which it finds in `sections`. */
   section: string | null;
 }
 
@@ -20,6 +23,10 @@ const percent = (f: number) => `${f * 100}%`;
  * the A–B loop. A drag previews the time under the pointer and seeks once, on
  * release, so a drag never makes the audio stutter through every position it
  * passes. The arrow keys seek by `SEEK_STEP_SEC`, Home and End go to the ends.
+ *
+ * The slider speaks a time and its section. That is the playhead's, until a
+ * drag begins; then both follow the pointer, so what is spoken is what a
+ * release would seek to.
  *
  * The knob and the played part follow playback without React: `place` writes
  * their transforms, from `onFrame` and from a drag, and nothing in the JSX
@@ -33,6 +40,8 @@ export function Scrubber({ engine, sections, section }: ScrubberProps) {
   // must see it before React has re-rendered.
   const [preview, setPreview] = useState<number | null>(null);
   const drag = useRef<number | null>(null);
+  // The section under the pointer, for the slider's spoken value in a drag.
+  const cursor = useMemo(() => new TrackCursor(sections), [sections]);
   const headRef = useRef<HTMLDivElement>(null);
   const playedRef = useRef<HTMLDivElement>(null);
 
@@ -103,6 +112,7 @@ export function Scrubber({ engine, sections, section }: ScrubberProps) {
   };
 
   const shown = preview ?? time;
+  const spoken = preview === null ? section : (sections[cursor.at(preview).current]?.label ?? null);
   const marks = scrubMarks(duration, sections, loop);
   return (
     <div
@@ -113,7 +123,7 @@ export function Scrubber({ engine, sections, section }: ScrubberProps) {
       aria-valuemin={0}
       aria-valuemax={Math.round(duration)}
       aria-valuenow={Math.round(shown)}
-      aria-valuetext={section === null ? clock(shown) : `${clock(shown)}, ${section}`}
+      aria-valuetext={spoken === null ? clock(shown) : `${clock(shown)}, ${spoken}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

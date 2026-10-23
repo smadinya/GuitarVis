@@ -78,6 +78,31 @@ describe("Scrubber", () => {
     expect(screen.queryByText("0:10")).toBeNull();
   });
 
+  it("speaks the section under the pointer while dragging, and the playing one after", () => {
+    const { slider } = mount();
+    expect(slider.getAttribute("aria-valuetext")).toBe("0:00, Verse 1"); // the prop: the playhead's section
+
+    fireEvent.pointerDown(slider, { clientX: 400, pointerId: 1 }); // 15 s, in the Chorus
+    expect(slider.getAttribute("aria-valuenow")).toBe("15");
+    expect(slider.getAttribute("aria-valuetext")).toBe("0:15, Chorus");
+
+    fireEvent.pointerMove(slider, { clientX: 150, pointerId: 1 }); // 2.5 s, in the Intro
+    expect(slider.getAttribute("aria-valuetext")).toBe("0:02, Intro");
+
+    fireEvent.pointerCancel(slider, { pointerId: 1 });
+    expect(slider.getAttribute("aria-valuetext")).toBe("0:00, Verse 1");
+  });
+
+  it("speaks only the time for a drag to a place outside every section", () => {
+    const song = buildSong({ ...FIRST_SONG, sections: [{ t: 10, dur: 5, label: "Verse 1" }] });
+    const fake = fakeEngine(song, { duration: 20 });
+    render(<Scrubber engine={fake.engine} sections={song.sections} section="Verse 1" />);
+    const slider = screen.getByRole("slider", { name: "Position" });
+    vi.spyOn(slider, "getBoundingClientRect").mockReturnValue(RECT);
+    fireEvent.pointerDown(slider, { clientX: 200, pointerId: 1 }); // 5 s, before the first section
+    expect(slider.getAttribute("aria-valuetext")).toBe("0:05");
+  });
+
   it("drops a cancelled drag without seeking", () => {
     const { slider, engine, frames } = mount();
     const seek = vi.spyOn(engine, "seek");
