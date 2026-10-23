@@ -18,6 +18,22 @@ export interface ScrubberProps {
 
 const percent = (f: number) => `${f * 100}%`;
 
+/** What a drag shows of the time under the pointer: the whole second the
+ * readout says, and the section it is in. Nothing else of the drag is
+ * drawn, so the scrubber renders when one of these two changes and not on
+ * every pointer move. */
+interface Preview {
+  second: number;
+  section: number;
+}
+
+/** A drag in progress: the exact time under the pointer, which the seek and
+ * the knob use, and the preview last drawn from it. */
+interface Drag {
+  t: number;
+  preview: Preview;
+}
+
 /**
  * The song's position as a slider: the playhead, a tick at each section, and
  * the A–B loop. A drag previews the time under the pointer and seeks once, on
@@ -26,7 +42,9 @@ const percent = (f: number) => `${f * 100}%`;
  *
  * The slider speaks a time and its section. That is the playhead's, until a
  * drag begins; then both follow the pointer, so what is spoken is what a
- * release would seek to.
+ * release would seek to. A drag keeps its exact time apart from what it
+ * shows, so the scrubber renders when the second or the section under the
+ * pointer changes, not on every move.
  *
  * The knob and the played part follow playback without React: `place` writes
  * their transforms, from `onFrame` and from a drag, and nothing in the JSX
@@ -36,10 +54,10 @@ const percent = (f: number) => `${f * 100}%`;
 export function Scrubber({ engine, sections, section }: ScrubberProps) {
   const { duration, time, loop } = useSyncExternalStore(engine.subscribe, engine.getState);
   // What the pointer is over while dragging; null otherwise. It is state for
-  // the preview's text, and `drag` is the same time for the handlers, which
+  // the preview's text, and `drag` is the exact time for the handlers, which
   // must see it before React has re-rendered.
-  const [preview, setPreview] = useState<number | null>(null);
-  const drag = useRef<number | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const drag = useRef<Drag | null>(null);
   // The section under the pointer, for the slider's spoken value in a drag.
   const cursor = useMemo(() => new TrackCursor(sections), [sections]);
   const headRef = useRef<HTMLDivElement>(null);
@@ -63,9 +81,11 @@ export function Scrubber({ engine, sections, section }: ScrubberProps) {
     const { duration: length } = engine.getState();
     const rect = event.currentTarget.getBoundingClientRect();
     const t = timeAt(event.clientX, rect.left, rect.width, length);
-    drag.current = t;
+    const next = { second: Math.floor(t), section: cursor.at(t).current };
+    const before = drag.current?.preview;
+    drag.current = { t, preview: next };
     place(fraction(t, length));
-    setPreview(t);
+    if (before?.second !== next.second || before.section !== next.section) setPreview(next);
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -81,11 +101,11 @@ export function Scrubber({ engine, sections, section }: ScrubberProps) {
   };
 
   const onPointerUp = () => {
-    const t = drag.current;
-    if (t === null) return;
+    const held = drag.current;
+    if (held === null) return;
     drag.current = null;
     setPreview(null);
-    engine.seek(t);
+    engine.seek(held.t);
   };
 
   /** A drag that ends without a release: the knob goes back to the playhead.
@@ -111,8 +131,8 @@ export function Scrubber({ engine, sections, section }: ScrubberProps) {
     event.preventDefault();
   };
 
-  const shown = preview ?? time;
-  const spoken = preview === null ? section : (sections[cursor.at(preview).current]?.label ?? null);
+  const shown = preview?.second ?? time;
+  const spoken = preview === null ? section : (sections[preview.section]?.label ?? null);
   const marks = scrubMarks(duration, sections, loop);
   return (
     <div
@@ -148,7 +168,7 @@ export function Scrubber({ engine, sections, section }: ScrubberProps) {
       ))}
       <div className="scrub-head" ref={headRef}>
         <div className="scrub-knob" />
-        {preview !== null && <span className="scrub-preview">{clock(preview)}</span>}
+        {preview !== null && <span className="scrub-preview">{clock(preview.second)}</span>}
       </div>
     </div>
   );

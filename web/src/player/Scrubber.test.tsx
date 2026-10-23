@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { Profiler } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildSong } from "../song";
@@ -18,13 +19,18 @@ const SECTIONS = [
 ];
 const RECT = { left: 100, width: 400, top: 0, right: 500, bottom: 24, height: 24, x: 100, y: 0, toJSON: () => ({}) } as DOMRect;
 
-function mount() {
-  const song = buildSong({ ...FIRST_SONG, sections: SECTIONS });
+function mount(sections = SECTIONS) {
+  const song = buildSong({ ...FIRST_SONG, sections });
   const fake = fakeEngine(song, { duration: 20 });
-  render(<Scrubber engine={fake.engine} sections={song.sections} section="Verse 1" />);
+  const onRender = vi.fn();
+  render(
+    <Profiler id="scrubber" onRender={onRender}>
+      <Scrubber engine={fake.engine} sections={song.sections} section="Verse 1" />
+    </Profiler>,
+  );
   const slider = screen.getByRole("slider", { name: "Position" });
   vi.spyOn(slider, "getBoundingClientRect").mockReturnValue(RECT);
-  return { ...fake, slider };
+  return { ...fake, slider, onRender };
 }
 const part = (slider: HTMLElement, name: string) => slider.querySelector(`.${name}`) as HTMLElement;
 
@@ -76,6 +82,42 @@ describe("Scrubber", () => {
     expect(seek).toHaveBeenCalledTimes(1);
     expect(seek).toHaveBeenCalledWith(10);
     expect(screen.queryByText("0:10")).toBeNull();
+  });
+
+  it("renders again in a drag only when the second shown changes, while the knob and the seek stay exact", () => {
+    const { slider, engine, onRender } = mount();
+    const seek = vi.spyOn(engine, "seek");
+    fireEvent.pointerDown(slider, { clientX: 200, pointerId: 1 }); // 5.00 s
+    const renders = onRender.mock.calls.length;
+
+    // 20 px a second: all of these are inside second 5.
+    for (const clientX of [201, 203, 207, 210, 214, 218, 219]) {
+      fireEvent.pointerMove(slider, { clientX, pointerId: 1 });
+    }
+    expect(onRender).toHaveBeenCalledTimes(renders);
+    expect(part(slider, "scrub-head").style.transform).toBe("translateX(29.75%)"); // 5.95 s: not rounded to 5
+    expect(screen.getByText("0:05")).toBeTruthy();
+
+    fireEvent.pointerMove(slider, { clientX: 221, pointerId: 1 }); // 6.05 s
+    expect(onRender).toHaveBeenCalledTimes(renders + 1);
+    expect(screen.getByText("0:06")).toBeTruthy();
+
+    fireEvent.pointerMove(slider, { clientX: 219, pointerId: 1 });
+    fireEvent.pointerUp(slider, { clientX: 219, pointerId: 1 });
+    expect(seek).toHaveBeenCalledTimes(1);
+    expect(seek.mock.calls[0][0]).toBeCloseTo(5.95);
+  });
+
+  it("speaks the section under the pointer at its exact start, though the second shown has not changed", () => {
+    const { slider } = mount([
+      { t: 0, dur: 5.5, label: "A" },
+      { t: 5.5, dur: 5, label: "B" },
+    ]);
+    fireEvent.pointerDown(slider, { clientX: 208, pointerId: 1 }); // 5.4 s
+    expect(slider.getAttribute("aria-valuetext")).toBe("0:05, A");
+
+    fireEvent.pointerMove(slider, { clientX: 212, pointerId: 1 }); // 5.6 s
+    expect(slider.getAttribute("aria-valuetext")).toBe("0:05, B");
   });
 
   it("speaks the section under the pointer while dragging, and the playing one after", () => {
