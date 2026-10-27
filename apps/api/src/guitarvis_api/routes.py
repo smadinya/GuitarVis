@@ -78,20 +78,30 @@ def create_job(file: UploadFile, request: Request, response: Response) -> JobVie
         if not services.blobs.exists(key):
             services.blobs.put_file(key, upload.path)
 
+    return create_and_enqueue(
+        services,
+        NewJob(
+            content_hash=upload.content_hash,
+            title=title_of(file.filename),
+            duration_sec=duration,
+            upload_key=key,
+            client_ip=client_ip,
+        ),
+        response,
+    )
+
+
+def create_and_enqueue(services: Services, new: NewJob, response: Response) -> JobView:
+    """Create the row and queue it. The same thing created at the same moment
+    answers with the winner's row (200), and an address that raced past
+    `check_limit` is refused here."""
     try:
         job, created = services.store.create(
-            NewJob(
-                content_hash=upload.content_hash,
-                title=title_of(file.filename),
-                duration_sec=duration,
-                upload_key=key,
-                client_ip=client_ip,
-            ),
-            max_active=settings.max_active_jobs_per_ip,
+            new, max_active=services.settings.max_active_jobs_per_ip
         )
     except TooManyActiveJobs as error:
         raise too_many_jobs(error.active) from error
-    if not created:  # the same file, uploaded at the same moment, got there first
+    if not created:  # the same thing, submitted at the same moment, got there first
         response.status_code = 200
         return JobView.of(job)
 

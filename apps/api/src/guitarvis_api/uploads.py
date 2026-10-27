@@ -53,7 +53,9 @@ class UploadSizeLimit:
     out of FastAPI's body parsing untouched, as the 413 itself.
 
     One instance guards one path: POST /jobs by default, at the upload limit.
-    The link route adds another for its own body (spec 012).
+    The link route adds another for its own body (spec 012). `refuse` builds
+    the error, and its status is the answer: 413, except for a link route
+    that is switched off, which answers 403 before it looks at the size.
     """
 
     def __init__(
@@ -84,7 +86,7 @@ class UploadSizeLimit:
         if declared is not None and declared > limit:
             error = self.refuse(settings)
             response = JSONResponse(
-                error_body(error.reason, error.message), status_code=413
+                error_body(error.reason, error.message), status_code=error.status_code
             )
             await response(scope, receive, send)
             return

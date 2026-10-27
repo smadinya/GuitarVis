@@ -33,16 +33,15 @@ from guitarvis_fetch.fetcher import (
 from guitarvis_fetch.links import Link, LinkRefused, parse
 from guitarvis_jobs.models import NewJob
 from guitarvis_jobs.settings import Settings
-from guitarvis_jobs.store import TooManyActiveJobs
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from guitarvis_api.errors import ApiError, HttpReason
 from guitarvis_api.routes import (
     check_limit,
     client_ip_of,
-    enqueue,
+    create_and_enqueue,
     live_job,
     services_of,
-    too_many_jobs,
 )
 from guitarvis_api.schemas import Features, JobView, LinkRequest
 from guitarvis_api.services import Services
@@ -72,16 +71,38 @@ class _LinkRoute(APIRoute):
 
         async def route(request: Request) -> Response:
             if not services_of(request).settings.url_ingestion:  # R1
-                raise ApiError(403, FailureReason.LINKS_DISABLED, LINKS_OFF_MESSAGE)
+                raise _links_off()
             try:
                 return await handler(request)
             except RequestValidationError as exc:  # R2
-                log.info("link refused kind=bad_request")
-                raise ApiError(
-                    422, HttpReason.UNSUPPORTED_LINK, BAD_REQUEST_MESSAGE
-                ) from exc
+                raise _bad_request() from exc
+            except StarletteHTTPException as exc:
+                if _is_unreadable_body(exc):  # R2: bytes that are not JSON text
+                    raise _bad_request() from exc
+                raise  # an ApiError, such as R3's 413, passes untouched
 
         return route
+
+
+def _links_off() -> ApiError:  # R1
+    log.info("link refused kind=links_disabled")
+    return ApiError(403, FailureReason.LINKS_DISABLED, LINKS_OFF_MESSAGE)
+
+
+def _bad_request() -> ApiError:  # R2
+    log.info("link refused kind=bad_request")
+    return ApiError(422, HttpReason.UNSUPPORTED_LINK, BAD_REQUEST_MESSAGE)
+
+
+def _is_unreadable_body(exc: StarletteHTTPException) -> bool:
+    """FastAPI answers a JSON body it cannot decode (UnicodeDecodeError, or
+    any other ValueError) with a bare 400 whose cause is that error, which
+    the app's handler reads as our failure. From the sender it is R2."""
+    return (
+        not isinstance(exc, ApiError)
+        and exc.status_code == 400
+        and isinstance(exc.__cause__, ValueError)
+    )
 
 
 links = APIRouter(route_class=_LinkRoute)
@@ -110,27 +131,18 @@ def create_job_from_url(
 
     check_limit(services, client_ip)  # Q2: before any outbound request
     info, duration = _lookup(services, link)
-    try:
-        job, created = services.store.create(
-            NewJob(
-                content_hash=link.dedupe_key,
-                title=_title(info.title),
-                duration_sec=duration,
-                upload_key=None,
-                client_ip=client_ip,
-                source_url=link.canonical_url,
-            ),
-            max_active=services.settings.max_active_jobs_per_ip,
-        )
-    except TooManyActiveJobs as error:  # E2
-        raise too_many_jobs(error.active) from error
-    if not created:  # E1: the same video, submitted at the same moment
-        response.status_code = 200
-        return JobView.of(job)
-
-    enqueue(services, job)  # E3
-    response.headers["Location"] = f"/jobs/{job.id}"
-    return JobView.of(job)
+    return create_and_enqueue(  # E1 to E3
+        services,
+        NewJob(
+            content_hash=link.dedupe_key,
+            title=_title(info.title),
+            duration_sec=duration,
+            upload_key=None,
+            client_ip=client_ip,
+            source_url=link.canonical_url,
+        ),
+        response,
+    )
 
 
 def _parse(raw: str) -> Link:
@@ -194,7 +206,10 @@ def _link_body_limit(settings: Settings) -> int:
     return LINK_BODY_MAX_BYTES
 
 
-def _link_body_too_large(settings: Settings) -> ApiError:  # R3
+def _link_body_too_large(settings: Settings) -> ApiError:
+    """R3, unless links are off: the switch answers before the body's size."""
+    if not settings.url_ingestion:
+        return _links_off()
     return ApiError(413, HttpReason.TOO_LARGE, REQUEST_TOO_LARGE_MESSAGE)
 
 

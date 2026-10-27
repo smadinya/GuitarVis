@@ -106,13 +106,16 @@ def test_features_says_whether_links_are_on(on: bool) -> None:
 # R. The request, before any network
 
 
-def test_links_switched_off_are_refused_before_anything_is_read() -> None:  # R1
+def test_links_switched_off_are_refused_before_anything_is_read(
+    caplog: pytest.LogCaptureFixture,
+) -> None:  # R1
     api = links_api(url_ingestion=False)
 
-    responses = [
-        post_link(api.client),
-        api.client.post("/jobs/from-url", content=b"not json"),
-    ]
+    with caplog.at_level(logging.INFO, logger=ROUTE_LOG):
+        responses = [
+            post_link(api.client),
+            api.client.post("/jobs/from-url", content=b"not json"),
+        ]
 
     for response in responses:
         assert error_of(response) == (
@@ -121,6 +124,27 @@ def test_links_switched_off_are_refused_before_anything_is_read() -> None:  # R1
             "Links are turned off on this server. Upload the audio file instead.",
         )
     assert fake(api).lookups == []
+    assert caplog.messages == ["link refused kind=links_disabled"] * 2
+
+
+def test_links_switched_off_answer_for_a_big_body_too_before_its_size(
+    caplog: pytest.LogCaptureFixture,
+) -> None:  # R1, before R3
+    api = links_api(url_ingestion=False)
+
+    with caplog.at_level(logging.INFO, logger=ROUTE_LOG):
+        response = api.client.post(
+            "/jobs/from-url",
+            content=b'{"url": "' + b"a" * (20 * 1024) + b'"}',
+            headers={"content-type": "application/json"},
+        )
+
+    assert error_of(response) == (
+        403,
+        "links_disabled",
+        "Links are turned off on this server. Upload the audio file instead.",
+    )
+    assert caplog.messages == ["link refused kind=links_disabled"]
 
 
 @pytest.mark.parametrize(
@@ -138,6 +162,20 @@ def test_links_switched_off_are_refused_before_anything_is_read() -> None:  # R1
             id="a-form",
         ),
         pytest.param({"content": b""}, id="empty"),
+        pytest.param(
+            {
+                "content": b"\xff\xfe\xfd",
+                "headers": {"content-type": "application/json"},
+            },
+            id="not-text",
+        ),
+        pytest.param(
+            {
+                "content": '{"url": "café"}'.encode("latin-1"),
+                "headers": {"content-type": "application/json"},
+            },
+            id="latin-1",
+        ),
         pytest.param({"json": {}}, id="no-url"),
         pytest.param({"json": {"link": LINK}}, id="misnamed"),
         pytest.param({"json": {"url": 42}}, id="not-a-string"),
@@ -146,11 +184,12 @@ def test_links_switched_off_are_refused_before_anything_is_read() -> None:  # R1
     ],
 )
 def test_a_body_that_is_not_a_link_in_json_is_refused(
-    send: dict[str, Any],
+    send: dict[str, Any], caplog: pytest.LogCaptureFixture
 ) -> None:  # R2
     api = links_api()
 
-    response = api.client.post("/jobs/from-url", **send)
+    with caplog.at_level(logging.INFO, logger=ROUTE_LOG):
+        response = api.client.post("/jobs/from-url", **send)
 
     assert error_of(response) == (
         422,
@@ -158,6 +197,9 @@ def test_a_body_that_is_not_a_link_in_json_is_refused(
         "Send the link as JSON, in a field named `url`.",
     )
     assert fake(api).lookups == []
+    # The request's fault, not ours: one INFO line, and no traceback.
+    assert caplog.messages == ["link refused kind=bad_request"]
+    assert [r for r in caplog.records if r.levelno >= logging.ERROR] == []
 
 
 def test_a_body_over_16_kb_is_refused_before_it_is_read() -> None:  # R3
@@ -174,6 +216,19 @@ def test_a_body_over_16_kb_is_refused_before_it_is_read() -> None:  # R3
         "too_large",
         "That request is too large. Send only the link.",
     )
+    assert fake(api).lookups == []
+
+
+def test_a_body_that_streams_past_16_kb_is_refused_as_it_arrives() -> None:  # R3
+    api = links_api()
+
+    response = api.client.post(
+        "/jobs/from-url",
+        content=iter([b'{"url": "' + b"a" * 9000, b"a" * 9000 + b'"}']),
+        headers={"content-type": "application/json"},
+    )
+
+    assert error_of(response)[:2] == (413, "too_large")
     assert fake(api).lookups == []
 
 
