@@ -76,8 +76,11 @@ try a different file, a different song, or come back later.
 `PipelineError` also says whether another attempt might pass: `retryable`
 defaults to true for `internal` only. The runner retries whatever is
 retryable, and on the final attempt records the error's own reason and
-message, unless the reason is `internal`, whose detail stays in the log. A
-fetch that fails on the network is `fetch_failed` and retryable (spec 012).
+message, unless the reason is `internal`, whose detail stays in the log. The
+link failures RQ retries are network errors, download timeouts, unclassified
+yt-dlp errors, crashes and local I/O errors (the last two with reason
+`internal`); the per-kind rule is `Entry.retry` in
+`guitarvis_fetch/catalog.py`, and the api never retries a lookup (spec 012).
 
 ## Testing a stage
 

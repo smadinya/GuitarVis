@@ -4,10 +4,11 @@ Takes a recording of a song, isolates the guitar, transcribes what it plays,
 and renders the result as tablature you can play along with — a scrolling tab
 strip and a guitar shown in 2D or 3D, synced to the audio.
 
-**Status: phase 5 of 6 done.** Upload a song in the browser, watch it
-process, and play it back with a scrolling tab strip and a guitar above it, in
-sync with the audio: slowed down, looped, or with the guitar isolated. URL
-ingestion (phase 6) is next.
+**Status: all six phases built.** Upload a song in the browser, or paste a
+YouTube link to it, watch it process, and play it back with a scrolling tab
+strip and a guitar above it, in sync with the audio: slowed down, looped, or
+with the guitar isolated. Links are off unless a deployment turns them on;
+`make api` and `make worker` do.
 
 ## How it works
 

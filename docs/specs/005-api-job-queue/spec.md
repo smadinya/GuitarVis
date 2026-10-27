@@ -303,10 +303,10 @@ A job:
 ```
 
 Every error body is `{"error": {"reason": "...", "message": "..."}}`.
-`reason` uses the five `FailureReason` values plus four the HTTP layer alone
-can produce — `too_large`, `too_many_jobs`, `not_found`, `not_ready` — so a
-client maps one vocabulary to text. A malformed job id is `not_found`, not a
-validation error.
+`reason` uses every `FailureReason` value plus those the HTTP layer alone can
+produce (`HttpReason`: `too_large`, `too_many_jobs`, `not_found`, `not_ready`,
+and, since 012, `unsupported_link`), so a client maps one vocabulary to
+text. A malformed job id is `not_found`, not a validation error.
 
 Audio is a redirect to a presigned object-storage URL rather than bytes
 streamed through the api: S3 storage already answers `Range` requests, which

@@ -349,8 +349,9 @@ before any expensive work begins, and per-IP concurrent-job limits.
 **Retries.** Stages are idempotent and intermediates are cached by content
 hash, so a retry resumes rather than re-running separation. Three attempts,
 then dead-letter with the failing stage recorded. A failure says whether it is
-retryable: by default only `internal`, plus a fetch that failed on the network
-(012).
+retryable: by default only `internal`, plus the link failures that may pass on
+another attempt (012): network errors, download timeouts, unclassified yt-dlp
+errors, crashes and local I/O errors. The api never retries a lookup.
 
 ## Testing
 

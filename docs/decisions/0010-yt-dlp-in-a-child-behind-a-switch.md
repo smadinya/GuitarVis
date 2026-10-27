@@ -26,7 +26,9 @@ the worker for a download. The child gets no `GUITARVIS_*` variables and has
 plugins switched off. It answers in JSON lines, classifies every failure while
 yt-dlp's exception types are visible, and is killed with its whole process
 group at its deadline, and when its parent dies by any means, SIGKILL
-included. Deno is its JavaScript runtime.
+included: the parent holds the write end of the child's stdin open and never
+writes to it, and the child's `watch_parent()` kills its group when that pipe
+closes. Deno is its JavaScript runtime.
 
 `GUITARVIS_URL_INGESTION` turns links on, and it is off by default. The api
 refuses links with 403 `links_disabled` when it is off, the worker fails a
@@ -36,9 +38,11 @@ queued link job with `links_disabled`, and the client hides the link field.
 
 A hang, a crash or a memory blow-up in yt-dlp costs one child, never the api
 or a worker. Failures arrive typed, not as English on stderr, and the failure
-catalog maps each kind to a reason, a status, a message and a log level. The
-whole path is one package, one call in the api's `app.py` and one branch in
-the worker, so removing it touches no upload code.
+catalog maps each kind to a reason, a status, a message and a log level.
+Everything links need is walled off in one package. Its only users are the
+api's `routes_links.py`, `services.py` and `schemas.py` and the worker's
+`ingest.py` (`UrlSource`) and `runner.py` (the `_fetch` branch), so removing
+links is a bounded change that leaves the upload path alone.
 
 The costs: an interpreter starts for every lookup (a few hundred
 milliseconds); every host that fetches needs Deno 2.3 or later, as it needs

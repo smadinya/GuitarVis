@@ -59,7 +59,7 @@ Log lines (api lookup, worker download): …
 | A members-only video, if one can be found | L5 | 422 `link_unusable` | | |
 | A live stream | L6 | 422 `link_unusable`, "That's a live stream…" | | |
 | An upcoming premiere, if one can be found | L7 | 422 `link_unusable`, "That video hasn't premiered yet…" | | |
-| A video over ten minutes | L10 | 422 `too_long`, "That video is m:ss long…", in seconds, nothing downloaded | | |
+| A video over ten minutes | L10 | 422 `too_long`, "That video is m:ss long…" (h:mm:ss past an hour), nothing downloaded | | |
 
 Notes: …
 
@@ -96,8 +96,11 @@ Notes: …
 
 ## The logs
 
-- [ ] Every case above left exactly one `link fetch failed` or `link fetched` line per lookup or download, at the catalog's level
-- [ ] Every line carries `ytdlp=` and `js=`
+- [ ] Every lookup or download left exactly one `link fetch failed` or `link fetched` line, at the catalog's level
+- [ ] Every one of those lines carries `ytdlp=` and `js=`
+- [ ] Each refused link (R rows, and the switch at the api) left one `link refused kind=…` line, with `host=` and `path=` for a link the parser refused, and no `ytdlp=` or `js=`
+- [ ] The queued link job that met the switch (W1) left one worker line, "job … is a link job and links are off, and its audio was never stored"
+- [ ] Each outcome is one line, with `detail` and `tail` JSON-quoted
 - [ ] No line carries a whole pasted link, a `si=` value, a database URL or a storage secret
 - [ ] No response body and no job row carries yt-dlp's text (`ERROR:`, `[youtube]`, `yt-dlp`, a traceback)
 

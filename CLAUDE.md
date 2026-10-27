@@ -85,11 +85,13 @@ All six are built. Phases 1–2 held the technical risk.
 - The guitar's tests run without WebGL. Pure modules in `web/src/guitar/` run
   on `node`, three.js included. `Guitar` and `Stage` take a fake renderer under
   jsdom.
-- Links (spec 012) live in `packages/fetch`, walled off: deleting it, one line
-  in the api's `app.py` and one branch in the worker's runner removes them.
-  They are off unless `GUITARVIS_URL_INGESTION` is on. `make api` and
-  `make worker` turn it on; bare `uvicorn` does not. The api and the worker
-  read it at start, so flipping it means restarting both.
+- Links (spec 012) are walled off in `packages/fetch`. Its only users are the
+  api's `routes_links.py`, `services.py` and `schemas.py` (`app.py` installs
+  the router with one line) and the worker's `ingest.py` (`UrlSource`) and
+  `runner.py` (the `_fetch` branch and start-up). Links are off unless
+  `GUITARVIS_URL_INGESTION` is on. `make api` and `make worker` turn it on;
+  bare `uvicorn` does not. The api and the worker read it at start, so
+  flipping it means restarting both.
 - Fetching a link needs Deno 2.3 or later on the host, yt-dlp's JavaScript
   runtime for YouTube. Without it a link job fails as `fetch_failed`, and the
   worker warns at start. `make check` needs neither Deno nor the network.

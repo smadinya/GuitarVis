@@ -105,8 +105,11 @@ web/src        api/client.ts, api/messages.ts, pages/UploadPage.tsx,
 
 `guitarvis_fetch` is its own package for the reason 001 gives: the part most
 likely to break or be removed is walled off. Only the api and the worker
-depend on it. Removing links for good means deleting it, one router include,
-and one branch in the worker.
+depend on it, and only through the api's `routes_links.py`, `services.py` and
+`schemas.py` and the worker's `ingest.py` (`UrlSource`) and `runner.py` (the
+`_fetch` branch). Removing links for good means deleting the package,
+`routes_links.py` and `UrlSource`, and cutting their uses out of the rest; it
+leaves the upload path alone.
 
 ### Where yt-dlp runs
 
@@ -699,10 +702,11 @@ for each case, read by eye.
   code to do the same thing. What contains it: links are off unless a
   deployment turns them on; one setting stops all fetching, at api and
   worker, within a restart; nothing signs in, sends cookies or bypasses
-  geography, so protected video is refused, not circumvented; the whole path
-  is one package, one route and one branch, removable without touching
-  uploads; and `source_url` makes takedowns answerable. What isn't contained:
-  audio already fetched stays until decision 13 says otherwise.
+  geography, so protected video is refused, not circumvented; everything
+  links need is walled off in one package, whose few users are named in
+  *Shape of the change*, so removing it leaves uploads alone; and
+  `source_url` makes takedowns answerable. What isn't contained: audio
+  already fetched stays until decision 13 says otherwise.
 - **The extractor breaks.** This is the most likely failure. It shows up as
   ERROR `extractor_broken` lines, and users see an honest `fetch_failed`. The
   response is to bump yt-dlp or switch links off.
