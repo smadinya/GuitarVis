@@ -7,6 +7,7 @@ import hashlib
 import logging
 import os
 import shutil
+import traceback
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -418,6 +419,23 @@ def test_ytdlp_text_reaches_the_log_and_never_the_row(
     assert SENTINEL in line and line.endswith(' tail="STDERR"')
 
 
+@pytest.mark.parametrize("retries_left", [2, 0])
+def test_ytdlp_text_stays_out_of_the_traceback_rq_keeps(
+    harness: Harness, retries_left: int
+) -> None:  # D1, D2, D8-D10
+    """RQ logs a retried job's traceback at ERROR and keeps it in Redis. The
+    PipelineError it is handed must carry nothing of yt-dlp's behind it."""
+    harness.fetcher.download_error = FetchError(
+        FetchKind.UNKNOWN, f"ERROR: [youtube] {SENTINEL} Traceback", tail="STDERR"
+    )
+
+    with pytest.raises(PipelineError) as excinfo:
+        harness.run(retries_left=retries_left)
+
+    shown = "".join(traceback.format_exception(excinfo.value))
+    assert SENTINEL not in shown and "STDERR" not in shown
+
+
 # (row, kind, the catalog's log level, whether it adds the end of stderr)
 LOGGED = [
     ("W2", FetchKind.PRIVATE, logging.INFO, False),  # as L1
@@ -718,6 +736,7 @@ def test_audio_ffprobe_cannot_read_is_unusable(
     assert f"job={row.id} video={LINK.video_id} format=140 ext=wav" in (
         record.getMessage()
     )
+    assert " ytdlp=2026.10.26 js=deno/2.5.4 " in record.getMessage()
 
 
 @requires_ffprobe
@@ -765,6 +784,7 @@ def test_audio_over_ten_minutes_by_ffprobe_is_too_long(
     [record] = [r for r in caplog.records if r.getMessage().startswith("link audio")]
     assert record.levelno == logging.INFO
     assert "metadata=37.0 probed=721.0" in record.getMessage()
+    assert " ytdlp=2026.10.26 js=deno/2.5.4" in record.getMessage()
 
 
 def test_a_missing_ffprobe_after_a_download_is_retried_then_internal(

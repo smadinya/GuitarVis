@@ -101,13 +101,17 @@ class UrlSource:
             duration = self.probe(download.path)
             check_duration(duration, self.max_duration_sec)
         except PipelineError as error:
+            versions = download.info.versions
             if error.reason is FailureReason.UNSUPPORTED_FORMAT:  # P1
                 log.warning(
-                    "link audio unreadable job=%s video=%s format=%s ext=%s ffprobe=%r",
+                    "link audio unreadable job=%s video=%s format=%s ext=%s "
+                    "ytdlp=%s js=%s ffprobe=%r",
                     self.job_id,
                     self.link.video_id,
                     download.format_id,
                     download.ext,
+                    versions.ytdlp,
+                    versions.js,
                     _ffprobe_tail(error),
                 )
                 raise PipelineError(
@@ -115,11 +119,14 @@ class UrlSource:
                 ) from error
             if error.reason is FailureReason.TOO_LONG:  # P2
                 log.info(
-                    "link audio too long job=%s video=%s metadata=%s probed=%s",
+                    "link audio too long job=%s video=%s metadata=%s probed=%s "
+                    "ytdlp=%s js=%s",
                     self.job_id,
                     self.link.video_id,
                     download.info.duration_sec,
                     duration,
+                    versions.ytdlp,
+                    versions.js,
                 )
             raise  # P2 too_long, or P3: ffprobe missing is ours
         return IngestedAudio(
@@ -147,7 +154,10 @@ class UrlSource:
                 job_id=self.job_id,
                 attempt=self.attempt,
             )
-            raise error.as_pipeline_error() from error
+            # Not `from error`: RQ logs a retried job's traceback and keeps
+            # it in Redis, and the FetchError's text is yt-dlp's. It is in
+            # the log line above, cut to size; nowhere else.
+            raise error.as_pipeline_error() from None
         log_fetched(
             log,
             phase="download",
