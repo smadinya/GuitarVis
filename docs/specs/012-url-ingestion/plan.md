@@ -5373,7 +5373,7 @@ Everything links add to the api is `routes_links.py`, wired by one call in `app.
 **Interfaces:**
 - Produces: `routes_links.install(app)`, `LINK_PATH`, `LINK_BODY_MAX_BYTES`; `Services.fetcher`, `Services.lookups`, `MAX_CONCURRENT_LOOKUPS = 4`; `UploadSizeLimit(app, *, path, limit, refuse)`; `routes.check_limit`, `routes.enqueue`, `routes.live_job`, `routes.too_many_jobs`, `routes.client_ip_of`; `make_api(..., fetcher=...)` in the test fixture.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `apps/api/tests/api_fixture.py`:
 
@@ -5988,12 +5988,12 @@ def test_switching_links_off_in_settings_alone_turns_the_route_off() -> None:
     assert post_link(api.client).status_code == 403
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest apps/api/tests`
 Expected: FAIL: `TypeError: Services.__init__() got an unexpected keyword argument 'fetcher'`, from the updated `make_api`, in every test of the new file.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `apps/api/src/guitarvis_api/app.py`:
 
@@ -6481,12 +6481,12 @@ In `apps/api/src/guitarvis_api/uploads.py`:
          await self.app(scope, counted, send)
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest apps/api/tests`
 Expected: PASS, every upload test included, unchanged.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test

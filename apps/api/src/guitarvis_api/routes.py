@@ -29,6 +29,10 @@ def services_of(request: Request) -> Services:
     return cast(Services, request.app.state.services)
 
 
+def client_ip_of(request: Request) -> str:
+    return request.client.host if request.client is not None else "unknown"
+
+
 def _load(services: Services, job_id: str) -> Job:
     job = services.store.get(job_id)
     if job is None:
@@ -53,7 +57,7 @@ def create_job(file: UploadFile, request: Request, response: Response) -> JobVie
     """Validate, dedupe, limit, store and enqueue — cheapest check first."""
     services = services_of(request)
     settings = services.settings
-    client_ip = request.client.host if request.client is not None else "unknown"
+    client_ip = client_ip_of(request)
 
     with tempfile.TemporaryDirectory(prefix="guitarvis-upload-") as tmp:
         upload = receive(
@@ -61,18 +65,14 @@ def create_job(file: UploadFile, request: Request, response: Response) -> JobVie
         )
         duration = _probe(services, upload.path)
 
-        live = _live_job(services, upload.content_hash)
+        live = live_job(services, upload.content_hash)
         if live is not None:  # starts no work, so it is not counted below
             response.status_code = 200
             return JobView.of(live)
 
         # Counted before the blob is stored, so a refused upload costs no
         # storage. Uploads that race past it are refused by `create`.
-        active = services.store.count_active(client_ip)
-        if active >= settings.max_active_jobs_per_ip:
-            active = _active_after_repair(services, client_ip)
-        if active >= settings.max_active_jobs_per_ip:
-            raise _too_many_jobs(active)
+        check_limit(services, client_ip)
 
         key = upload_key(upload.content_hash, file.filename)
         if not services.blobs.exists(key):
@@ -90,11 +90,30 @@ def create_job(file: UploadFile, request: Request, response: Response) -> JobVie
             max_active=settings.max_active_jobs_per_ip,
         )
     except TooManyActiveJobs as error:
-        raise _too_many_jobs(error.active) from error
+        raise too_many_jobs(error.active) from error
     if not created:  # the same file, uploaded at the same moment, got there first
         response.status_code = 200
         return JobView.of(job)
 
+    enqueue(services, job)
+    response.headers["Location"] = f"/jobs/{job.id}"
+    return JobView.of(job)
+
+
+def check_limit(services: Services, client_ip: str) -> None:
+    """Refuse an address at its limit of active jobs, after repairing the
+    rows the queue lost. Requests that race past it are refused by `create`."""
+    limit = services.settings.max_active_jobs_per_ip
+    active = services.store.count_active(client_ip)
+    if active >= limit:
+        active = _active_after_repair(services, client_ip)
+    if active >= limit:
+        raise too_many_jobs(active)
+
+
+def enqueue(services: Services, job: Job) -> None:
+    """Queue a fresh row, or fail it and refuse: a row left queued with no
+    RQ job would wait out reconciliation's grace."""
     try:
         services.queue.enqueue(job.id)
     except Exception as exc:
@@ -112,9 +131,6 @@ def create_job(file: UploadFile, request: Request, response: Response) -> JobVie
             "We could not queue that song. Try again in a minute.",
         ) from exc
 
-    response.headers["Location"] = f"/jobs/{job.id}"
-    return JobView.of(job)
-
 
 def _active_after_repair(services: Services, client_ip: str) -> int:
     """The count again, once the rows it counted have been reconciled.
@@ -129,7 +145,7 @@ def _active_after_repair(services: Services, client_ip: str) -> int:
     return services.store.count_active(client_ip)
 
 
-def _too_many_jobs(active: int) -> ApiError:
+def too_many_jobs(active: int) -> ApiError:
     songs = "song" if active == 1 else "songs"
     return ApiError(
         429,
@@ -151,7 +167,7 @@ def _probe(services: Services, path: Path) -> float:
     return duration
 
 
-def _live_job(services: Services, content_hash: str) -> Job | None:
+def live_job(services: Services, content_hash: str) -> Job | None:
     """The live job for this upload, repaired first if the queue lost it.
 
     A lookup is a read like any other, so it reconciles: a dead job must not

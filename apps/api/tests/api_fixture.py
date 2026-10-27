@@ -12,6 +12,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 from guitarvis_api.app import create_app
 from guitarvis_api.services import Services
+from guitarvis_fetch.fetcher import UrlFetcher
 from guitarvis_jobs.blobs import InMemoryBlobStore
 from guitarvis_jobs.models import Job
 from guitarvis_jobs.queue import InMemoryJobQueue
@@ -51,6 +52,7 @@ def make_api(
     probe: Callable[[Path], float] = thirty_seconds,
     store: InMemoryJobStore | None = None,
     blobs: InMemoryBlobStore | None = None,
+    fetcher: UrlFetcher | None = None,
     raise_server_exceptions: bool = True,
     **settings: Any,  # Settings fields to override, e.g. max_upload_mb=1
 ) -> Api:
@@ -66,6 +68,7 @@ def make_api(
         settings=resolved,
         probe=probe,
         clock=clock,
+        fetcher=fetcher,
     )
     client = TestClient(
         create_app(services),

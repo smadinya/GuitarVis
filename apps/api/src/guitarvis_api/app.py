@@ -18,6 +18,7 @@ from guitarvis_jobs.settings import Settings
 from guitarvis_api import __version__
 from guitarvis_api.errors import install_error_handlers
 from guitarvis_api.routes import router
+from guitarvis_api.routes_links import install as install_links
 from guitarvis_api.services import Services, build_services
 from guitarvis_api.uploads import UploadSizeLimit
 
@@ -40,6 +41,7 @@ def create_app(services: Services | None = None) -> FastAPI:
     install_error_handlers(app)
     app.add_middleware(UploadSizeLimit)
     app.include_router(router)
+    install_links(app)  # spec 012; deleting this line removes links
     return app
 
 
