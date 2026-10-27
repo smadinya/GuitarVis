@@ -34,6 +34,10 @@ class Settings:
     max_active_jobs_per_ip: int = 2
     job_timeout_sec: int = 1800
     device: str | None = None  # worker only: the torch device, e.g. "cuda"
+    # Spec 012's kill switch. Off unless a deployment turns it on, so one
+    # that has not decided fetches nothing. The api and the worker each read
+    # their own, at start.
+    url_ingestion: bool = False
 
     @property
     def max_upload_bytes(self) -> int:
@@ -48,8 +52,28 @@ class Settings:
             raw = env.get(name, "")
             if raw == "":
                 continue
-            values[spec.name] = _parse_int(name, raw) if spec.type is int else raw
+            if spec.type is int:
+                values[spec.name] = _parse_int(name, raw)
+            elif spec.type is bool:
+                values[spec.name] = _parse_bool(name, raw)
+            else:
+                values[spec.name] = raw
         return cls(**values)
+
+
+_TRUE = frozenset({"1", "true", "on"})
+_FALSE = frozenset({"0", "false", "off"})
+
+
+def _parse_bool(name: str, raw: str) -> bool:
+    """A switch, read as strictly as a number: a typo fails at start, rather
+    than leaving a feature in a state nobody chose."""
+    value = raw.strip().lower()
+    if value in _TRUE:
+        return True
+    if value in _FALSE:
+        return False
+    raise ValueError(f"{name} must be 1, true, on, 0, false or off, got {raw!r}")
 
 
 def _parse_int(name: str, raw: str) -> int:

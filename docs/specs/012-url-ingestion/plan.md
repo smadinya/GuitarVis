@@ -622,7 +622,7 @@ The kill switch. `Settings` learns booleans, read as strictly as numbers: `1`/`t
 **Interfaces:**
 - Produces: `Settings.url_ingestion: bool = False`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `packages/jobs/tests/test_settings.py`:
 
@@ -677,12 +677,12 @@ In `packages/jobs/tests/test_settings.py`:
      assert Settings.from_env(settings_env(settings)) == settings
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/jobs/tests/test_settings.py`
 Expected: FAIL: `AttributeError: 'Settings' object has no attribute 'url_ingestion'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `packages/jobs/src/guitarvis_jobs/settings.py`:
 
@@ -734,12 +734,12 @@ In `packages/jobs/src/guitarvis_jobs/settings.py`:
          value = int(raw)
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest packages/jobs/tests/test_settings.py`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test
