@@ -3023,7 +3023,7 @@ Expected: the first command passes; after the commit, `schema-check` prints noth
 **Interfaces:**
 - Produces (`guitarvis_fetch.child`): `FORMAT`, `OUTPUT_TEMPLATE`, `SOCKET_TIMEOUT_SEC = 15`, `MEDIA_HOST_SUFFIX`, `ydl_options(*, deno, logger, work_dir=None, max_bytes=None, hooks=())`, `ChildLog`, `lookup(ydl, url)`, `download(ydl, url, work_dir, max_bytes, log, *, resolve)`, `check_media(selected, max_bytes, *, resolve)`, `ProgressHook`, `classify(error, warnings=()) -> FetchKind`, `exception_chain(error)`, `main(argv=None)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `packages/fetch/tests/fixtures/youtube-messages.json`:
 
@@ -3909,12 +3909,12 @@ def test_the_chain_follows_exc_info_cause_and_context() -> None:
     assert network in chain
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/fetch/tests/test_classify.py packages/fetch/tests/test_child.py`
 Expected: FAIL at collection: `ModuleNotFoundError: No module named 'yt_dlp'` and `No module named 'guitarvis_fetch.child'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add the dependency (the `pyproject.toml` change below), then `uv lock && uv sync`. The lock should resolve `yt-dlp 2026.10.26` and `yt-dlp-ejs 0.8.0`; check with `grep -A1 'name = "yt-dlp"' uv.lock`. yt-dlp ships no `py.typed`, so mypy.ini names it, as it names boto3.
 
@@ -4441,12 +4441,12 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest packages/fetch/tests/test_classify.py packages/fetch/tests/test_child.py`
 Expected: PASS, with no network and no Deno: the tests that run the child as a process hide Deno by emptying `PATH`, or fake one.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test
