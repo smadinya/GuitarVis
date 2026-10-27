@@ -81,7 +81,13 @@ class FetchKind(StrEnum):
 
 
 class Retry(StrEnum):
-    """The catalog's Retry column."""
+    """The catalog's Retry column, one value per kind: the worker's rule.
+
+    `rq` is the worker's automatic retry. The api never retries a lookup, so
+    for a lookup `rq` reads as "the user may try again later". Where the
+    spec's lookup row says *later* and its worker twin says *RQ* (L13 and D1,
+    L17 and D10, L18 and D9), the kind holds `rq`.
+    """
 
     NO = "no"  # the same link fails the same way
     LATER = "later"  # it may work later, but nothing retries it for the user
@@ -91,8 +97,8 @@ class Retry(StrEnum):
 @dataclass(frozen=True)
 class Entry:
     """One catalog row. `status` is the api's answer for a lookup; a worker
-    failure is recorded on the row instead. `tail` adds the end of the
-    child's stderr to the log line."""
+    failure is recorded on the row instead. `retry` is the worker's rule (see
+    `Retry`). `tail` adds the end of the child's stderr to the log line."""
 
     reason: FailureReason
     status: int
