@@ -22,6 +22,9 @@ upload ──▶ api ──▶ [jobs] ──▶ worker
                         tab document ──▶ api ──▶ web
 ```
 
+For a link job the worker downloads the audio first: the download fills
+0–5%, and the four stages are scaled onto 5–100%.
+
 Four independent stages, each behind a narrow interface. The last of them —
 placing pitches on the neck — is deterministic code rather than a model, so
 tablature correctness does not depend on transcription accuracy.

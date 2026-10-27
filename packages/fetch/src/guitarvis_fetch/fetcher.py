@@ -4,8 +4,9 @@ process of its own (spec 012, *Where yt-dlp runs*).
 Nothing here imports yt-dlp. ChildFetcher starts `python -I -m
 guitarvis_fetch.child`, reads JSON lines from it, and kills its whole process
 group at a deadline or on any way out, which a thread could not do. The
-child runs with every GUITARVIS_* variable removed, so it cannot read the
-database URL or the storage secret.
+child gets no GUITARVIS_* variables, so yt-dlp is never handed the database
+URL or the storage secret. It is not a sandbox: it runs as the same user, and
+could still read them from /proc/<ppid>/environ, or any file that user can.
 
 The protocol, one JSON object per line on the child's stdout:
 

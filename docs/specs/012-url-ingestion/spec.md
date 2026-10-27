@@ -127,9 +127,11 @@ then either one result or one classified error.
   kill its whole process group, which includes the JavaScript runtime yt-dlp
   starts.
 - **Containment.** A hang, crash or memory blow-up in the part most likely to
-  break takes down one child, not the api or a worker. The child runs with
-  every `GUITARVIS_*` variable removed from its environment, so it can't read
-  the database URL or the storage secret.
+  break takes down one child, not the api or a worker. The child gets no
+  `GUITARVIS_*` variables, so yt-dlp is never handed the database URL or the
+  storage secret. It is not a sandbox: it runs as the same user as its
+  parent, and could still read them from `/proc/<ppid>/environ`, or from any
+  file that user can read. Where secrets live is open decision 12's.
 - **Typed failures.** Inside the child, yt-dlp's exception types are visible
   (`GeoRestrictedError`, `HTTPError.status`, the `ExtractorError` inside a
   `DownloadError`), and the child classifies them before anything crosses the

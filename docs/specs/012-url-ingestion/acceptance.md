@@ -104,4 +104,9 @@ Notes: …
 - [ ] No line carries a whole pasted link, a `si=` value, a database URL or a storage secret
 - [ ] No response body and no job row carries yt-dlp's text (`ERROR:`, `[youtube]`, `yt-dlp`, a traceback)
 
+A retried download failure (D1, D2, D8, D9, D10) also leaves RQ's own ERROR
+line, with a traceback, beside our `link fetch failed` line. That is expected,
+as it is for every retried job, and is not a second line for one outcome. Its
+traceback carries the catalog's message, never yt-dlp's words.
+
 Notes: …
