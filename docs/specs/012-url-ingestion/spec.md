@@ -41,7 +41,9 @@ Success conditions:
 6. Nothing in `make check` touches the network, and `make check` gates all
    of it.
 7. Upload jobs are unchanged. Their tests pass unmodified, apart from those
-   that pin the list of failure reasons.
+   that pin the list of failure reasons, the one that pins a whole `JobView`
+   body (it gains `source_url`), and two that narrow the now-optional
+   `upload_key` for the type checker.
 
 ## Scope
 
@@ -132,8 +134,10 @@ then either one result or one classified error.
   parsing English text on stderr.
 - **No stray config.** The yt-dlp command line reads `yt-dlp.conf` from the
   user's and system config directories, so a file on some host could quietly
-  add cookies or a proxy. The library reads no config files (to be confirmed:
-  research.md).
+  add cookies or a proxy. The library reads no config files, but it does load
+  plugins, which are code, from the same directories when a `YoutubeDL` is
+  made; the child sets `YTDLP_NO_PLUGINS` to stop that (both confirmed in
+  2026.10.26: research.md).
 
 The cost is starting an interpreter for each lookup: a few hundred
 milliseconds, against the one to five seconds the lookup itself takes.
@@ -440,7 +444,7 @@ work later; *no* means it won't. Tests are named as in *Testing*.
 | L4 | Age-restricted, or sign-in required | classify | `link_unusable` · 422 | That video is age-restricted, and we don't sign in to YouTube. Upload the audio file instead. | INFO | no | classify, route |
 | L5 | Members-only or paid | classify, `availability` | `link_unusable` · 422 | That video is only for channel members or paying viewers. Upload the audio file instead. | INFO | no | classify, route |
 | L6 | Live now | `live_status` is `is_live` | `link_unusable` · 422 | That's a live stream. Once it has ended and been saved as a video, try the link again. | INFO | later | route |
-| L7 | Upcoming, or premiere not yet started | `is_upcoming` | `link_unusable` · 422 | That video hasn't premiered yet. Try the link again once it has. | INFO | later | route |
+| L7 | Upcoming, or premiere not yet started | classify (YouTube's reason; there are no formats, so no metadata comes back), or `is_upcoming` | `link_unusable` · 422 | That video hasn't premiered yet. Try the link again once it has. | INFO | later | classify, route |
 | L8 | Stream just ended, still processing | `post_live` | `link_unusable` · 422 | That stream has only just ended, and YouTube is still processing it. Try the link again in a few hours. | INFO | later | route |
 | L9 | No duration in the metadata | step 6 | `link_unusable` · 422 | We couldn't tell how long that video is, so we didn't fetch it. Upload the audio file instead. | WARNING | no | route |
 | L10 | Over ten minutes | `check_duration` | `too_long` · 422 | That video is {length} long. The limit is 10 minutes: try a link to a single song. | INFO | no | route |
