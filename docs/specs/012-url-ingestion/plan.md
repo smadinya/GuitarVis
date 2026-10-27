@@ -9417,7 +9417,7 @@ Nothing new: the full check on the finished branch, with every service up, and t
 **Files:**
 - Modify: `docs/specs/012-url-ingestion/plan.md` (checkboxes only)
 
-- [ ] **Step 1: Start the services and migrate**
+- [x] **Step 1: Start the services and migrate**
 
 ```bash
 make services
@@ -9426,7 +9426,7 @@ make migrate
 
 Expected: `database up to date: …` and `bucket ready: guitarvis at http://localhost:9000`. `make migrate` brings the dev database to revision `0002`. If Docker is not available on this machine, say so in the PR and rely on CI's run; do not report the integration suite as passed.
 
-- [ ] **Step 2: Run the gate as CI runs it**
+- [x] **Step 2: Run the gate as CI runs it**
 
 ```bash
 GUITARVIS_REQUIRE_SERVICES=1 make check
@@ -9434,7 +9434,7 @@ GUITARVIS_REQUIRE_SERVICES=1 make check
 
 Expected: exit 0. ruff and ESLint clean, mypy clean across `PY_SOURCES` (now including `packages/fetch/src`, `packages/fetch/tests` and `packages/fetch/smoke`), about 1,120 Python tests passing with only the eval suite's `mir_eval` skips, about 490 web tests passing, and `schema-check` silent. Any other skip under `GUITARVIS_REQUIRE_SERVICES=1` is a failure.
 
-- [ ] **Step 3: Check the boundaries by hand once**
+- [x] **Step 3: Check the boundaries by hand once**
 
 ```bash
 uv run python -c "import sys, guitarvis_api.app; print('yt_dlp' in sys.modules)"
@@ -9448,7 +9448,7 @@ Expected: `False`; only `packages/fetch/src/guitarvis_fetch/child.py` in the gre
 
 With Deno 2.3 or later installed: `make smoke-url`. Expected: `3 passed`, printing the lookup, a download of format 140, ffprobe's 37.06 s, and YouTube's messages for a private and a removed video. Compare those with `packages/fetch/tests/fixtures/youtube-messages.json`; if YouTube's wording has changed, update the fixture, re-run `uv run pytest packages/fetch/tests/test_classify.py`, and commit both. This is never a substitute for Step 2, nor gated by it.
 
-- [ ] **Step 5: Tick this plan's checkboxes and commit**
+- [x] **Step 5: Tick this plan's checkboxes and commit**
 
 ```bash
 git add docs/specs/012-url-ingestion/plan.md
