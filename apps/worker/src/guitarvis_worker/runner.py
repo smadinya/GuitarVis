@@ -195,6 +195,10 @@ def _run(
 ) -> tuple[dict[str, Any], str]:
     if job.upload_key is None:
         # A link job whose download is not stored, and nothing here fetches.
+        log.info(
+            "job %s is a link job and links are off, and its audio was never stored",
+            job.id,
+        )
         raise PipelineError(
             FailureReason.LINKS_DISABLED,
             "Links were turned off before this song could be fetched. "

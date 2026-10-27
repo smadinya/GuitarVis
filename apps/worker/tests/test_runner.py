@@ -5,6 +5,7 @@ end-to-end test (test_end_to_end.py) runs it under a real RQ worker.
 """
 
 import importlib
+import logging
 import signal
 import time
 from collections.abc import Callable, Iterator
@@ -379,11 +380,12 @@ def test_a_result_after_the_row_was_failed_is_dropped(harness: Harness) -> None:
 
 
 def test_a_link_job_with_no_stored_audio_fails_when_nothing_fetches(
-    harness: Harness,
+    harness: Harness, caplog: pytest.LogCaptureFixture
 ) -> None:  # W1
     job, _ = harness.store.create(sample_link_job())
 
-    process_job(job.id, harness.deps(), retries_left=2)  # no retry: returns
+    with caplog.at_level(logging.INFO, logger="guitarvis_worker.runner"):
+        process_job(job.id, harness.deps(), retries_left=2)  # no retry: returns
 
     row = harness.store.get(job.id)
     assert row is not None
@@ -393,6 +395,11 @@ def test_a_link_job_with_no_stored_audio_fails_when_nothing_fetches(
         "Upload the audio file instead."
     )
     assert harness.separator.calls == 0
+    [entry] = [r for r in caplog.records if r.name == "guitarvis_worker.runner"]
+    assert entry.levelno == logging.INFO
+    assert job.id in entry.getMessage()
+    assert "links are off" in entry.getMessage()
+    assert "youtube.com" not in caplog.text  # the url is the row's, not the log's
 
 
 def test_an_unknown_job_is_dropped(harness: Harness) -> None:
