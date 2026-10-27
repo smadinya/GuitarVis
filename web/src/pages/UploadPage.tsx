@@ -88,6 +88,11 @@ export function UploadPage({
       });
   };
 
+  // A hint is about this attempt: an earlier attempt's failure goes. A
+  // request in flight stays, though no hint can be shown while one is.
+  const clearFailure = () =>
+    setState((current) => (current.kind === "refused" ? { kind: "idle" } : current));
+
   // A file dropped just outside the drop zone would otherwise be opened by the
   // browser, and the app lost. Only the drop zone takes a drop.
   useEffect(() => {
@@ -132,7 +137,9 @@ export function UploadPage({
           }}
         />
       </label>
-      {linksOn && !linksRefused && <LinkForm disabled={sending} onSend={sendUrl} />}
+      {linksOn && !linksRefused && (
+        <LinkForm disabled={sending} onSend={sendUrl} onHint={clearFailure} />
+      )}
       {state.kind === "sending" && (
         <p role="status">
           {state.fraction < 1 ? (
@@ -173,8 +180,17 @@ function useLinksOn(features: () => Promise<Features>): boolean {
 }
 
 /** The link field, under the drop zone (the WebHome mockup). A hint shows
- * under the field, and nothing is sent, until the text looks like a link. */
-function LinkForm({ disabled, onSend }: { disabled: boolean; onSend: (url: string) => void }) {
+ * under the field, and nothing is sent, until the text looks like a link. The
+ * hint is announced, as a server's refusal is, and `onHint` hears of it. */
+function LinkForm({
+  disabled,
+  onSend,
+  onHint,
+}: {
+  disabled: boolean;
+  onSend: (url: string) => void;
+  onHint: () => void;
+}) {
   const [text, setText] = useState("");
   const [hint, setHint] = useState<string | null>(null);
   const hintId = useId();
@@ -184,6 +200,7 @@ function LinkForm({ disabled, onSend }: { disabled: boolean; onSend: (url: strin
     const problem = linkHint(text);
     setHint(problem);
     if (problem === null) onSend(text.trim());
+    else onHint();
   };
 
   return (
@@ -212,7 +229,7 @@ function LinkForm({ disabled, onSend }: { disabled: boolean; onSend: (url: strin
         </button>
       </div>
       {hint !== null && (
-        <p id={hintId} className="link-hint">
+        <p id={hintId} className="link-hint" role="alert">
           {hint}
         </p>
       )}

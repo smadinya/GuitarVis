@@ -210,6 +210,22 @@ describe("UploadPage", () => {
       expect(field().getAttribute("aria-describedby")).toBe(shown.id);
     });
 
+    it("announces the hint, in place of an earlier attempt's failure", async () => {
+      await showLinks(async () => {
+        throw new ApiError(503, "fetch_failed", "Words from the server.");
+      });
+      paste(LINK);
+      await act(async () => {});
+      expect(screen.getByText(MESSAGES.fetch_failed.headline)).toBeTruthy();
+
+      paste("");
+
+      const alerts = screen.getAllByRole("alert");
+      expect(alerts).toHaveLength(1);
+      expect(alerts[0].textContent).toBe("Paste a link first.");
+      expect(screen.queryByText(MESSAGES.fetch_failed.headline)).toBeNull();
+    });
+
     it("clears the hint once the text changes", async () => {
       await showLinks(never);
       paste("");
