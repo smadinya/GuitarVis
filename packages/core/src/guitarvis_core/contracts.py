@@ -26,6 +26,8 @@ class FailureReason(StrEnum):
     NO_GUITAR_DETECTED = "no_guitar_detected"
     TOO_LONG = "too_long"
     FETCH_FAILED = "fetch_failed"
+    LINK_UNUSABLE = "link_unusable"
+    LINKS_DISABLED = "links_disabled"
     INTERNAL = "internal"
 
 

@@ -386,7 +386,7 @@ The vocabulary grows from nine to twelve: `link_unusable` and `links_disabled` j
 **Interfaces:**
 - Produces: `FailureReason.LINK_UNUSABLE`, `FailureReason.LINKS_DISABLED`, `HttpReason.UNSUPPORTED_LINK`; `MESSAGES` entries for all three.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `apps/api/tests/test_api_schema.py`:
 
@@ -475,12 +475,12 @@ In `web/src/api/client.test.ts`:
  });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/core/tests/test_contracts.py apps/api/tests/test_api_schema.py apps/api/tests/test_job_routes.py && npm --prefix web test -- src/api/client.test.ts`
 Expected: FAIL: `assert 9 == 12` in `test_the_schema_names_all_twelve_reasons`; the reason-set tests miss `link_unusable`, `links_disabled` and `unsupported_link`. (vitest is not reached; run it alone and it fails on `toHaveLength(13)`.)
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Then regenerate the contract artifacts: `make schema`. `schema/api.schema.json` and `web/src/types/api.ts` change; never edit them by hand.
 
@@ -580,12 +580,12 @@ In `web/src/api/messages.ts`:
      action: "Check your connection, then try again.",
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest packages/core/tests/test_contracts.py apps/api/tests/test_api_schema.py apps/api/tests/test_job_routes.py && npm --prefix web test -- src/api/client.test.ts`
 Expected: PASS, and `npm --prefix web run typecheck` passes with the new `MESSAGES`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test

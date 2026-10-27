@@ -222,10 +222,16 @@ def test_an_unexpected_error_uses_the_error_body_and_hides_the_detail() -> None:
     }
 
 
-def test_the_http_layer_adds_exactly_four_reasons() -> None:
+def test_the_http_layer_adds_exactly_five_reasons() -> None:
     http = {reason.value for reason in HttpReason}
 
-    assert http == {"too_large", "too_many_jobs", "not_found", "not_ready"}
+    assert http == {
+        "too_large",
+        "too_many_jobs",
+        "not_found",
+        "not_ready",
+        "unsupported_link",
+    }
     assert not http & {reason.value for reason in FailureReason}
 
 

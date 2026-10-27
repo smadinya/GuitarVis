@@ -10,9 +10,16 @@ export type ApiResponse = JobView | ErrorBody;
  * The user needs to know whether to try a different file, a different song,
  * or come back later.
  */
-export type FailureReason = "unsupported_format" | "no_guitar_detected" | "too_long" | "fetch_failed" | "internal";
+export type FailureReason =
+  | "unsupported_format"
+  | "no_guitar_detected"
+  | "too_long"
+  | "fetch_failed"
+  | "link_unusable"
+  | "links_disabled"
+  | "internal";
 export type JobStatus = "queued" | "running" | "succeeded" | "failed";
-export type HttpReason = "too_large" | "too_many_jobs" | "not_found" | "not_ready";
+export type HttpReason = "too_large" | "too_many_jobs" | "not_found" | "not_ready" | "unsupported_link";
 
 /**
  * `failure` is set only when `status` is failed; `stage` only while running.

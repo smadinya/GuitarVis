@@ -43,6 +43,8 @@
         "no_guitar_detected",
         "too_long",
         "fetch_failed",
+        "link_unusable",
+        "links_disabled",
         "internal"
       ],
       "title": "FailureReason",
@@ -81,7 +83,8 @@
         "too_large",
         "too_many_jobs",
         "not_found",
-        "not_ready"
+        "not_ready",
+        "unsupported_link"
       ],
       "title": "HttpReason",
       "type": "string"

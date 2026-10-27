@@ -38,6 +38,8 @@ def test_failure_reasons_match_the_spec_exactly() -> None:
         "no_guitar_detected",
         "too_long",
         "fetch_failed",
+        "link_unusable",
+        "links_disabled",
         "internal",
     }
 

@@ -30,11 +30,19 @@ const JOB_MESSAGES: Record<FailureReason, Message> = {
   },
   too_long: {
     headline: "That recording is too long.",
-    action: "Upload a single song, up to ten minutes long.",
+    action: "Try a single song, up to ten minutes long.",
   },
   fetch_failed: {
     headline: "We couldn't fetch that audio.",
-    action: "Upload the file itself instead.",
+    action: "Try again later, or upload the audio file.",
+  },
+  link_unusable: {
+    headline: "We can't use that video.",
+    action: "Try a different link, or upload the audio file.",
+  },
+  links_disabled: {
+    headline: "Links are turned off.",
+    action: "Upload the audio file instead.",
   },
   internal: {
     headline: "Something went wrong on our side.",
@@ -59,6 +67,10 @@ export const MESSAGES: Record<Reason, Message> = {
   not_ready: {
     headline: "That song isn't ready yet.",
     action: "Wait a moment, then reload the page.",
+  },
+  unsupported_link: {
+    headline: "We can't use that link.",
+    action: "Paste a link to a single YouTube video, or upload the audio file.",
   },
   unreachable: {
     headline: "We couldn't reach GuitarVis.",

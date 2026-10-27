@@ -12,7 +12,7 @@ Rules that outlive any one change. The reasoning lives in
   fought with type errors; the contract should.
 - **Failures carry a typed reason**, never a bare string. `FailureReason` in
   `guitarvis_core.contracts` and the api's `HttpReason` together are the closed
-  set the api can send (`Reason`, nine values). `web/src/api/messages.ts` maps
+  set the api can send (`Reason`, twelve values). `web/src/api/messages.ts` maps
   each of them, and the client's own `unreachable`, to actionable text. Adding
   a reason means updating that mapping, and `tsc` refuses the build until you
   do.

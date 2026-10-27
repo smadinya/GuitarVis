@@ -241,7 +241,7 @@ describe("MESSAGES", () => {
       expect(message.headline.length).toBeGreaterThan(0);
       expect(message.action.length).toBeGreaterThan(0);
     }
-    expect(Object.keys(MESSAGES)).toHaveLength(10); // nine from the api, plus unreachable
+    expect(Object.keys(MESSAGES)).toHaveLength(13); // twelve from the api, plus unreachable
     expect(isReason("toString")).toBe(false);
   });
 });
