@@ -1837,7 +1837,7 @@ Expected: the first command passes; after the commit, `schema-check` prints noth
 - Produces (`guitarvis_fetch.fetcher`): `LOOKUP_DEADLINE_SEC = 30`, `DOWNLOAD_DEADLINE_SEC = 300`, `MIN_DENO_VERSION = (2, 3, 0)`, `Versions`, `VideoInfo(title, duration_sec, live_status, availability, versions)`, `Download(path, info, format_id, ext, size)`, `FetchError(kind, detail, *, duration_sec, tail, exit_code, versions)` with `.entry`, `.message`, `.as_pipeline_error()`, `UrlFetcher` (`lookup(link)`, `download(link, work_dir, *, max_bytes, progress=None)`), `check_info(info) -> float`, `JsRuntime`, `find_deno(*, which=shutil.which)`, `child_environment(environ=None)`, `ChildFetcher(*, command=None, lookup_deadline_sec, download_deadline_sec)`, `log_failed(...)`, `log_fetched(...)`.
 - Produces (`guitarvis_fetch.testing`): `FakeFetcher`, `video_info(...)`, `write_wav(path)`, `VERSIONS`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `packages/fetch/tests/fake_child.py`:
 
@@ -2357,12 +2357,12 @@ def test_a_success_is_logged_with_its_format(
     assert caplog.records[0].getMessage().endswith("format=140 ext=m4a bytes=3")
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/fetch/tests/test_fetcher.py`
 Expected: FAIL at collection: `ModuleNotFoundError: No module named 'guitarvis_fetch.fetcher'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `packages/fetch/src/guitarvis_fetch/fetcher.py`:
 
@@ -2982,12 +2982,12 @@ if TYPE_CHECKING:  # Static conformance: the typed assignment is what mypy check
     _conforms: UrlFetcher = FakeFetcher()
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest packages/fetch/tests/test_fetcher.py`
 Expected: PASS, in about five seconds: two tests wait out a two-second deadline. The hang tests check that the fake child's grandchild, standing in for Deno, is dead too.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test

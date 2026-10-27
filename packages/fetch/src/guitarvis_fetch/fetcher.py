@@ -1,0 +1,510 @@
+"""Fetching: the UrlFetcher contract, and ChildFetcher, which runs yt-dlp in a
+process of its own (spec 012, *Where yt-dlp runs*).
+
+Nothing here imports yt-dlp. ChildFetcher starts `python -I -m
+guitarvis_fetch.child`, reads JSON lines from it, and kills its whole process
+group at a deadline or on any way out, which a thread could not do. The
+child runs with every GUITARVIS_* variable removed, so it cannot read the
+database URL or the storage secret.
+
+The protocol, one JSON object per line on the child's stdout:
+
+    {"progress": 0.42}
+    {"result": {...}, "ytdlp": "2026.10.26", "js": "deno/2.5.4"}
+    {"error": {"kind": "private", "detail": "...", "duration_sec": null},
+     "ytdlp": "...", "js": "..."}
+"""
+
+import contextlib
+import json
+import logging
+import math
+import os
+import queue
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import sysconfig
+import tempfile
+import threading
+import time
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import IO, TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+from guitarvis_core.audio import MAX_DURATION_SEC, check_duration
+from guitarvis_core.contracts import FailureReason, PipelineError
+
+from guitarvis_fetch.catalog import CATALOG, Entry, FetchKind, message_for
+from guitarvis_fetch.links import Link
+
+LOOKUP_DEADLINE_SEC = 30.0
+DOWNLOAD_DEADLINE_SEC = 300.0
+DETAIL_CHARS = 500
+TAIL_BYTES = 2048
+# yt_dlp.utils._jsruntime.DenoJsRuntime.MIN_SUPPORTED_VERSION in 2026.10.26.
+MIN_DENO_VERSION = (2, 3, 0)
+
+Progress = Callable[[float], None]
+
+
+@dataclass(frozen=True)
+class Versions:
+    """Which yt-dlp and which JavaScript runtime answered: on every log line,
+    so "it broke on Tuesday" can be traced to a version."""
+
+    ytdlp: str = "-"
+    js: str = "-"
+
+
+@dataclass(frozen=True)
+class VideoInfo:
+    """What a lookup learns. `live_status` and `availability` are yt-dlp's
+    words for them; `duration_sec` is None when the metadata has none."""
+
+    title: str
+    duration_sec: float | None
+    live_status: str | None = None
+    availability: str | None = None
+    versions: Versions = field(default_factory=Versions)
+
+
+@dataclass(frozen=True)
+class Download:
+    """A downloaded file in the job's directory, and what it came from."""
+
+    path: Path
+    info: VideoInfo
+    format_id: str
+    ext: str
+    size: int
+
+
+class FetchError(Exception):
+    """A classified failure. `kind` picks the catalog row; `detail` is
+    yt-dlp's text and `tail` the end of the child's stderr, for the log
+    only. `str()` of this error is a log line, never a message."""
+
+    def __init__(
+        self,
+        kind: FetchKind,
+        detail: str = "",
+        *,
+        duration_sec: float | None = None,
+        tail: str = "",
+        exit_code: int | None = None,
+        versions: Versions | None = None,
+    ) -> None:
+        super().__init__(f"{kind.value}: {detail}")
+        self.kind = kind
+        self.detail = detail
+        self.duration_sec = duration_sec
+        self.tail = tail
+        self.exit_code = exit_code
+        self.versions = versions or Versions()
+
+    @property
+    def entry(self) -> Entry:
+        return CATALOG[self.kind]
+
+    @property
+    def message(self) -> str:
+        """What the user is told: the catalog's words, never yt-dlp's."""
+        return message_for(self.kind, duration_sec=self.duration_sec)
+
+    def as_pipeline_error(self) -> PipelineError:
+        """The worker's form of this failure: reason, message, retry rule."""
+        return PipelineError(
+            self.entry.reason, self.message, retryable=self.entry.retryable
+        )
+
+
+@runtime_checkable
+class UrlFetcher(Protocol):
+    """Looks a link up, and downloads its audio. Raises FetchError."""
+
+    def lookup(self, link: Link) -> VideoInfo: ...
+
+    def download(
+        self,
+        link: Link,
+        work_dir: Path,
+        *,
+        max_bytes: int,
+        progress: Progress | None = None,
+    ) -> Download: ...
+
+
+_REFUSED_LIVE = {
+    "is_live": FetchKind.LIVE,
+    "is_upcoming": FetchKind.UPCOMING,
+    "post_live": FetchKind.POST_LIVE,
+}
+_REFUSED_AVAILABILITY = {
+    "private": FetchKind.PRIVATE,
+    "premium_only": FetchKind.MEMBERS_ONLY,
+    "subscriber_only": FetchKind.MEMBERS_ONLY,
+    "needs_auth": FetchKind.AGE_RESTRICTED,
+}
+
+
+def check_info(info: VideoInfo, *, max_duration_sec: float = MAX_DURATION_SEC) -> float:
+    """Refuse a video we cannot use, from its metadata alone; else its length.
+
+    The api runs this after a lookup (step 6), and the child again on fresh
+    metadata before downloading, since a video can change while queued.
+    Missing duration is refused here, not left to ffprobe: the size cap
+    would stop a three-hour download only after 150 MB of it had arrived.
+    """
+    live = _REFUSED_LIVE.get(info.live_status or "")
+    if live is not None:
+        raise FetchError(live, f"live_status={info.live_status}")
+    refused = _REFUSED_AVAILABILITY.get(info.availability or "")
+    if refused is not None:
+        raise FetchError(refused, f"availability={info.availability}")
+    if info.duration_sec is None:
+        raise FetchError(FetchKind.NO_DURATION, "no duration in the metadata")
+    try:
+        check_duration(info.duration_sec, max_duration_sec)
+    except PipelineError as error:
+        if error.reason is FailureReason.TOO_LONG:
+            raise FetchError(
+                FetchKind.TOO_LONG,
+                f"duration={info.duration_sec}",
+                duration_sec=info.duration_sec,
+            ) from None
+        raise FetchError(  # zero, negative or NaN
+            FetchKind.NO_DURATION, f"duration={info.duration_sec}"
+        ) from None
+    return info.duration_sec
+
+
+@dataclass(frozen=True)
+class JsRuntime:
+    name: str
+    path: str
+    version: str
+
+    @property
+    def label(self) -> str:
+        return f"{self.name}/{self.version}"
+
+
+_DENO_VERSION = re.compile(r"deno (\d+)\.(\d+)\.(\d+)")
+
+
+def find_deno(*, which: Callable[[str], str | None] = shutil.which) -> JsRuntime | None:
+    """Deno, where yt-dlp itself looks first — beside this Python, then on
+    PATH — if it is new enough for the pinned yt-dlp. None otherwise."""
+    beside = Path(sysconfig.get_path("scripts")) / "deno"
+    for candidate in (str(beside) if beside.is_file() else None, which("deno")):
+        if candidate is None:
+            continue
+        try:
+            answer = subprocess.run(
+                [candidate, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        match = _DENO_VERSION.search(answer.stdout)
+        if match is None:
+            continue
+        version = tuple(int(part) for part in match.groups())
+        if version >= MIN_DENO_VERSION:
+            return JsRuntime("deno", candidate, ".".join(match.groups()))
+    return None
+
+
+def child_environment(environ: Mapping[str, str] | None = None) -> dict[str, str]:
+    """The child's environment: ours, minus every GUITARVIS_* variable, with
+    yt-dlp's plugins switched off (it loads them from config directories)."""
+    source = os.environ if environ is None else environ
+    env = {
+        name: value
+        for name, value in source.items()
+        if not name.startswith("GUITARVIS_")
+    }
+    env["YTDLP_NO_PLUGINS"] = "1"
+    return env
+
+
+class ChildFetcher:
+    """Implements UrlFetcher with yt-dlp, in `python -I -m guitarvis_fetch.child`.
+
+    `command` is for tests, which run a fake child instead.
+    """
+
+    def __init__(
+        self,
+        *,
+        command: Sequence[str] | None = None,
+        lookup_deadline_sec: float = LOOKUP_DEADLINE_SEC,
+        download_deadline_sec: float = DOWNLOAD_DEADLINE_SEC,
+    ) -> None:
+        self._command = (
+            list(command)
+            if command is not None
+            else [sys.executable, "-I", "-m", "guitarvis_fetch.child"]
+        )
+        self._lookup_deadline_sec = lookup_deadline_sec
+        self._download_deadline_sec = download_deadline_sec
+
+    def lookup(self, link: Link) -> VideoInfo:
+        result, versions = self._run(
+            ["lookup", link.canonical_url],
+            deadline_sec=self._lookup_deadline_sec,
+            timeout_kind=FetchKind.LOOKUP_TIMEOUT,
+        )
+        return _video_info(result, versions)
+
+    def download(
+        self,
+        link: Link,
+        work_dir: Path,
+        *,
+        max_bytes: int,
+        progress: Progress | None = None,
+    ) -> Download:
+        result, versions = self._run(
+            ["download", link.canonical_url, str(work_dir), str(max_bytes)],
+            deadline_sec=self._download_deadline_sec,
+            timeout_kind=FetchKind.DOWNLOAD_TIMEOUT,
+            progress=progress,
+        )
+        try:
+            return Download(
+                path=Path(_text(result, "path")),
+                info=_video_info(result, versions),
+                format_id=_text(result, "format_id"),
+                ext=_text(result, "ext"),
+                size=int(result["size"]),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise FetchError(
+                FetchKind.CRASHED, f"unreadable result: {error!r}", versions=versions
+            ) from None
+
+    def _run(
+        self,
+        args: list[str],
+        *,
+        deadline_sec: float,
+        timeout_kind: FetchKind,
+        progress: Progress | None = None,
+    ) -> tuple[dict[str, Any], Versions]:
+        with tempfile.TemporaryFile() as stderr:
+            process = subprocess.Popen(
+                [*self._command, *args],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=stderr,
+                env=child_environment(),
+                start_new_session=True,  # its own process group, to kill whole
+            )
+            lines: queue.Queue[bytes | None] = queue.Queue()
+            reader = threading.Thread(
+                target=_read_lines, args=(process.stdout, lines), daemon=True
+            )
+            reader.start()
+            try:
+                return _answer(
+                    lines,
+                    process,
+                    stderr,
+                    deadline=time.monotonic() + deadline_sec,
+                    timeout_kind=timeout_kind,
+                    progress=progress,
+                )
+            finally:
+                # Every way out, a job timeout's BaseException included: no
+                # child, and no JavaScript runtime it started, outlives this.
+                _kill_group(process)
+                process.wait()
+
+
+def _answer(
+    lines: "queue.Queue[bytes | None]",
+    process: "subprocess.Popen[bytes]",
+    stderr: IO[bytes],
+    *,
+    deadline: float,
+    timeout_kind: FetchKind,
+    progress: Progress | None,
+) -> tuple[dict[str, Any], Versions]:
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise FetchError(
+                timeout_kind, "no answer before the deadline", tail=_tail(stderr)
+            )
+        try:
+            line = lines.get(timeout=remaining)
+        except queue.Empty:
+            continue
+        if line is None:
+            code = _exit_code(process)
+            raise FetchError(
+                FetchKind.CRASHED,
+                f"exited with {code} and no answer",
+                tail=_tail(stderr),
+                exit_code=code,
+            )
+        message = _decode(line, stderr)
+        versions = Versions(
+            ytdlp=str(message.get("ytdlp") or "-"), js=str(message.get("js") or "-")
+        )
+        if "progress" in message:
+            if progress is not None:
+                _report(progress, message["progress"])
+            continue
+        if isinstance(message.get("result"), dict):
+            return message["result"], versions
+        if isinstance(message.get("error"), dict):
+            raise _error_from(message["error"], versions, _tail(stderr))
+        raise FetchError(
+            FetchKind.CRASHED, f"unexpected line: {line[:200]!r}", tail=_tail(stderr)
+        )
+
+
+def _read_lines(stream: IO[bytes] | None, lines: "queue.Queue[bytes | None]") -> None:
+    if stream is not None:
+        for line in stream:
+            lines.put(line)
+    lines.put(None)  # end of output: the child has exited, or closed stdout
+
+
+def _decode(line: bytes, stderr: IO[bytes]) -> dict[str, Any]:
+    try:
+        message = json.loads(line)
+    except ValueError:
+        message = None
+    if not isinstance(message, dict):
+        raise FetchError(
+            FetchKind.CRASHED, f"unreadable line: {line[:200]!r}", tail=_tail(stderr)
+        )
+    return message
+
+
+def _report(progress: Progress, value: object) -> None:
+    """Pass on a fraction, clamped; anything else the child sent is dropped."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return
+    if math.isfinite(value):
+        progress(min(max(float(value), 0.0), 1.0))
+
+
+def _error_from(error: dict[str, Any], versions: Versions, tail: str) -> FetchError:
+    try:
+        kind = FetchKind(str(error.get("kind")))
+    except ValueError:
+        kind = FetchKind.UNKNOWN
+    duration = error.get("duration_sec")
+    return FetchError(
+        kind,
+        str(error.get("detail") or ""),
+        duration_sec=float(duration) if isinstance(duration, int | float) else None,
+        tail=tail,
+        versions=versions,
+    )
+
+
+def _exit_code(process: "subprocess.Popen[bytes]") -> int | None:
+    try:
+        return process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        return None
+
+
+def _kill_group(process: "subprocess.Popen[bytes]") -> None:
+    with contextlib.suppress(ProcessLookupError):  # the group is already gone
+        os.killpg(process.pid, signal.SIGKILL)
+
+
+def _tail(stderr: IO[bytes]) -> str:
+    stderr.flush()
+    size = stderr.seek(0, os.SEEK_END)
+    stderr.seek(max(0, size - TAIL_BYTES))
+    return stderr.read().decode(errors="replace")
+
+
+def _text(result: dict[str, Any], key: str) -> str:
+    value = result[key]
+    if not isinstance(value, str):
+        raise TypeError(f"{key} is not text")
+    return value
+
+
+def _video_info(result: dict[str, Any], versions: Versions) -> VideoInfo:
+    title = result.get("title")
+    duration = result.get("duration_sec")
+    live_status = result.get("live_status")
+    availability = result.get("availability")
+    return VideoInfo(
+        title=title if isinstance(title, str) else "",
+        duration_sec=float(duration)
+        if isinstance(duration, int | float) and not isinstance(duration, bool)
+        else None,
+        live_status=live_status if isinstance(live_status, str) else None,
+        availability=availability if isinstance(availability, str) else None,
+        versions=versions,
+    )
+
+
+def log_failed(
+    log: logging.Logger,
+    error: FetchError,
+    *,
+    phase: str,
+    link: Link,
+    elapsed_sec: float,
+    job_id: str | None = None,
+    attempt: int | None = None,
+) -> None:
+    """One line per failure, at the catalog's level (spec 012, *Logging*)."""
+    entry = error.entry
+    detail = error.detail[:DETAIL_CHARS].replace('"', "'")
+    line = (
+        f"link fetch failed kind={error.kind} phase={phase} site={link.site} "
+        f"video={link.video_id} job={job_id or '-'} attempt={attempt or '-'} "
+        f"elapsed={elapsed_sec:.1f}s ytdlp={error.versions.ytdlp} "
+        f'js={error.versions.js} detail="{detail}"'
+    )
+    if error.exit_code is not None:
+        line += f" exit={error.exit_code}"
+    if entry.tail and error.tail:
+        line += f"\n{error.tail}"
+    log.log(entry.level, "%s", line)
+
+
+def log_fetched(
+    log: logging.Logger,
+    *,
+    phase: str,
+    link: Link,
+    versions: Versions,
+    elapsed_sec: float,
+    job_id: str | None = None,
+    attempt: int | None = None,
+    download: Download | None = None,
+) -> None:
+    """Successes too: a broken extractor shows as a change in the ratio of
+    ERROR lines to these, and the format ids show how often m4a is missing."""
+    line = (
+        f"link fetched phase={phase} site={link.site} video={link.video_id} "
+        f"job={job_id or '-'} attempt={attempt or '-'} elapsed={elapsed_sec:.1f}s "
+        f"ytdlp={versions.ytdlp} js={versions.js}"
+    )
+    if download is not None:
+        line += f" format={download.format_id} ext={download.ext} bytes={download.size}"
+    log.info("%s", line)
+
+
+if TYPE_CHECKING:  # Static conformance: the typed assignment is what mypy checks.
+    _conforms: UrlFetcher = ChildFetcher()
