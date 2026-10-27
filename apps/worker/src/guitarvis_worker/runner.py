@@ -193,6 +193,13 @@ def _shown(error: PipelineError) -> str:
 def _run(
     job: Job, deps: WorkerDeps, progress: _ProgressWriter
 ) -> tuple[dict[str, Any], str]:
+    if job.upload_key is None:
+        # A link job whose download is not stored, and nothing here fetches.
+        raise PipelineError(
+            FailureReason.LINKS_DISABLED,
+            "Links were turned off before this song could be fetched. "
+            "Upload the audio file instead.",
+        )
     keys = CacheKeys(job.content_hash)
     with tempfile.TemporaryDirectory(prefix="guitarvis-job-") as tmp:
         work_dir = Path(tmp)

@@ -9,9 +9,14 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from guitarvis_core.contracts import FailureReason
-from guitarvis_jobs.models import JobStatus
+from guitarvis_jobs.models import JobStatus, NewJob
 from guitarvis_jobs.store import InMemoryJobStore, JobStore, TooManyActiveJobs
-from guitarvis_jobs.testing import FakeClock, postgres_store, sample_new_job
+from guitarvis_jobs.testing import (
+    FakeClock,
+    postgres_store,
+    sample_link_job,
+    sample_new_job,
+)
 
 HASH_B = "b" * 64
 
@@ -391,3 +396,78 @@ def test_many_creates_through_one_store_keep_deduping(store: JobStore) -> None:
         assert created
         assert not created_again
         assert again.id == job.id
+
+
+# Link jobs (spec 012): no audio stored until the worker has downloaded it.
+
+
+def test_a_link_job_starts_with_its_link_and_no_stored_audio(store: JobStore) -> None:
+    job, created = store.create(sample_link_job())
+
+    assert created
+    assert job.upload_key is None
+    assert job.source_url == "https://www.youtube.com/watch?v=kPdv44HtEoA"
+    assert store.get(job.id) == job
+
+
+def test_an_upload_has_no_source_url(store: JobStore) -> None:
+    job, _ = store.create(sample_new_job())
+
+    assert job.source_url is None
+
+
+def test_the_same_video_again_is_the_same_job(store: JobStore) -> None:  # E1
+    first, _ = store.create(sample_link_job())
+    again, created = store.create(sample_link_job(client_ip="198.51.100.1"))
+
+    assert not created
+    assert again.id == first.id
+
+
+def test_attach_upload_records_the_key_and_the_probed_length(
+    store: JobStore, clock: FakeClock
+) -> None:
+    job, _ = store.create(sample_link_job(duration_sec=37.0))
+    store.mark_running(job.id)
+    clock.advance(seconds=1)
+
+    assert store.attach_upload(
+        job.id, upload_key="uploads/" + "e" * 64 + ".m4a", duration_sec=37.059
+    )
+
+    row = store.get(job.id)
+    assert row is not None
+    assert row.upload_key == "uploads/" + "e" * 64 + ".m4a"
+    assert row.duration_sec == 37.059
+    assert row.content_hash == job.content_hash  # the dedupe key stays the video's
+    assert row.updated_at == clock.now
+
+
+def test_attach_upload_changes_nothing_once_the_row_is_not_running(
+    store: JobStore,
+) -> None:  # S3
+    queued, _ = store.create(sample_link_job())
+    failed, _ = store.create(sample_link_job(video_id="YE7VzlLtp-4"))
+    store.mark_running(failed.id)
+    store.fail(
+        failed.id,
+        reason=FailureReason.INTERNAL,
+        message="lost",
+        stage="download",
+        expect=JobStatus.RUNNING,
+    )
+
+    for job_id in (queued.id, failed.id, "not-a-uuid"):
+        assert not store.attach_upload(job_id, upload_key="k", duration_sec=1.0)
+    assert store.get(queued.id) == queued
+
+
+def test_a_new_job_needs_an_upload_or_a_link() -> None:
+    with pytest.raises(ValueError, match="upload_key or a source_url"):
+        NewJob(
+            content_hash="a" * 64,
+            title="t",
+            duration_sec=1.0,
+            upload_key=None,
+            client_ip="203.0.113.7",
+        )

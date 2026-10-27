@@ -14,7 +14,7 @@ from guitarvis_core.tabdoc import Instrument, Source, TabDocument, Timing
 from guitarvis_jobs.blobs import PRESIGN_EXPIRES_SEC
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE, JobStatus
 from guitarvis_jobs.store import InMemoryJobStore
-from guitarvis_jobs.testing import FakeClock, sample_new_job
+from guitarvis_jobs.testing import FakeClock, sample_link_job, sample_new_job
 
 MISSING_ID = "5f0c6c2e-0000-4000-8000-0000000000ff"
 STEM_KEY = "cache/v1/" + "a" * 64 + "/separation/stem.wav"
@@ -172,9 +172,34 @@ def test_the_mix_redirects_to_a_presigned_url() -> None:
 
     response = api.client.get(f"/jobs/{job_id}/audio/mix", follow_redirects=False)
 
+    key = api.job(job_id).upload_key
+    assert key is not None  # an upload's, from the start
     assert response.status_code == 307
     assert response.headers["location"] == api.blobs.presign_get(
-        api.job(job_id).upload_key, expires_sec=PRESIGN_EXPIRES_SEC
+        key, expires_sec=PRESIGN_EXPIRES_SEC
+    )
+
+
+def test_the_mix_of_a_link_job_is_not_ready_until_its_download_is_stored() -> None:
+    """G1: never a presigned URL for a key that does not exist yet."""
+    api = make_api()
+    job, _ = api.store.create(sample_link_job())
+    api.store.mark_running(job.id)
+
+    before = api.client.get(f"/jobs/{job.id}/audio/mix", follow_redirects=False)
+    api.store.attach_upload(job.id, upload_key="uploads/e.m4a", duration_sec=37.0)
+    after = api.client.get(f"/jobs/{job.id}/audio/mix", follow_redirects=False)
+
+    assert before.status_code == 409
+    assert before.json() == {
+        "error": {
+            "reason": "not_ready",
+            "message": "The audio is not ready yet. Poll the job until it succeeds.",
+        }
+    }
+    assert after.status_code == 307
+    assert after.headers["location"] == api.blobs.presign_get(
+        "uploads/e.m4a", expires_sec=PRESIGN_EXPIRES_SEC
     )
 
 

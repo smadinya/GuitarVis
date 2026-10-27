@@ -184,6 +184,8 @@ def get_mix(job_id: str, request: Request) -> RedirectResponse:
     # which seeking needs, and the api stays thin.
     services = services_of(request)
     job = _load(services, job_id)
+    if job.upload_key is None:  # a link job whose download is not stored yet
+        raise _not_ready(job, "audio")
     url = services.blobs.presign_get(job.upload_key, expires_sec=PRESIGN_EXPIRES_SEC)
     return RedirectResponse(url, status_code=307)
 

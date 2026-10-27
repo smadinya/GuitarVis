@@ -8,6 +8,7 @@ Makefile).
 """
 
 import functools
+import hashlib
 import os
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -62,6 +63,25 @@ def sample_new_job(
         duration_sec=duration_sec,
         upload_key=upload_key or f"uploads/{content_hash}.mp3",
         client_ip=client_ip,
+    )
+
+
+def sample_link_job(
+    *,
+    video_id: str = "kPdv44HtEoA",
+    title: str = "Elephants Dream - 10 years of open movies",
+    duration_sec: float = 37.0,
+    client_ip: str = "203.0.113.7",
+) -> NewJob:
+    """A link job as the api creates it: no audio stored yet, and the
+    video's identity as its dedupe key (guitarvis_fetch.links.Link)."""
+    return NewJob(
+        content_hash=hashlib.sha256(f"youtube:{video_id}".encode()).hexdigest(),
+        title=title,
+        duration_sec=duration_sec,
+        upload_key=None,
+        client_ip=client_ip,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
     )
 
 

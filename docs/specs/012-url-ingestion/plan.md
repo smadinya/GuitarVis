@@ -4489,7 +4489,7 @@ A link job's row has its canonical URL and no `upload_key` until the worker has 
 **Interfaces:**
 - Produces: `NewJob.upload_key: str | None`, `NewJob.source_url: str | None = None`; `Job.upload_key: str | None`, `Job.source_url: str | None = None`; `JobStore.attach_upload(job_id, *, upload_key, duration_sec) -> bool`; `guitarvis_jobs.testing.sample_link_job(...)`; revision `0002`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `apps/api/tests/test_job_routes.py`:
 
@@ -4746,12 +4746,12 @@ In `packages/jobs/tests/test_migrations.py`:
 +        connection.execute(insert)
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/jobs/tests/test_job_store.py packages/jobs/tests/test_migrations.py apps/api/tests/test_job_routes.py apps/worker/tests/test_runner.py`
 Expected: FAIL at collection: `ImportError: cannot import name 'sample_link_job' from 'guitarvis_jobs.testing'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `apps/api/src/guitarvis_api/routes.py`:
 
@@ -5035,12 +5035,12 @@ In `packages/jobs/src/guitarvis_jobs/testing.py`:
  TEST_REDIS_DB = 15
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest packages/jobs/tests/test_job_store.py packages/jobs/tests/test_migrations.py apps/api/tests/test_job_routes.py apps/worker/tests/test_runner.py`
 Expected: PASS. With `make services` up, the `[postgres]` variants and the migration tests run too; without it they skip, and CI fails them under `GUITARVIS_REQUIRE_SERVICES=1`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test

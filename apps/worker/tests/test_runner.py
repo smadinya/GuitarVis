@@ -31,6 +31,7 @@ from guitarvis_jobs.store import InMemoryJobStore
 from guitarvis_jobs.testing import (
     integration_settings,
     redis_connection,
+    sample_link_job,
     sample_new_job,
 )
 from guitarvis_worker import runner
@@ -119,6 +120,7 @@ def harness(monkeypatch: pytest.MonkeyPatch) -> Harness:
     store = InMemoryJobStore()
     blobs = InMemoryBlobStore()
     job, _ = store.create(sample_new_job(title="My Song"))
+    assert job.upload_key is not None  # an upload's, from the start
     blobs.put_bytes(job.upload_key, b"pretend mp3 bytes")
     return Harness(store, blobs, StubSeparator(), StubTranscriber(), job.id)
 
@@ -374,6 +376,23 @@ def test_a_result_after_the_row_was_failed_is_dropped(harness: Harness) -> None:
     assert row.status is JobStatus.FAILED
     assert row.failure_message == "lost"
     assert row.document is None
+
+
+def test_a_link_job_with_no_stored_audio_fails_when_nothing_fetches(
+    harness: Harness,
+) -> None:  # W1
+    job, _ = harness.store.create(sample_link_job())
+
+    process_job(job.id, harness.deps(), retries_left=2)  # no retry: returns
+
+    row = harness.store.get(job.id)
+    assert row is not None
+    assert row.failure_reason is FailureReason.LINKS_DISABLED
+    assert row.failure_message == (
+        "Links were turned off before this song could be fetched. "
+        "Upload the audio file instead."
+    )
+    assert harness.separator.calls == 0
 
 
 def test_an_unknown_job_is_dropped(harness: Harness) -> None:

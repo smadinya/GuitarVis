@@ -73,6 +73,14 @@ class JobStore(Protocol):
 
     def set_progress(self, job_id: str, stage: str, percent: int) -> bool: ...
 
+    def attach_upload(
+        self, job_id: str, *, upload_key: str, duration_sec: float
+    ) -> bool:
+        """Record where a link job's download is stored, and its probed
+        length, while the row is running. False when it is not: the api's
+        reconciliation failed it meanwhile."""
+        ...
+
     def succeed(
         self, job_id: str, *, document: dict[str, Any], stem_key: str
     ) -> bool: ...
@@ -139,6 +147,7 @@ class InMemoryJobStore:
                 document=None,
                 created_at=now,
                 updated_at=now,
+                source_url=new.source_url,
             )
             self._rows[job.id] = job
             return job, True
@@ -187,6 +196,16 @@ class InMemoryJobStore:
             job_id,
             {JobStatus.RUNNING},
             lambda row: replace(row, stage=stage, percent=percent),
+        )
+        return changed is not None
+
+    def attach_upload(
+        self, job_id: str, *, upload_key: str, duration_sec: float
+    ) -> bool:
+        changed = self._transition(
+            job_id,
+            {JobStatus.RUNNING},
+            lambda row: replace(row, upload_key=upload_key, duration_sec=duration_sec),
         )
         return changed is not None
 
