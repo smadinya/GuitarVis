@@ -8706,7 +8706,7 @@ The live test is `packages/fetch/smoke/live_fetch.py`: not named `test_*.py`, so
 - Create: `packages/fetch/smoke/live_fetch.py`
 - Test (new): `packages/fetch/tests/test_smoke_never_gates_ci.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `packages/fetch/tests/test_smoke_never_gates_ci.py`:
 
@@ -8746,12 +8746,12 @@ def test_the_smoke_test_skips_unless_asked() -> None:
     assert 'os.environ.get("GUITARVIS_LIVE_FETCH") != "1"' in SMOKE.read_text()
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/fetch/tests/test_smoke_never_gates_ci.py`
 Expected: FAIL: `packages/fetch/smoke/live_fetch.py` does not exist yet.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `Makefile`:
 
@@ -8883,12 +8883,12 @@ def test_what_youtube_says_for_a_private_and_a_removed_video(
     assert error.kind is kind
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest packages/fetch/tests/test_smoke_never_gates_ci.py`
 Expected: PASS. Then, with Deno 2.3 or later installed and a network, `make smoke-url` should print the lookup, a download of format 140 (`ext=m4a`, about 600 KB) and ffprobe's 37.06 s, then `private` and `unavailable` with yt-dlp's text: `3 passed`. Without Deno it fails with `kind=misconfigured`; that is not a `make check` failure.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test
