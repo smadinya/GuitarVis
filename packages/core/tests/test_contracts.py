@@ -49,6 +49,21 @@ def test_pipeline_error_carries_a_typed_reason() -> None:
     assert "stem was silent" in str(error)
 
 
+def test_only_an_internal_failure_is_retried_by_default() -> None:
+    """Ours may pass; the input's gives the same answer every time."""
+    assert PipelineError(FailureReason.INTERNAL, "m").retryable
+    assert not PipelineError(FailureReason.TOO_LONG, "m").retryable
+    assert not PipelineError(FailureReason.FETCH_FAILED, "m").retryable
+
+
+def test_a_failure_can_say_whether_it_is_retryable() -> None:
+    network = PipelineError(FailureReason.FETCH_FAILED, "m", retryable=True)
+    refused = PipelineError(FailureReason.INTERNAL, "m", retryable=False)
+
+    assert network.retryable
+    assert not refused.retryable
+
+
 def test_note_event_is_immutable() -> None:
     event = NoteEvent(onset=1.0, duration=0.5, midi=52, confidence=0.8)
 

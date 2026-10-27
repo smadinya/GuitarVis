@@ -210,6 +210,56 @@ def test_an_internal_pipeline_error_on_the_last_attempt_hides_its_detail(
     assert row.failed_stage == "separation"
 
 
+UPSTREAM_DOWN = PipelineError(
+    FailureReason.FETCH_FAILED,
+    "We couldn't reach YouTube. Try again in a few minutes, or upload the audio file.",
+    retryable=True,
+)
+
+
+def test_a_retryable_failure_with_retries_left_requeues_and_reraises(
+    harness: Harness,
+) -> None:
+    harness.separator.error = UPSTREAM_DOWN
+
+    with pytest.raises(PipelineError):
+        harness.run(retries_left=1)
+
+    row = harness.row()
+    assert row.status is JobStatus.QUEUED
+    assert (row.stage, row.percent, row.attempts) == (None, 0, 1)
+
+
+def test_a_retryable_failure_on_the_last_attempt_keeps_its_own_reason(
+    harness: Harness,
+) -> None:
+    """A fetch that kept failing ends as fetch_failed, not as our fault."""
+    harness.separator.error = UPSTREAM_DOWN
+
+    with pytest.raises(PipelineError):
+        harness.run(retries_left=0)
+
+    row = harness.row()
+    assert row.status is JobStatus.FAILED
+    assert row.failure_reason is FailureReason.FETCH_FAILED
+    assert row.failure_message == str(UPSTREAM_DOWN)
+    assert row.failed_stage == "separation"
+
+
+def test_an_internal_failure_that_is_not_retryable_still_hides_its_detail(
+    harness: Harness,
+) -> None:
+    harness.separator.error = PipelineError(
+        FailureReason.INTERNAL, "Traceback: the detail", retryable=False
+    )
+
+    harness.run(retries_left=2)  # no retry, so it returns normally
+
+    row = harness.row()
+    assert row.failure_reason is FailureReason.INTERNAL
+    assert row.failure_message == INTERNAL_FAILURE_MESSAGE
+
+
 def test_a_file_the_worker_rejects_fails_before_any_stage(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:

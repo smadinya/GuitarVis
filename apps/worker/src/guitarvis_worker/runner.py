@@ -130,17 +130,17 @@ def process_job(job_id: str, deps: WorkerDeps, *, retries_left: int) -> None:
         # not a row left running until reconciliation notices it.
         stored = deps.store.succeed(job_id, document=document, stem_key=stem_key)
     except PipelineError as error:
-        if error.reason is FailureReason.INTERNAL:
-            # Ours, not the file's — Demucs killed for memory, say — so it
-            # may pass, and its detail is for the log, not the user.
-            _failed_attempt(job_id, deps, progress, retries_left)
+        if error.retryable:
+            # It may pass: Demucs killed for memory, say, or a network that
+            # dropped while fetching a link.
+            _failed_attempt(job_id, deps, progress, retries_left, error)
             raise
-        # The file's: another attempt gives the same answer. Returning
+        # The input's: another attempt gives the same answer. Returning
         # normally tells RQ not to retry.
         deps.store.fail(
             job_id,
             reason=error.reason,
-            message=str(error),
+            message=_shown(error),
             stage=progress.stage,
             expect=JobStatus.RUNNING,
         )
@@ -156,24 +156,38 @@ def process_job(job_id: str, deps: WorkerDeps, *, retries_left: int) -> None:
 
 
 def _failed_attempt(
-    job_id: str, deps: WorkerDeps, progress: _ProgressWriter, retries_left: int
+    job_id: str,
+    deps: WorkerDeps,
+    progress: _ProgressWriter,
+    retries_left: int,
+    error: PipelineError | None = None,
 ) -> None:
     """Requeue the row for RQ's retry, or on the last attempt fail it.
 
     The caller re-raises, so RQ schedules the retry, or on the last attempt
     files the job in its FailedJobRegistry — the dead-letter queue — with the
-    traceback. The row is what the user sees.
+    traceback. The row is what the user sees: the error's own reason and
+    message when it has one that is not internal, so a fetch that kept
+    failing ends as fetch_failed, with its own words.
     """
     if retries_left > 0:
         deps.store.requeue(job_id)
         return
+    reason = FailureReason.INTERNAL if error is None else error.reason
     deps.store.fail(
         job_id,
-        reason=FailureReason.INTERNAL,
-        message=INTERNAL_FAILURE_MESSAGE,
+        reason=reason,
+        message=INTERNAL_FAILURE_MESSAGE if error is None else _shown(error),
         stage=progress.stage,
         expect=JobStatus.RUNNING,
     )
+
+
+def _shown(error: PipelineError) -> str:
+    """What the row says: an internal error's detail is for the log only."""
+    if error.reason is FailureReason.INTERNAL:
+        return INTERNAL_FAILURE_MESSAGE
+    return str(error)
 
 
 def _run(

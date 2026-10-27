@@ -30,11 +30,22 @@ class FailureReason(StrEnum):
 
 
 class PipelineError(Exception):
-    """A job failure carrying a typed reason."""
+    """A job failure carrying a typed reason, and whether to try again.
 
-    def __init__(self, reason: FailureReason, message: str) -> None:
+    By default only `internal` is retryable: that failure is ours, and may
+    pass. Any other reason is the input's, and another attempt gives the same
+    answer. A fetch is the exception, since the network fails and recovers on
+    its own, so the error that knows says so (spec 012).
+    """
+
+    def __init__(
+        self, reason: FailureReason, message: str, *, retryable: bool | None = None
+    ) -> None:
         super().__init__(message)
         self.reason = reason
+        self.retryable = (
+            reason is FailureReason.INTERNAL if retryable is None else retryable
+        )
 
 
 # Notes within this long of a group's first onset sound together: one voicing

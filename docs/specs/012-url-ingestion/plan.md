@@ -132,7 +132,7 @@ The worker's retry rule today is "only `internal` retries". A fetch that fails o
 - Produces: `PipelineError(reason, message, *, retryable: bool | None = None)`; `error.retryable` is `reason is FailureReason.INTERNAL` unless given.
 - Changes: `runner._failed_attempt(..., error: PipelineError | None = None)` records `error.reason` and `str(error)` on the last attempt unless the reason is `internal`; `runner._shown(error)` hides an internal error's detail.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `apps/worker/tests/test_runner.py`:
 
@@ -227,12 +227,12 @@ In `packages/core/tests/test_contracts.py`:
  
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/core/tests/test_contracts.py apps/worker/tests/test_runner.py`
 Expected: FAIL at collection: `TypeError: PipelineError.__init__() got an unexpected keyword argument 'retryable'` (test_runner.py builds `UPSTREAM_DOWN` at import).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `apps/worker/src/guitarvis_worker/runner.py`:
 
@@ -342,12 +342,12 @@ In `packages/core/src/guitarvis_core/contracts.py`:
  # Notes within this long of a group's first onset sound together: one voicing
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest packages/core/tests/test_contracts.py apps/worker/tests/test_runner.py`
 Expected: PASS. The upload tests in test_runner.py pass unchanged.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test
