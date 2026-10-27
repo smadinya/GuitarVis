@@ -6524,7 +6524,7 @@ Expected: the first command passes; after the commit, `schema-check` prints noth
 **Interfaces:**
 - Produces: `guitarvis_worker.ingest.UrlSource(link, work_dir, fetcher, *, max_bytes, progress=None, probe=probe_duration, max_duration_sec, job_id=None, attempt=None)`; `WorkerDeps.fetcher`, `WorkerDeps.max_download_bytes`, `WorkerDeps.probe`; `runner.DOWNLOAD_PERCENT = 5`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `apps/worker/tests/test_ingest.py`:
 
@@ -7141,12 +7141,12 @@ def test_serve_warns_when_links_are_on_and_no_runtime_is_found(
     )
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest apps/worker/tests/test_link_jobs.py apps/worker/tests/test_ingest.py`
 Expected: FAIL at collection: `ImportError: cannot import name 'UrlSource' from 'guitarvis_worker.ingest'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Then `uv lock && uv sync` (the worker's new dependency).
 
@@ -7613,12 +7613,12 @@ In `apps/worker/src/guitarvis_worker/runner.py`:
          with_scheduler=True, burst=burst
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest apps/worker/tests/test_link_jobs.py apps/worker/tests/test_ingest.py`
 Expected: PASS, and every test in test_runner.py still passes.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test

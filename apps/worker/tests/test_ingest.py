@@ -6,7 +6,9 @@ from pathlib import Path
 
 import pytest
 from guitarvis_core.contracts import AudioSource, FailureReason, PipelineError
-from guitarvis_worker.ingest import UploadSource
+from guitarvis_fetch.links import parse
+from guitarvis_fetch.testing import FakeFetcher
+from guitarvis_worker.ingest import UploadSource, UrlSource
 
 requires_ffprobe = pytest.mark.skipif(
     shutil.which("ffprobe") is None,
@@ -26,6 +28,25 @@ def write_wav(path: Path, seconds: float = 1.0, rate: int = 8000) -> Path:
 
 def test_upload_source_satisfies_the_protocol(tmp_path: Path) -> None:
     assert isinstance(UploadSource(write_wav(tmp_path / "a.wav")), AudioSource)
+
+
+def test_url_source_satisfies_the_protocol(tmp_path: Path) -> None:
+    link = parse("https://youtu.be/kPdv44HtEoA")
+
+    assert isinstance(
+        UrlSource(link, tmp_path, FakeFetcher(), max_bytes=1), AudioSource
+    )
+
+
+@requires_ffprobe
+def test_url_source_probes_the_download_with_ffprobe(tmp_path: Path) -> None:
+    link = parse("https://youtu.be/kPdv44HtEoA")
+
+    ingested = UrlSource(link, tmp_path, FakeFetcher(), max_bytes=10**6).fetch()
+
+    assert ingested.path == tmp_path / "source.wav"
+    assert ingested.title == "Elephants Dream - 10 years of open movies"
+    assert ingested.duration_sec == pytest.approx(1.0, abs=0.05)
 
 
 @requires_ffprobe
