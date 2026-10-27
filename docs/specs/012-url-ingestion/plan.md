@@ -776,7 +776,7 @@ A new workspace member, `guitarvis-fetch`, and its first module. `links.parse` i
 **Interfaces:**
 - Produces: `guitarvis_fetch.links`: `MAX_LINK_CHARS = 2048`, `RefusalKind`, `LinkRefused(kind, *, host, segment)`, `Link(site, video_id, canonical_url)` with `.dedupe_key`, `Site`, `YOUTUBE`, `SITES`, `parse(raw) -> Link`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `packages/core/tests/test_py_typed_markers.py`:
 
@@ -1013,12 +1013,12 @@ def test_the_canonical_url_is_built_from_the_id_never_edited_from_the_input() ->
     assert "SHARER-ID" not in link.canonical_url
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/fetch/tests packages/core/tests/test_py_typed_markers.py`
 Expected: FAIL at collection: `ModuleNotFoundError: No module named 'guitarvis_fetch'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Then lock and install the new member: `uv lock && uv sync`. CI runs `uv sync --locked`, so `uv.lock` is committed with it. Also create the empty marker `packages/fetch/src/guitarvis_fetch/py.typed`.
 
@@ -1296,12 +1296,12 @@ In `pyproject.toml`:
  guitarvis-eval = { workspace = true }
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest packages/fetch/tests packages/core/tests/test_py_typed_markers.py`
 Expected: PASS: every accepted form maps to one id; every refusal to its kind.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test

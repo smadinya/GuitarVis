@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.15' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
@@ -15,6 +15,7 @@ members = [
     "guitarvis-api",
     "guitarvis-core",
     "guitarvis-eval",
+    "guitarvis-fetch",
     "guitarvis-jobs",
     "guitarvis-worker",
 ]
@@ -828,6 +829,7 @@ dependencies = [
     { name = "guitarvis-api" },
     { name = "guitarvis-core" },
     { name = "guitarvis-eval" },
+    { name = "guitarvis-fetch" },
     { name = "guitarvis-jobs" },
     { name = "guitarvis-worker" },
 ]
@@ -854,6 +856,7 @@ requires-dist = [
     { name = "guitarvis-core", editable = "packages/core" },
     { name = "guitarvis-eval", editable = "apps/eval" },
     { name = "guitarvis-eval", extras = ["full"], marker = "extra == 'eval-full'", editable = "apps/eval" },
+    { name = "guitarvis-fetch", editable = "packages/fetch" },
     { name = "guitarvis-jobs", editable = "packages/jobs" },
     { name = "guitarvis-worker", editable = "apps/worker" },
     { name = "guitarvis-worker", extras = ["ml"], marker = "extra == 'ml'", editable = "apps/worker" },
@@ -923,6 +926,17 @@ requires-dist = [
     { name = "mir-eval", marker = "extra == 'full'", specifier = ">=0.8" },
 ]
 provides-extras = ["full"]
+
+[[package]]
+name = "guitarvis-fetch"
+version = "0.1.0"
+source = { editable = "packages/fetch" }
+dependencies = [
+    { name = "guitarvis-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "guitarvis-core", editable = "packages/core" }]
 
 [[package]]
 name = "guitarvis-jobs"
