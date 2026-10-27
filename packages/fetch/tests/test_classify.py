@@ -8,13 +8,21 @@ import json
 import socket
 import ssl
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import pytest
+import yt_dlp
 from guitarvis_fetch.catalog import FetchKind
-from guitarvis_fetch.child import classify, exception_chain
+from guitarvis_fetch.child import (
+    ChildLog,
+    classify,
+    exception_chain,
+    lookup,
+    ydl_options,
+)
 from yt_dlp.networking import Response
 from yt_dlp.networking.exceptions import (
     CertificateVerifyError,
@@ -236,3 +244,175 @@ def test_the_chain_follows_exc_info_cause_and_context() -> None:
 
     assert chain[0] is error
     assert network in chain
+
+
+# The chains yt-dlp really produces: a real YoutubeDL, with its urlopen
+# replaced, so each request fails or answers as a test says, offline.
+
+WATCH_URL = f"https://www.youtube.com/watch?v={ID}"
+MEDIA = {  # a format as the child's checks pass it to process_info
+    "id": ID,
+    "title": "Elephants Dream",
+    "extractor": "youtube",
+    "extractor_key": "Youtube",
+    "webpage_url": WATCH_URL,
+    "format_id": "140",
+    "ext": "m4a",
+    "protocol": "https",
+    "url": "https://rr1---sn-qja5mc-54.googlevideo.com/videoplayback?itag=140",
+}
+
+Failure = Callable[[str], Exception]
+
+
+def status(code: int) -> Failure:
+    return lambda url: http_error(code, "Reason")
+
+
+def transport(cause: BaseException) -> Failure:
+    return lambda url: TransportError(cause=cause)
+
+
+class Offline:
+    """Stands in for YoutubeDL.urlopen. A request whose path ends with `only`
+    (any request, if None) fails with `failure`; any other is answered with
+    an empty page, or empty JSON for YouTube's API."""
+
+    def __init__(self, failure: Failure, only: str | None = None) -> None:
+        self.failure = failure
+        self.only = only
+
+    def __call__(self, request: Any, *args: Any, **kwargs: Any) -> Response:
+        url = str(getattr(request, "url", request))
+        path = urlsplit(url).path
+        if self.only is None or path.endswith(self.only):
+            raise self.failure(url)
+        api = path.startswith("/youtubei/")
+        return Response(
+            fp=io.BytesIO(b"{}" if api else b"<html></html>"),
+            url=url,
+            headers={"Content-Type": "application/json" if api else "text/html"},
+            status=200,
+        )
+
+
+class ShortRead:
+    """Stands in for YoutubeDL.urlopen: the media answers with half of what
+    its Content-Length promised."""
+
+    def __call__(self, request: Any, *args: Any, **kwargs: Any) -> Response:
+        return Response(
+            fp=io.BytesIO(b"\x00" * 1000),
+            url=str(request.url),
+            headers={"Content-Length": "2000"},
+            status=200,
+        )
+
+
+@pytest.fixture
+def offline(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Fails the test if anything gets past the replaced urlopen to a socket."""
+    reached: list[object] = []
+
+    def refuse(*args: Any, **kwargs: Any) -> None:
+        reached.append(args)
+        raise AssertionError("a test reached for the network")
+
+    monkeypatch.setattr(socket, "getaddrinfo", refuse)
+    monkeypatch.setattr(socket.socket, "connect", refuse)
+    yield
+    assert reached == []
+
+
+@pytest.mark.usefixtures("offline")
+@pytest.mark.parametrize(
+    ("urlopen", "kind"),
+    [
+        (Offline(status(429)), FetchKind.RATE_LIMITED),  # L12
+        (Offline(status(429), only="/player"), FetchKind.RATE_LIMITED),  # L12
+        (Offline(status(503)), FetchKind.NETWORK),  # L13: raised with its cause
+        (Offline(status(503), only="/player"), FetchKind.NETWORK),  # L13: a warning
+        (Offline(status(500), only="/player"), FetchKind.NETWORK),  # L13
+        (
+            Offline(transport(ConnectionRefusedError(111, "Connection refused"))),
+            FetchKind.NETWORK,
+        ),  # L13
+        (
+            Offline(
+                transport(ConnectionResetError(104, "Connection reset by peer")),
+                only="/player",
+            ),
+            FetchKind.NETWORK,
+        ),  # L13
+        (
+            Offline(
+                transport(socket.gaierror(-2, "Name or service not known")),
+                only="/player",
+            ),
+            FetchKind.NETWORK,
+        ),  # L13
+        (
+            Offline(
+                lambda url: SSLError(cause=ssl.SSLError(1, "bad record")),
+                only="/player",
+            ),
+            FetchKind.NETWORK,
+        ),  # L13
+        (Offline(status(404), only="/player"), FetchKind.EXTRACTOR_BROKEN),  # L15
+    ],
+    ids=[
+        "429",
+        "429-player",
+        "503",
+        "503-player",
+        "500-player",
+        "refused",
+        "reset-player",
+        "dns-player",
+        "tls-player",
+        "404-player",
+    ],
+)
+def test_a_lookup_that_fails_in_transit_classifies_as_its_cause(
+    urlopen: Offline, kind: FetchKind
+) -> None:
+    """YouTube's extractor turns a failed player request into a warning and
+    tries its next client; when none is left it raises "Failed to extract any
+    player response", with no cause. Only the warnings still say why."""
+    log = ChildLog(io.StringIO())
+
+    with yt_dlp.YoutubeDL(ydl_options(deno="deno", logger=log)) as ydl:
+        ydl.urlopen = urlopen
+        with pytest.raises(DownloadError) as excinfo:
+            lookup(ydl, WATCH_URL)
+
+    assert classify(excinfo.value, log.warnings) is kind
+
+
+@pytest.mark.usefixtures("offline")
+@pytest.mark.parametrize(
+    ("urlopen", "kind"),
+    [
+        (Offline(transport(ConnectionResetError())), FetchKind.NETWORK),  # D1
+        (Offline(transport(TimeoutError("timed out"))), FetchKind.NETWORK),  # D1
+        (Offline(status(503)), FetchKind.NETWORK),  # D1
+        (ShortRead(), FetchKind.NETWORK),  # D1
+        (Offline(status(403)), FetchKind.UNKNOWN),  # D10: not retried, not ours
+    ],
+    ids=["reset", "timeout", "503", "short-read", "403"],
+)
+def test_a_download_that_fails_in_transit_classifies_as_its_cause(
+    tmp_path: Path, urlopen: Offline | ShortRead, kind: FetchKind
+) -> None:
+    """yt-dlp's HTTP downloader retries a 5xx, a dropped connection or a short
+    read, then gives up with text alone: "[download] Got error: ...", with no
+    exception behind it to look at."""
+    log = ChildLog(io.StringIO())
+    options = ydl_options(deno="deno", logger=log, work_dir=tmp_path, max_bytes=10**8)
+
+    with yt_dlp.YoutubeDL(options) as ydl:
+        ydl.urlopen = urlopen
+        with pytest.raises(DownloadError) as excinfo:
+            ydl.process_info(dict(MEDIA))  # as download() calls it
+
+    assert classify(excinfo.value, log.warnings) is kind

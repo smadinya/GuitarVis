@@ -441,25 +441,88 @@ def test_without_a_javascript_runtime_the_child_says_misconfigured(
     assert excinfo.value.versions == Versions(ytdlp=yt_dlp.version.__version__)
 
 
-def test_when_yt_dlp_will_not_import_the_child_says_misconfigured(
-    tmp_path: Path,
-) -> None:  # L16
+def fake_deno(tmp_path: Path) -> str:
+    """A PATH holding only a "deno" new enough to pass the child's check."""
     bin_dir = Path(empty_path(tmp_path))
     deno = bin_dir / "deno"
     deno.write_text("#!/bin/sh\necho 'deno 2.5.4 (stable)'\n")
     deno.chmod(deno.stat().st_mode | stat.S_IEXEC)
+    return str(bin_dir)
+
+
+def test_when_yt_dlp_will_not_import_the_child_says_misconfigured(
+    tmp_path: Path,
+) -> None:  # L16
     code = (
         "import sys; sys.modules['yt_dlp'] = None; sys.argv[1:] = ['lookup', "
         f"{URL!r}]; import runpy; "
         "runpy.run_module('guitarvis_fetch.child', run_name='__main__')"
     )
 
-    answer = run_python(code, {**os.environ, "PATH": str(bin_dir)})
+    answer = run_python(code, {**os.environ, "PATH": fake_deno(tmp_path)})
 
     [line] = answer.stdout.splitlines()
     error = json.loads(line)["error"]
     assert error["kind"] == "misconfigured"
     assert "yt-dlp will not import" in error["detail"]
+
+
+# A yt-dlp half upgraded: its files are there, but its code will not load.
+BROKEN_YT_DLP = """
+import sys
+
+class Broken:
+    def find_spec(self, name, path=None, target=None):
+        if name.split(".")[0] == "yt_dlp":
+            raise {error}
+        return None
+
+sys.meta_path.insert(0, Broken())
+"""
+BROKEN = [
+    "SyntaxError('invalid syntax')",
+    "AttributeError(\"module 'yt_dlp.utils' has no attribute 'traverse_obj'\")",
+]
+
+
+@pytest.mark.parametrize("error", BROKEN, ids=["SyntaxError", "AttributeError"])
+def test_a_yt_dlp_that_fails_to_import_another_way_is_misconfigured_too(
+    tmp_path: Path, error: str
+) -> None:  # L16
+    code = BROKEN_YT_DLP.format(error=error) + (
+        f"sys.argv[1:] = ['lookup', {URL!r}]\n"
+        "import runpy\n"
+        "runpy.run_module('guitarvis_fetch.child', run_name='__main__')\n"
+    )
+
+    answer = run_python(code, {**os.environ, "PATH": fake_deno(tmp_path)})
+
+    [line] = answer.stdout.splitlines()
+    sent = json.loads(line)["error"]
+    assert sent["kind"] == "misconfigured", answer.stderr
+    assert "yt-dlp will not import" in sent["detail"]
+    assert error.split("(")[0] in sent["detail"]
+
+
+@pytest.mark.parametrize("error", BROKEN, ids=["SyntaxError", "AttributeError"])
+def test_an_unforeseen_failure_with_yt_dlp_broken_still_gets_an_answer(
+    error: str,
+) -> None:  # L16
+    """The child's last resort classifies with yt-dlp's types; when those will
+    not import either, it must still answer, not die with a traceback."""
+    code = BROKEN_YT_DLP.format(error=error) + (
+        "import guitarvis_fetch.child as child\n"
+        "def find_deno():\n"
+        "    raise RuntimeError('unforeseen, before yt-dlp is imported')\n"
+        "child.find_deno = find_deno\n"
+        f"child.main(['lookup', {URL!r}])\n"
+    )
+
+    answer = run_python(code, dict(os.environ))
+
+    assert answer.returncode == 0, answer.stderr
+    [line] = answer.stdout.splitlines()
+    assert json.loads(line)["error"]["kind"] == "misconfigured"
 
 
 def test_nothing_but_answers_reaches_the_childs_stdout() -> None:

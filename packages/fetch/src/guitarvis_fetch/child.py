@@ -306,23 +306,47 @@ _BROKEN = re.compile(
 _CHALLENGE_WARNING = re.compile(
     r"challenge|javascript runtime|signature solving|remote components?", re.IGNORECASE
 )
+# YouTube's extractor turns a failed player request into a warning and tries
+# its next client; when none is left it raises "Failed to extract any player
+# response", with no cause. Only the warnings still say why.
+_RATE_LIMITED_WARNING = re.compile(r"http error 429|too many requests", re.IGNORECASE)
+_NO_PLAYER_RESPONSE = re.compile(r"failed to extract any player response")
+_NETWORK_WARNING = re.compile(
+    # A 5xx as message or repr, or a transport failure as its repr after
+    # "caused by": yt-dlp's TransportError and each of its subclasses.
+    r"http ?error 5\d\d"
+    r"|(?:transporterror|sslerror|certificateverifyerror|proxyerror)\("
+    r"|incompleteread",
+    re.IGNORECASE,
+)
+# yt-dlp's HTTP downloader retries a 5xx, a dropped connection or a short
+# read, then gives up in words alone: no exception is left to look at.
+_DOWNLOAD_GAVE_UP = re.compile(r"\[download\] got error:")
 
 
 def classify(error: BaseException, warnings: Sequence[str] = ()) -> FetchKind:
     """The kind of a failure, from yt-dlp's exception types first and its
     messages second. Anything unrecognised is unknown: fetch_failed, and
-    retried, which is honest if less helpful."""
-    from yt_dlp.networking.exceptions import HTTPError, TransportError
-    from yt_dlp.utils import (
-        ContentTooShortError,
-        GeoRestrictedError,
-        UnavailableVideoError,
-    )
+    retried, which is honest if less helpful.
+
+    A yt-dlp that will not import has no types to compare with, and is the
+    failure itself: misconfigured, whatever was raised (L16).
+    """
+    try:
+        from yt_dlp.networking.exceptions import HTTPError, TransportError
+        from yt_dlp.utils import (
+            ContentTooShortError,
+            GeoRestrictedError,
+            UnavailableVideoError,
+        )
+    except Exception:  # a SyntaxError, say, from a half-finished upgrade
+        return FetchKind.MISCONFIGURED
 
     chain = list(exception_chain(error))
     text = " ".join(str(exc) for exc in chain).lower()
     statuses = {exc.status for exc in chain if isinstance(exc, HTTPError)}
     challenged = any(_CHALLENGE_WARNING.search(warning) for warning in warnings)
+    warned = " ".join(warnings)
 
     if any(isinstance(exc, GeoRestrictedError) for exc in chain):
         return FetchKind.GEO_RESTRICTED
@@ -335,6 +359,10 @@ def classify(error: BaseException, warnings: Sequence[str] = ()) -> FetchKind:
         # Without a working runtime YouTube offers few formats, and "no
         # audio" would blame every video for our own problem.
         return FetchKind.EXTRACTOR_BROKEN if challenged else FetchKind.NO_AUDIO
+    if _RATE_LIMITED_WARNING.search(warned):
+        return FetchKind.RATE_LIMITED
+    if _NO_PLAYER_RESPONSE.search(text) and _NETWORK_WARNING.search(warned):
+        return FetchKind.NETWORK
     if _BROKEN.search(text):
         return FetchKind.EXTRACTOR_BROKEN
     network = (
@@ -348,6 +376,8 @@ def classify(error: BaseException, warnings: Sequence[str] = ()) -> FetchKind:
     if any(isinstance(exc, network) for exc in chain):
         return FetchKind.NETWORK
     if any(status >= 500 for status in statuses):
+        return FetchKind.NETWORK
+    if _DOWNLOAD_GAVE_UP.search(text):
         return FetchKind.NETWORK
     if 403 in statuses and challenged:
         return FetchKind.EXTRACTOR_BROKEN
@@ -438,7 +468,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         try:
             from yt_dlp.version import __version__ as ytdlp_version
-        except ImportError as error:
+        except Exception as error:  # not only ImportError: a half-done upgrade
             raise FetchError(
                 FetchKind.MISCONFIGURED, f"yt-dlp will not import: {error!r}"
             ) from None
