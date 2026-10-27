@@ -7784,7 +7784,7 @@ Expected: the first command passes; after the commit, `schema-check` prints noth
 **Interfaces:**
 - Produces: `createJobFromUrl(url, signal?, fetcher?) -> Promise<Upload>`; `getFeatures(fetcher?) -> Promise<Features>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `web/src/api/client.test.ts`:
 
@@ -7910,12 +7910,12 @@ In `web/src/api/client.test.ts`:
      for (const [reason, message] of Object.entries(MESSAGES)) {
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/api/client.test.ts`
 Expected: FAIL in `tsc`: `Module '"./client"' has no exported member 'createJobFromUrl'` (and `getFeatures`).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `web/src/api/client.ts`:
 
@@ -8001,12 +8001,12 @@ In `web/vite.config.ts`:
      // three.js ships in the guitar's lazy chunk, about 605 kB before gzip
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `npm --prefix web test -- src/api/client.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test

@@ -11,7 +11,7 @@ export default defineConfig({
     // The api's paths go through to it, so in development the client and the
     // api share an origin: no CORS, and <audio> loads /jobs/{id}/audio/...
     // directly. Client routes live under /songs, never /jobs.
-    proxy: { "/jobs": API, "/health": API },
+    proxy: { "/jobs": API, "/health": API, "/features": API },
   },
   build: {
     // three.js ships in the guitar's lazy chunk, about 605 kB before gzip
