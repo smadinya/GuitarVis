@@ -265,14 +265,32 @@ def watch_parent() -> None:
     the read here returns end-of-file and the child kills its own process
     group, the JavaScript runtime it started with it. A child whose stdin is
     already at end-of-file (`/dev/null`) therefore ends at once. Stdlib only.
+
+    The pipe is watched through a copy no other process inherits, and file
+    descriptor 0 becomes /dev/null before this returns: what the child starts
+    (Deno, through yt-dlp; ffmpeg) reads end-of-file from its stdin, rather
+    than waiting forever on a pipe nobody writes to.
     """
-    threading.Thread(target=_die_with_parent, daemon=True).start()
+    try:
+        watched: int | None = os.dup(0)  # non-inheritable, as os.dup makes it
+    except OSError:  # no stdin at all: nothing to tell us the parent is alive
+        watched = None
+    _stdin_from_devnull()
+    threading.Thread(target=_die_with_parent, args=(watched,), daemon=True).start()
 
 
-def _die_with_parent() -> None:
-    with contextlib.suppress(OSError):  # a stdin that cannot be read is gone too
-        while os.read(0, 4096):
-            pass
+def _stdin_from_devnull() -> None:
+    devnull = os.open(os.devnull, os.O_RDONLY)
+    if devnull != 0:  # 0 when fd 0 was closed: then it is /dev/null already
+        os.dup2(devnull, 0)
+        os.close(devnull)
+
+
+def _die_with_parent(watched: int | None) -> None:
+    if watched is not None:
+        with contextlib.suppress(OSError):  # a pipe that cannot be read is gone too
+            while os.read(watched, 4096):
+                pass
     pid = os.getpid()
     if os.getpgrp() == pid:  # ChildFetcher's start_new_session made us its leader
         os.killpg(pid, signal.SIGKILL)

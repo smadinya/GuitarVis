@@ -5,6 +5,7 @@ killed at its deadline along with its process group."""
 import contextlib
 import errno
 import importlib.metadata
+import json
 import logging
 import os
 import signal
@@ -33,7 +34,13 @@ from guitarvis_fetch.fetcher import (
     log_fetched,
 )
 from guitarvis_fetch.links import parse
-from guitarvis_fetch.testing import VERSIONS, FakeFetcher, video_info
+from guitarvis_fetch.testing import (
+    VERSIONS,
+    FakeFetcher,
+    read_pid,
+    video_info,
+    wait_until_gone,
+)
 
 FAKE_CHILD = Path(__file__).with_name("fake_child.py")
 LINK = parse("https://youtu.be/kPdv44HtEoA")
@@ -57,35 +64,6 @@ def child(*scenario: str, **deadlines: float) -> ChildFetcher:
     return ChildFetcher(
         command=[sys.executable, "-I", str(FAKE_CHILD), *scenario], **deadlines
     )
-
-
-def gone(pid: int) -> bool:
-    """Whether `pid` is dead: no such process, or a zombie awaiting its reaper."""
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return True
-    status = Path(f"/proc/{pid}/stat")
-    return status.exists() and status.read_text().split(")")[-1].split()[0] == "Z"
-
-
-def wait_until_gone(pid: int, seconds: float = 5.0) -> bool:
-    deadline = time.monotonic() + seconds
-    while time.monotonic() < deadline:
-        if gone(pid):
-            return True
-        time.sleep(0.05)
-    return False
-
-
-def read_pid(path: Path, seconds: float = 10.0) -> int:
-    """The pid in `path`, once the fake child has written it."""
-    deadline = time.monotonic() + seconds
-    while time.monotonic() < deadline:
-        if path.exists() and (text := path.read_text()).strip():
-            return int(text)
-        time.sleep(0.05)
-    raise AssertionError(f"{path.name} never appeared")
 
 
 def spy_on_popen(monkeypatch: pytest.MonkeyPatch) -> list["subprocess.Popen[bytes]"]:
@@ -497,6 +475,32 @@ def test_a_child_whose_parent_is_killed_does_not_outlive_it(tmp_path: Path) -> N
         for pid in pids:  # only reached alive if the test is failing
             with contextlib.suppress(ProcessLookupError):
                 os.kill(pid, signal.SIGKILL)
+
+
+def test_the_childs_own_children_read_end_of_file_and_the_watch_still_works() -> None:
+    """watch_parent keeps the parent's pipe to itself and gives file
+    descriptor 0 /dev/null, so a grandchild that reads its stdin (yt-dlp's
+    Deno, ffmpeg) is not left waiting on a pipe nobody writes to. Closing the
+    pipe must still end the child."""
+    with subprocess.Popen(
+        [sys.executable, "-I", str(FAKE_CHILD), "stdin-grandchild"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        start_new_session=True,
+    ) as process:
+        assert process.stdin is not None and process.stdout is not None
+        try:
+            answer = json.loads(process.stdout.readline())
+
+            assert answer["result"]["title"] == "grandchild exited 0"
+            assert process.poll() is None  # its stdin is still open
+
+            process.stdin.close()
+
+            assert process.wait(timeout=5) == -signal.SIGKILL
+        finally:
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(process.pid, signal.SIGKILL)
 
 
 class JobTimeout(BaseException):

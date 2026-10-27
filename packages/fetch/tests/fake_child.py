@@ -114,6 +114,21 @@ def main() -> None:
             out.write(str(grandchild.pid))
         say({"progress": 0.1, **VERSIONS})
         time.sleep(60)
+    elif scenario == "stdin-grandchild":
+        # A grandchild that reads its stdin to the end, as a JavaScript runtime
+        # or ffmpeg may: it must find end-of-file, not the parent's pipe, which
+        # nobody writes to. Then wait, for the parent to close that pipe.
+        grandchild = subprocess.Popen(
+            [sys.executable, "-I", "-c", "import sys; sys.stdin.buffer.read()"]
+        )
+        try:
+            code = grandchild.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            grandchild.kill()
+            grandchild.wait()
+            code = None
+        say({"result": {**INFO, "title": f"grandchild exited {code}"}, **VERSIONS})
+        time.sleep(60)
     else:
         raise SystemExit(f"unknown scenario {scenario}")
 

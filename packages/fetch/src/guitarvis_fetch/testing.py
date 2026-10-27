@@ -1,6 +1,8 @@
 """A UrlFetcher for tests: records its calls, answers as told. No process,
 no network. Imported by tests only, as guitarvis_jobs.testing is."""
 
+import os
+import time
 import wave
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -43,6 +45,35 @@ def write_wav(path: Path, seconds: float = 1.0, rate: int = 8000) -> Path:
         handle.setframerate(rate)
         handle.writeframes(b"\x01\x00" * int(rate * seconds))
     return path
+
+
+def gone(pid: int) -> bool:
+    """Whether `pid` is dead: no such process, or a zombie awaiting its reaper."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    status = Path(f"/proc/{pid}/stat")
+    return status.exists() and status.read_text().split(")")[-1].split()[0] == "Z"
+
+
+def wait_until_gone(pid: int, seconds: float = 5.0) -> bool:
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if gone(pid):
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def read_pid(path: Path, seconds: float = 10.0) -> int:
+    """The pid in `path`, once the process that writes it has."""
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if path.exists() and (text := path.read_text()).strip():
+            return int(text)
+        time.sleep(0.05)
+    raise AssertionError(f"{path.name} never appeared")
 
 
 @dataclass
