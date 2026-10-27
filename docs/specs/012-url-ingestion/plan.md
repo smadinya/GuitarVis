@@ -1338,7 +1338,7 @@ The spec's catalog becomes `catalog.py`: every `FetchKind` maps to a reason, an 
 **Interfaces:**
 - Produces: `guitarvis_fetch.catalog`: `FetchKind` (25 kinds), `Retry` (`no`, `later`, `rq`), `Entry(reason, status, message, level, retry, tail)` with `.retryable` (`retry is Retry.RQ`), `CATALOG`, `REFUSALS`, `message_for(kind, *, duration_sec=None)`, `clock(seconds)`, and the messages `INTERNAL_MESSAGE`, `LINKS_OFF_MESSAGE`, `BAD_REQUEST_MESSAGE`, `REQUEST_TOO_LARGE_MESSAGE`, `LINKS_OFF_IN_QUEUE_MESSAGE`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `packages/fetch/tests/test_catalog.py`:
 
@@ -1494,12 +1494,12 @@ def test_clock(seconds: float, shown: str) -> None:
     assert clock(seconds) == shown
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest packages/fetch/tests/test_catalog.py`
 Expected: FAIL at collection: `ModuleNotFoundError: No module named 'guitarvis_fetch.catalog'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `packages/fetch/src/guitarvis_fetch/catalog.py`:
 
@@ -1800,12 +1800,12 @@ def clock(seconds: float) -> str:
     return f"{minutes}:{secs:02d}"
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest packages/fetch/tests/test_catalog.py`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test
