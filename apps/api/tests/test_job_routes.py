@@ -87,9 +87,21 @@ def test_a_queued_job() -> None:
         "title": "song",
         "duration_sec": 30.0,
         "failure": None,
+        "source_url": None,
         "created_at": "2026-10-08T12:00:00Z",
         "updated_at": "2026-10-08T12:00:00Z",
     }
+
+
+def test_a_job_names_the_link_it_was_made_from_and_an_upload_none() -> None:
+    api = make_api()
+    upload = queued(api)
+    link, _ = api.store.create(sample_link_job())
+
+    assert api.client.get(f"/jobs/{upload}").json()["source_url"] is None
+    assert api.client.get(f"/jobs/{link.id}").json()["source_url"] == (
+        "https://www.youtube.com/watch?v=kPdv44HtEoA"
+    )
 
 
 def test_timestamps_are_utc_whatever_offset_the_store_returns() -> None:

@@ -89,3 +89,20 @@ def test_importing_api_loads_no_ml_modules() -> None:
     assert result.stdout.strip() == "", (
         f"importing guitarvis_api pulled in: {result.stdout.strip()}"
     )
+
+
+def test_the_api_never_imports_yt_dlp() -> None:
+    """Spec 012's rule, not invariant 3's: yt-dlp is not ML, but it runs only
+    in guitarvis_fetch.child's own process, never in the api's."""
+    offenders = [
+        str(source_file)
+        for source_file in sorted(API_SOURCE.rglob("*.py"))
+        if "yt_dlp" in imported_roots(source_file)
+    ]
+    probe = "import sys, guitarvis_api.app; print('yt_dlp' in sys.modules)"
+    loaded = subprocess.run(
+        [sys.executable, "-c", probe], capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+    assert offenders == [], f"the api imports yt_dlp in {offenders}"
+    assert loaded == "False", "importing the api loaded yt_dlp"

@@ -18,25 +18,36 @@ from guitarvis_core.schema_export import strip_property_titles
 from pydantic.json_schema import models_json_schema
 
 from guitarvis_api.errors import ErrorBody
-from guitarvis_api.schemas import JobView
+from guitarvis_api.schemas import Features, JobView, LinkRequest
 
 DEFAULT_OUTPUT = Path("schema/api.schema.json")
 
 
 def api_schema() -> dict[str, Any]:
-    """Every body the api answers with: a job, or an error.
+    """Every body the api answers with — a job, an error, its features — and
+    the one body it reads as JSON, a link.
 
-    The root is the union of the two, so the generator emits a type for each
-    model without needing a list of unreachable definitions.
+    The root is the union of all four, so the generator emits a type for
+    each model without needing a list of unreachable definitions.
     """
     _, definitions = models_json_schema(
-        [(JobView, "serialization"), (ErrorBody, "serialization")],
+        [
+            (JobView, "serialization"),
+            (ErrorBody, "serialization"),
+            (Features, "serialization"),
+            (LinkRequest, "validation"),
+        ],
         ref_template="#/$defs/{model}",
     )
     schema: dict[str, Any] = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "title": "ApiResponse",
-        "anyOf": [{"$ref": "#/$defs/JobView"}, {"$ref": "#/$defs/ErrorBody"}],
+        "title": "ApiBody",
+        "anyOf": [
+            {"$ref": "#/$defs/JobView"},
+            {"$ref": "#/$defs/ErrorBody"},
+            {"$ref": "#/$defs/Features"},
+            {"$ref": "#/$defs/LinkRequest"},
+        ],
         **definitions,
     }
     strip_property_titles(schema)

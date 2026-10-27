@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "guitarvis-core",
     "guitarvis-jobs",
+    "guitarvis-fetch",
     "fastapi>=0.115",
     "uvicorn>=0.30",
     "python-multipart>=0.0.18",

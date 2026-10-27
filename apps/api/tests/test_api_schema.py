@@ -48,6 +48,21 @@ def test_the_schema_names_all_twelve_reasons() -> None:
     assert len(named) == 12
 
 
+def test_the_schema_describes_features_and_the_link_request() -> None:
+    definitions = api_schema()["$defs"]
+
+    assert definitions["Features"]["properties"] == {
+        "url_ingestion": {"type": "boolean"}
+    }
+    assert definitions["Features"]["required"] == ["url_ingestion"]
+    assert definitions["LinkRequest"]["properties"] == {
+        "url": {"type": "string", "maxLength": 2048}
+    }
+    assert definitions["JobView"]["properties"]["source_url"] == {
+        "anyOf": [{"type": "string"}, {"type": "null"}]
+    }
+
+
 def test_a_failed_job_can_carry_only_a_failure_reason() -> None:
     """The five HttpReason values describe a request, never a job."""
     reason = api_schema()["$defs"]["FailureView"]["properties"]["reason"]

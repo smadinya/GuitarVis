@@ -3,7 +3,7 @@
  * Regenerate with `make schema`.
  */
 
-export type ApiResponse = JobView | ErrorBody;
+export type ApiBody = JobView | ErrorBody | Features | LinkRequest;
 /**
  * Why a job failed, in terms the UI can turn into actionable text.
  *
@@ -23,6 +23,9 @@ export type HttpReason = "too_large" | "too_many_jobs" | "not_found" | "not_read
 
 /**
  * `failure` is set only when `status` is failed; `stage` only while running.
+ *
+ * `source_url` is the link a link job was made from, in canonical form, and
+ * null for an upload.
  */
 export interface JobView {
   attempts: number;
@@ -31,6 +34,7 @@ export interface JobView {
   failure: FailureView | null;
   id: string;
   percent: number;
+  source_url: string | null;
   stage: string | null;
   status: JobStatus;
   title: string;
@@ -55,4 +59,17 @@ export interface ErrorBody {
 export interface ErrorDetail {
   message: string;
   reason: FailureReason | HttpReason;
+}
+/**
+ * GET /features: what this api has switched on, so the client shows only
+ * what will work. Read from the api's own settings at start.
+ */
+export interface Features {
+  url_ingestion: boolean;
+}
+/**
+ * POST /jobs/from-url's body: one link, as the user pasted it.
+ */
+export interface LinkRequest {
+  url: string;
 }

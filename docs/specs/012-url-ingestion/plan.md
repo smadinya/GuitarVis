@@ -5086,7 +5086,7 @@ Expected: the first command passes; after the commit, `schema-check` prints noth
 **Interfaces:**
 - Produces: `JobView.source_url: str | None`; `LinkRequest(url: str, max 2048)`; `Features(url_ingestion: bool)`; generated `LinkRequest`, `Features`, `ApiBody` in `web/src/types/api.ts`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `apps/api/tests/test_api_schema.py`:
 
@@ -5191,12 +5191,12 @@ In `web/src/test/jobs.ts`:
      ...fields,
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest apps/api/tests/test_api_schema.py apps/api/tests/test_job_routes.py apps/api/tests/test_boundaries.py`
 Expected: FAIL: `KeyError: 'Features'` in the schema test, and `test_a_queued_job`'s body lacks `source_url`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Then `uv lock && uv sync` (the api's new dependency) and `make schema`.
 
@@ -5326,12 +5326,12 @@ In `apps/api/src/guitarvis_api/schemas.py`:
 +    url_ingestion: bool
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `uv run pytest apps/api/tests/test_api_schema.py apps/api/tests/test_job_routes.py apps/api/tests/test_boundaries.py`
 Expected: PASS, and `npm --prefix web run typecheck` passes with the new `jobView()`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test

@@ -78,6 +78,19 @@
       "title": "FailureView",
       "type": "object"
     },
+    "Features": {
+      "description": "GET /features: what this api has switched on, so the client shows only\nwhat will work. Read from the api's own settings at start.",
+      "properties": {
+        "url_ingestion": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "url_ingestion"
+      ],
+      "title": "Features",
+      "type": "object"
+    },
     "HttpReason": {
       "enum": [
         "too_large",
@@ -100,7 +113,7 @@
       "type": "string"
     },
     "JobView": {
-      "description": "`failure` is set only when `status` is failed; `stage` only while running.",
+      "description": "`failure` is set only when `status` is failed; `stage` only while running.\n\n`source_url` is the link a link job was made from, in canonical form, and\nnull for an upload.",
       "properties": {
         "attempts": {
           "type": "integer"
@@ -127,6 +140,16 @@
         },
         "percent": {
           "type": "integer"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "stage": {
           "anyOf": [
@@ -158,10 +181,25 @@
         "title",
         "duration_sec",
         "failure",
+        "source_url",
         "created_at",
         "updated_at"
       ],
       "title": "JobView",
+      "type": "object"
+    },
+    "LinkRequest": {
+      "description": "POST /jobs/from-url's body: one link, as the user pasted it.",
+      "properties": {
+        "url": {
+          "maxLength": 2048,
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "LinkRequest",
       "type": "object"
     }
   },
@@ -172,7 +210,13 @@
     },
     {
       "$ref": "#/$defs/ErrorBody"
+    },
+    {
+      "$ref": "#/$defs/Features"
+    },
+    {
+      "$ref": "#/$defs/LinkRequest"
     }
   ],
-  "title": "ApiResponse"
+  "title": "ApiBody"
 }

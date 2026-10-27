@@ -970,6 +970,7 @@ source = { editable = "apps/api" }
 dependencies = [
     { name = "fastapi" },
     { name = "guitarvis-core" },
+    { name = "guitarvis-fetch" },
     { name = "guitarvis-jobs" },
     { name = "python-multipart" },
     { name = "uvicorn" },
@@ -979,6 +980,7 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "guitarvis-core", editable = "packages/core" },
+    { name = "guitarvis-fetch", editable = "packages/fetch" },
     { name = "guitarvis-jobs", editable = "packages/jobs" },
     { name = "python-multipart", specifier = ">=0.0.18" },
     { name = "uvicorn", specifier = ">=0.30" },

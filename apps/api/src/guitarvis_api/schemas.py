@@ -3,8 +3,9 @@
 from datetime import UTC, datetime
 
 from guitarvis_core.contracts import FailureReason
+from guitarvis_fetch.links import MAX_LINK_CHARS
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE, Job, JobStatus
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, Field, field_serializer
 
 
 class FailureView(BaseModel):
@@ -17,7 +18,11 @@ class FailureView(BaseModel):
 
 
 class JobView(BaseModel):
-    """`failure` is set only when `status` is failed; `stage` only while running."""
+    """`failure` is set only when `status` is failed; `stage` only while running.
+
+    `source_url` is the link a link job was made from, in canonical form, and
+    null for an upload.
+    """
 
     id: str
     status: JobStatus
@@ -27,6 +32,7 @@ class JobView(BaseModel):
     title: str
     duration_sec: float
     failure: FailureView | None
+    source_url: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -54,6 +60,20 @@ class JobView(BaseModel):
             title=job.title,
             duration_sec=job.duration_sec,
             failure=failure,
+            source_url=job.source_url,
             created_at=job.created_at,
             updated_at=job.updated_at,
         )
+
+
+class LinkRequest(BaseModel):
+    """POST /jobs/from-url's body: one link, as the user pasted it."""
+
+    url: str = Field(max_length=MAX_LINK_CHARS)
+
+
+class Features(BaseModel):
+    """GET /features: what this api has switched on, so the client shows only
+    what will work. Read from the api's own settings at start."""
+
+    url_ingestion: bool
