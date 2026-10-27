@@ -7647,7 +7647,7 @@ The end-to-end test gains a link job: the api with links on, the fake fetcher at
 **Files:**
 - Test: `apps/worker/tests/test_end_to_end.py`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 In `apps/worker/tests/test_end_to_end.py`:
 
@@ -7750,12 +7750,12 @@ In `apps/worker/tests/test_end_to_end.py`:
 +        assert response.read() == fetcher.content
 ```
 
-- [ ] **Step 2: Run it to verify it passes**
+- [x] **Step 2: Run it to verify it passes**
 
 Run: `GUITARVIS_REQUIRE_SERVICES=1 uv run pytest apps/worker/tests/test_end_to_end.py`
 Expected: PASS with `make services` up (both tests). Without the services this command fails, as CI's would; without `GUITARVIS_REQUIRE_SERVICES=1` the two tests skip.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 make lint typecheck test
