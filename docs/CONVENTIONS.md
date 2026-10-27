@@ -24,6 +24,9 @@ Rules that outlive any one change. The reasoning lives in
 - `apps/api` imports nothing from the ML stack, and never `guitarvis_worker`:
   it enqueues the worker's entry point by name. This is enforced by
   `apps/api/tests/test_boundaries.py`, not by good intentions.
+- **yt-dlp runs only in `guitarvis_fetch.child`**, a process of its own
+  (ADR 0010). Nothing else imports `yt_dlp`, and a link failure's words come
+  from `guitarvis_fetch.catalog`, never from yt-dlp.
 - **Postgres is the record of a job; Redis carries its id** (ADR 0007). Every
   write after a job starts is conditional on the status it expects.
 
@@ -35,9 +38,9 @@ Rules that outlive any one change. The reasoning lives in
   document. They hold no playback state and never talk to sibling views. A
   new view is one more `onFrame` listener, not a refactor.
 - **The client and the api share an origin.** Client code uses relative
-  paths. `make web` proxies `/jobs` and `/health` to the api, and hosting must
-  keep both behind one origin, or add CORS deliberately. Client routes live
-  under `/songs/`, never `/jobs/`.
+  paths. `make web` proxies `/jobs`, `/health` and `/features` to the api, and
+  hosting must keep all three behind one origin, or add CORS deliberately.
+  Client routes live under `/songs/`, never `/jobs/`.
 - **Confidence rendering lives in one shared function**, used identically by
   all three views. The rule must not drift between them.
 - `web/src/types/tabDocument.ts` and `web/src/types/api.ts` are generated.
@@ -103,6 +106,9 @@ Where a rule matters, it is enforced by something that fails:
 | In-memory store twins behave like the real stores | shared contract suites in `packages/jobs/tests` |
 | The migration matches the table the code queries | `packages/jobs/tests/test_migrations.py` |
 | CI cannot pass by skipping the integration suite | `packages/jobs/tests/test_services_gate_ci.py` |
+| The api never imports yt-dlp | `apps/api/tests/test_boundaries.py` |
+| Every link failure has a catalog row, and no message carries yt-dlp's text | `packages/fetch/tests/test_catalog.py` |
+| Fetching from YouTube never gates CI | `packages/fetch/tests/test_smoke_never_gates_ci.py` |
 | Every failure reason has UI text | `Record<Reason, …>` in `web/src/api/messages.ts`, over the generated `web/src/types/api.ts` |
 
 Adding a rule to this document without a mechanism is worth doing, but expect

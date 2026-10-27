@@ -1,8 +1,8 @@
 /**
  * Two routes, no router library: "/" uploads, "/songs/{jobId}" plays.
  *
- * Client routes never start with /jobs or /health, which the Vite proxy
- * sends to the api, so a page load is never swallowed by the proxy.
+ * Client routes never start with /jobs, /health or /features, which the Vite
+ * proxy sends to the api, so a page load is never swallowed by the proxy.
  */
 import { useSyncExternalStore, type MouseEvent } from "react";
 

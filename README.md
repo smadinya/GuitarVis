@@ -50,6 +50,7 @@ v1 has no editing, so transcription errors cannot be corrected by hand.
 |---|---|
 | `packages/core` | The tab document, the stage interfaces, the fretboard invariant |
 | `packages/jobs` | The job record, object storage and the queue, shared by the api and the worker |
+| `packages/fetch` | Links: parsing, the yt-dlp child process and the failure catalog. Walled off (ADR 0010) |
 | `apps/api` | FastAPI. Thin; no ML code, enforced by test |
 | `apps/worker` | The pipeline. The only component that needs torch |
 | `apps/eval` | GuitarSet evaluation harness |
@@ -120,9 +121,15 @@ curl -F file=@song.mp3 localhost:8000/jobs        # → 202 and a job id
 curl localhost:8000/jobs/<id>                      # stage and percent
 curl localhost:8000/jobs/<id>/document             # the tab document
 curl -L localhost:8000/jobs/<id>/audio/mix -o mix  # a redirect to storage
+curl -H 'content-type: application/json' \
+  -d '{"url": "https://youtu.be/kPdv44HtEoA"}' localhost:8000/jobs/from-url
 ```
 
-Uploading the same file again returns the same job, unless that job failed.
+Uploading the same file again returns the same job, unless that job failed;
+so does pasting the same video again, in any form of its link. Links are on
+under `make api` and `make worker`, and need [Deno](https://deno.com) 2.3 or
+later installed. Hosting must route `/features` to the api beside `/jobs` and
+`/health`.
 Uploads and stems stay in storage until you run `docker compose down -v`.
 
 ## Documentation

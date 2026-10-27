@@ -9,7 +9,9 @@ make check
 
 Requires Python 3.12+, Node 22+, [uv](https://docs.astral.sh/uv/)
 (`curl -LsSf https://astral.sh/uv/install.sh | sh`), and ffmpeg (provides
-`ffprobe`, used to probe uploaded audio).
+`ffprobe`, used to probe uploaded audio). Fetching links also needs
+[Deno](https://deno.com) 2.3+, yt-dlp's JavaScript runtime; `make check` does
+not.
 The integration tests and `make api`/`make worker` also need Docker, for
 `make services`.
 
@@ -30,10 +32,11 @@ the hook that refuses commits on `main`.
 | `make check` | Everything CI runs |
 | `make eval-data` | Download GuitarSet into `~/.cache` (`ARGS=--audio` for full mode) |
 | `make eval` | GuitarSet evaluation — measured, never gated (`ARGS="--full"`, `ARGS="--split dev"`) |
+| `make smoke-url` | Look up and download one Creative Commons video from YouTube — live, never gated, needs Deno |
 | `make services` | Start Postgres, Redis and RustFS in Docker |
 | `make migrate` | Create or upgrade the jobs table, and create the bucket |
-| `make api` | Serve the api on `localhost:8000`, reloading on change |
-| `make worker` | Run jobs from the queue (`ARGS="--device cuda"`; needs the `ml` extra) |
+| `make api` | Serve the api on `localhost:8000`, reloading on change, links on |
+| `make worker` | Run jobs from the queue (`ARGS="--device cuda"`; needs the `ml` extra), links on |
 | `make web` | Serve the web client on `localhost:5173`, proxying the api |
 | `make clean` | Remove caches and build output |
 | `make help` | List these targets with their one-line descriptions |

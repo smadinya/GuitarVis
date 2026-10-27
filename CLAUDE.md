@@ -10,8 +10,8 @@ Start here: [`docs/specs/001-guitarvis-design/spec.md`](docs/specs/001-guitarvis
 ## Commands
 
 `make install` · `make check` · `make test` · `make schema` · `make eval-data` · `make eval` ·
-`make sweep` · `make services` · `make migrate` · `make api` · `make worker` · `make web` ·
-`make help`
+`make sweep` · `make smoke-url` · `make services` · `make migrate` · `make api` · `make worker` ·
+`make web` · `make help`
 
 `make check` is what CI runs. Run it before claiming anything works.
 
@@ -49,9 +49,9 @@ any default that would write specs elsewhere — see
 3. API and job queue
 4. Web client: tab view and sync
 5. 2D fretboard, then 3D guitar
-6. URL ingestion ← **next**
+6. URL ingestion (spec 012)
 
-Phases 1–2 hold the technical risk. The rest is conventional work.
+All six are built. Phases 1–2 held the technical risk.
 
 ## Things that will bite you
 
@@ -75,8 +75,8 @@ Phases 1–2 hold the technical risk. The rest is conventional work.
 - Bump `CACHE_VERSION` in `apps/worker/src/guitarvis_worker/caching.py`
   whenever a stage's output for the same input changes. Nothing enforces it.
 - `make worker` runs the real stages, so it needs `uv sync --extra ml`.
-- `make web` proxies `/jobs` and `/health` to `localhost:8000`, so the client
-  needs `make api` running. The client assumes the api is on its origin.
+- `make web` proxies `/jobs`, `/health` and `/features` to `localhost:8000`, so
+  the client needs `make api` running. The client assumes the api is on its origin.
 - Web tests that need a DOM start with `// @vitest-environment jsdom`.
   Everything else runs on `node`. jsdom stays on 29.x until the dev machine's
   Node is 22.22 or later.
@@ -85,3 +85,21 @@ Phases 1–2 hold the technical risk. The rest is conventional work.
 - The guitar's tests run without WebGL. Pure modules in `web/src/guitar/` run
   on `node`, three.js included. `Guitar` and `Stage` take a fake renderer under
   jsdom.
+- Links (spec 012) live in `packages/fetch`, walled off: deleting it, one line
+  in the api's `app.py` and one branch in the worker's runner removes them.
+  They are off unless `GUITARVIS_URL_INGESTION` is on. `make api` and
+  `make worker` turn it on; bare `uvicorn` does not. The api and the worker
+  read it at start, so flipping it means restarting both.
+- Fetching a link needs Deno 2.3 or later on the host, yt-dlp's JavaScript
+  runtime for YouTube. Without it a link job fails as `fetch_failed`, and the
+  worker warns at start. `make check` needs neither Deno nor the network.
+- yt-dlp breaks when YouTube changes. `uv lock --upgrade-package yt-dlp`, then
+  `make smoke-url`, then commit; the switch is the stopgap meanwhile. Only
+  `guitarvis_fetch.child` imports `yt_dlp`, in its own process, and the api
+  must not (`test_boundaries.py`).
+- A link failure's reason, status and message come from
+  `packages/fetch/src/guitarvis_fetch/catalog.py`, never from yt-dlp, whose
+  text goes to the log only. Add a row there before raising a new kind.
+- Spec 012 added migration `r0002` (`source_url`, and a nullable `upload_key`).
+  On a dev database made before it, run `make migrate` before `make api`, or
+  the api's queries fail against the old table.

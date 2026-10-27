@@ -98,7 +98,7 @@ pending work, not history.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | uuid | primary key, public, unguessable |
-| `content_hash` | text | sha256 of the uploaded bytes |
+| `content_hash` | text | the dedupe key: sha256 of the uploaded bytes; for a link job (012), sha256 of `youtube:` and the video id |
 | `status` | text | `queued` · `running` · `succeeded` · `failed` |
 | `stage` | text, null | stage currently running |
 | `percent` | int | 0–100, overall |
@@ -108,7 +108,8 @@ pending work, not history.
 | `failed_stage` | text, null | where it broke |
 | `title` | text | upload's filename without extension |
 | `duration_sec` | float | from the upload-time probe |
-| `upload_key` | text | blob key of the original audio |
+| `upload_key` | text, null | blob key of the original audio; for a link job, null until the worker stores the download at `uploads/{sha256 of bytes}{ext}` |
+| `source_url` | text, null | a link job's canonical URL (012); null for an upload |
 | `stem_key` | text, null | blob key of the stem the tab came from |
 | `client_ip` | text | for the active-job limit |
 | `document` | jsonb, null | the tab document, once succeeded |

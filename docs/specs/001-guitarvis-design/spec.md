@@ -338,7 +338,9 @@ around this table.
 
 **Honest failure messages.** Failures carry a typed reason —
 `unsupported_format`, `no_guitar_detected`, `too_long`, `fetch_failed`,
-`internal` — which the UI maps to actionable text. The user needs to know
+`link_unusable`, `links_disabled`, `internal` — which the UI maps to
+actionable text (`link_unusable` and `links_disabled` arrived with
+[012](../012-url-ingestion/spec.md)). The user needs to know
 whether to try a different file, a different song, or come back later.
 
 **Ingestion guards.** Max duration (~10 min), max file size, format validation
@@ -346,7 +348,9 @@ before any expensive work begins, and per-IP concurrent-job limits.
 
 **Retries.** Stages are idempotent and intermediates are cached by content
 hash, so a retry resumes rather than re-running separation. Three attempts,
-then dead-letter with the failing stage recorded.
+then dead-letter with the failing stage recorded. A failure says whether it is
+retryable: by default only `internal`, plus a fetch that failed on the network
+(012).
 
 ## Testing
 
@@ -459,7 +463,7 @@ This spec covers the whole system; the implementation plan should not.
 3. **API + job queue** — wrap the pipeline in the service.
 4. **Web client: tab view + sync** — first real end-to-end experience.
 5. **2D fretboard**, then **3D guitar**.
-6. **URL ingestion.**
+6. **URL ingestion** — [012](../012-url-ingestion/spec.md).
 
 Phases 1–2 hold all the technical risk and should form the first
 implementation plan. The remainder is comparatively conventional work.

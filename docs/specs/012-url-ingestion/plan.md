@@ -9015,7 +9015,7 @@ CLAUDE.md: phase 6 done, `make smoke-url`, and four new things that will bite (t
 - Modify: `docs/specs/001-guitarvis-design/spec.md`
 - Modify: `docs/specs/005-api-job-queue/spec.md`
 
-- [ ] **Step 1: Write the documents**
+- [x] **Step 1: Write the documents**
 
 In `.claude/skills/pipeline-stage/SKILL.md`:
 
@@ -9256,7 +9256,7 @@ In `docs/specs/005-api-job-queue/spec.md`:
  | `document` | jsonb, null | the tab document, once succeeded |
 ```
 
-- [ ] **Step 2: Check and commit**
+- [x] **Step 2: Check and commit**
 
 ```bash
 make lint typecheck test
