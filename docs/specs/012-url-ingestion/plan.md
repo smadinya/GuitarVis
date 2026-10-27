@@ -8913,7 +8913,7 @@ Records D3 and D4: yt-dlp as a library in a child process, behind a switch that 
 - Create: `docs/decisions/0010-yt-dlp-in-a-child-behind-a-switch.md`
 - Modify: `docs/decisions/README.md`
 
-- [ ] **Step 1: Write the documents**
+- [x] **Step 1: Write the documents**
 
 Create `docs/decisions/0010-yt-dlp-in-a-child-behind-a-switch.md`:
 
@@ -8986,7 +8986,7 @@ In `docs/decisions/README.md`:
  
 ```
 
-- [ ] **Step 2: Check and commit**
+- [x] **Step 2: Check and commit**
 
 ```bash
 make lint typecheck test

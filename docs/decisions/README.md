@@ -18,6 +18,7 @@ New decisions take the next number and start from [`template.md`](template.md).
 | [0007](0007-postgres-is-the-record.md) | Postgres is the record of a job; Redis carries only its id |
 | [0008](0008-native-time-stretch.md) | Slow-down uses the browser's own time-stretching, on one media element |
 | [0009](0009-procedural-guitar-model.md) | The guitar is built in code, not loaded from a model file |
+| [0010](0010-yt-dlp-in-a-child-behind-a-switch.md) | Links are fetched by yt-dlp in a child process, behind a switch that is off by default |
 
 ## Still open
 
