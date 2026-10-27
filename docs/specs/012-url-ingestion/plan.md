@@ -9284,7 +9284,7 @@ Expected: the first command passes; after the commit, `schema-check` prints noth
 **Files:**
 - Create: `docs/specs/012-url-ingestion/acceptance.md`
 
-- [ ] **Step 1: Write the documents**
+- [x] **Step 1: Write the documents**
 
 Create `docs/specs/012-url-ingestion/acceptance.md`:
 
@@ -9395,7 +9395,7 @@ Notes: …
 Notes: …
 ````
 
-- [ ] **Step 2: Check and commit**
+- [x] **Step 2: Check and commit**
 
 ```bash
 make lint typecheck test
