@@ -74,7 +74,9 @@ def _youtube_id(host: str, parts: SplitResult) -> str | None:
         values = parse_qs(parts.query).get("v", [])
         candidate = values[0] if len(values) == 1 else None
     elif len(segments) == 2 and segments[0] in ("shorts", "live", "embed", "v"):
-        candidate = segments[1]
+        # /embed/videoseries?list=… is a playlist, as yt-dlp reads it too,
+        # though "videoseries" has an id's eleven characters.
+        candidate = None if segments[1] == "videoseries" else segments[1]
     else:
         candidate = None
     if candidate is None or not _YOUTUBE_ID.fullmatch(candidate):

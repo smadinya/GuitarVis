@@ -14,6 +14,11 @@
     ]
   },
   {
+    "kind": "age_restricted",
+    "source": "reported: YouTube's reason as yt-dlp users report it, with the login hint yt-dlp 2026.10.26 adds to any reason that says \"sign in\" (extractor/youtube/_video.py:4071–4073); not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Sign in to view this video. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies"
+  },
+  {
     "kind": "unavailable",
     "source": "live: recorded 2026-10-26 with yt-dlp 2026.10.26, no JavaScript runtime",
     "message": "ERROR: [youtube] Q39EVAstoRM: This video is unavailable"
@@ -60,6 +65,30 @@
     "message": "[youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
     "warnings": [
       "[youtube] No supported JavaScript runtime could be found. Only deno is enabled by default; to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. See  https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one"
+    ]
+  },
+  {
+    "kind": "rate_limited",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); the warning is the one its extractor gives when a player client's request fails and it tries the next (_video.py:3118–3120), as the offline tests record it for a 429",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: Unable to download API page: HTTP Error 429: Too Many Requests (caused by <HTTPError 429: Too Many Requests>)"
+    ]
+  },
+  {
+    "kind": "network",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); the warning is the one its extractor gives when a player client's request fails and it tries the next (_video.py:3118–3120), as the offline tests record it for a 503",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: Unable to download API page: HTTP Error 503: Service Unavailable (caused by <HTTPError 503: Service Unavailable>)"
+    ]
+  },
+  {
+    "kind": "network",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); the warning is the one its extractor gives when a player client's request fails and it tries the next (_video.py:3118–3120), as the offline tests record it for a dropped connection",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: Unable to download API page: [Errno 104] Connection reset by peer (caused by TransportError('[Errno 104] Connection reset by peer'))"
     ]
   },
   {

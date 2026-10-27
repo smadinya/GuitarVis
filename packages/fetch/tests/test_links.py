@@ -132,6 +132,10 @@ def test_ids_keep_their_case_and_their_dashes() -> None:
         ),
         (f"https://www.youtube.com/shorts/{ID}/extra", RefusalKind.NOT_A_VIDEO),
         (f"https://www.youtube.com/watch/{ID}", RefusalKind.NOT_A_VIDEO),
+        (  # a playlist's embed: "videoseries" has an id's eleven characters
+            "https://www.youtube.com/embed/videoseries?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI",
+            RefusalKind.NOT_A_VIDEO,
+        ),
         ("https://youtu.be/", RefusalKind.NOT_A_VIDEO),
         (f"https://youtu.be/{ID}/{ID}", RefusalKind.NOT_A_VIDEO),
     ],

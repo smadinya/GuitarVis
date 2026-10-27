@@ -294,6 +294,9 @@ _MESSAGES: list[tuple[FetchKind, re.Pattern[str]]] = [
             r"|recording is not available|does not exist"
         ),
     ),
+    # Last: any other reason that asks the viewer to sign in (L4). The
+    # private and bot reasons above ask it too, and keep their own kinds.
+    (FetchKind.AGE_RESTRICTED, re.compile(r"\bsign in\b")),
 ]
 _FORMAT_ERROR = re.compile(
     r"requested format is not available|no video formats found"
@@ -352,19 +355,11 @@ def classify(error: BaseException, warnings: Sequence[str] = ()) -> FetchKind:
         return FetchKind.GEO_RESTRICTED
     if 429 in statuses:
         return FetchKind.RATE_LIMITED
+    # The video's own words, before any warning: a private or removed video
+    # is that, whatever another player client ran into on the way.
     for kind, pattern in _MESSAGES:
         if pattern.search(text):
             return kind
-    if _FORMAT_ERROR.search(text):
-        # Without a working runtime YouTube offers few formats, and "no
-        # audio" would blame every video for our own problem.
-        return FetchKind.EXTRACTOR_BROKEN if challenged else FetchKind.NO_AUDIO
-    if _RATE_LIMITED_WARNING.search(warned):
-        return FetchKind.RATE_LIMITED
-    if _NO_PLAYER_RESPONSE.search(text) and _NETWORK_WARNING.search(warned):
-        return FetchKind.NETWORK
-    if _BROKEN.search(text):
-        return FetchKind.EXTRACTOR_BROKEN
     network = (
         TransportError,
         ContentTooShortError,
@@ -381,9 +376,26 @@ def classify(error: BaseException, warnings: Sequence[str] = ()) -> FetchKind:
         return FetchKind.NETWORK
     if 403 in statuses and challenged:
         return FetchKind.EXTRACTOR_BROKEN
-    # yt-dlp raises UnavailableVideoError when writing the file fails.
+    # After the network types, which are OSErrors too (socket errors, and
+    # URLError). yt-dlp raises UnavailableVideoError when writing fails.
     if any(isinstance(exc, OSError | UnavailableVideoError) for exc in chain):
         return FetchKind.LOCAL_IO  # a full disk, say
+    # Before the format error: with some clients throttled or failing and
+    # another's formats all skipped, yt-dlp says "Requested format is not
+    # available", and "no audio" would refuse every link, for good, for as
+    # long as YouTube throttles us or is down.
+    if _RATE_LIMITED_WARNING.search(warned):
+        return FetchKind.RATE_LIMITED
+    if _FORMAT_ERROR.search(text) and _NETWORK_WARNING.search(warned):
+        return FetchKind.NETWORK
+    if _FORMAT_ERROR.search(text):
+        # Without a working runtime YouTube offers few formats, and "no
+        # audio" would blame every video for our own problem.
+        return FetchKind.EXTRACTOR_BROKEN if challenged else FetchKind.NO_AUDIO
+    if _NO_PLAYER_RESPONSE.search(text) and _NETWORK_WARNING.search(warned):
+        return FetchKind.NETWORK
+    if _BROKEN.search(text):
+        return FetchKind.EXTRACTOR_BROKEN
     return FetchKind.UNKNOWN
 
 
@@ -473,6 +485,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 FetchKind.MISCONFIGURED, f"yt-dlp will not import: {error!r}"
             ) from None
         versions = Versions(ytdlp=ytdlp_version, js=runtime.label)
+        # Before any work, so a timeout or a crash still names them: a hung
+        # Deno is a likely cause of a timeout.
+        send(out, {"progress": 0.0, **_known(versions)})
         result = _answer(args, runtime, log, out)
     except FetchError as error:
         _send_error(out, error.kind, error.detail, error.duration_sec, versions)

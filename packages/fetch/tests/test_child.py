@@ -5,6 +5,7 @@ answers. No network: nothing here asks YouTube anything."""
 import contextlib
 import io
 import json
+import logging
 import os
 import shlex
 import signal
@@ -32,6 +33,7 @@ from guitarvis_fetch.fetcher import (
     FetchError,
     Versions,
     child_environment,
+    log_failed,
 )
 from guitarvis_fetch.links import parse
 from guitarvis_fetch.testing import read_pid, wait_until_gone
@@ -542,10 +544,48 @@ def test_nothing_but_answers_reaches_the_childs_stdout() -> None:
     answer = run_python(code, dict(os.environ))
 
     assert answer.returncode == 0, answer.stderr
-    [line] = answer.stdout.splitlines()
-    assert json.loads(line)["result"] == {"title": "t"}
+    *before, last = [json.loads(line) for line in answer.stdout.splitlines()]
+    assert all(set(line) <= {"progress", "ytdlp", "js"} for line in before)
+    assert last["result"] == {"title": "t"}
     assert "chatter on stdout" in answer.stderr
     assert "and from a subprocess" in answer.stderr
+
+
+# The real child, stopped once it knows its versions, by a lookup that hangs.
+HANGS = (
+    "import time\n"
+    "import guitarvis_fetch.child as child\n"
+    "from guitarvis_fetch.fetcher import JsRuntime\n"
+    "child.find_deno = lambda: JsRuntime('deno', 'deno', '2.5.4')\n"
+    "child._answer = lambda args, runtime, log, out: time.sleep(60)\n"
+    "child.main()\n"
+)
+
+
+def test_a_child_past_its_deadline_is_logged_with_its_versions(
+    caplog: pytest.LogCaptureFixture,
+) -> None:  # L14, D2
+    """A hung Deno is a likely cause of a timeout. The child names both
+    versions before it starts work, so a timeout's log line names them too."""
+    fetcher = ChildFetcher(
+        command=[sys.executable, "-I", "-c", HANGS], lookup_deadline_sec=2
+    )
+    link = parse(URL)
+
+    with pytest.raises(FetchError) as excinfo:
+        fetcher.lookup(link)
+    with caplog.at_level(logging.WARNING, logger="test.child"):
+        log_failed(
+            logging.getLogger("test.child"),
+            excinfo.value,
+            phase="lookup",
+            link=link,
+            elapsed_sec=2.0,
+        )
+
+    assert excinfo.value.kind is FetchKind.LOOKUP_TIMEOUT
+    [line] = caplog.messages
+    assert f"ytdlp={yt_dlp.version.__version__} js=deno/2.5.4 " in line
 
 
 def test_the_child_dies_when_its_stdin_reaches_end_of_file(tmp_path: Path) -> None:

@@ -227,6 +227,65 @@ def test_a_format_error_is_no_audio_unless_challenges_failed() -> None:  # L11, 
     assert classify(error, [CHALLENGE]) is FetchKind.EXTRACTOR_BROKEN
 
 
+# YouTube's extractor reports a player client whose request failed as a
+# warning and tries the next. These are its words for three such failures.
+THROTTLED = (
+    f"[youtube] {ID}: Unable to download API page: HTTP Error 429: Too Many "
+    "Requests (caused by <HTTPError 429: Too Many Requests>)"
+)
+FAILING = (
+    f"[youtube] {ID}: Unable to download API page: HTTP Error 503: Service "
+    "Unavailable (caused by <HTTPError 503: Service Unavailable>)"
+)
+DROPPED = (
+    f"[youtube] {ID}: Unable to download API page: [Errno 104] Connection reset "
+    "by peer (caused by TransportError('[Errno 104] Connection reset by peer'))"
+)
+
+
+@pytest.mark.parametrize(
+    ("warning", "kind"),
+    [
+        (THROTTLED, FetchKind.RATE_LIMITED),  # L12
+        (FAILING, FetchKind.NETWORK),  # L13
+        (DROPPED, FetchKind.NETWORK),  # L13
+    ],
+    ids=["429", "503", "reset"],
+)
+def test_a_format_error_beside_a_failed_player_client_is_that_failure(
+    warning: str, kind: FetchKind
+) -> None:
+    """Some clients throttled or failing, and another answering with every
+    format skipped: yt-dlp says "Requested format is not available". Read as
+    no audio, that would refuse every link, for good, for as long as YouTube
+    throttles us or is down."""
+    error = reported(
+        raises(
+            ExtractorError(
+                "Requested format is not available. Use --list-formats for a "
+                "list of available formats",
+                expected=True,
+                video_id=ID,
+                ie="youtube",
+            )
+        )
+    )
+
+    assert classify(error, [warning]) is kind
+    assert classify(error, [CHALLENGE, warning]) is kind  # challenges failed too
+
+
+def test_a_videos_own_words_beat_another_clients_failure() -> None:
+    private = DownloadError(
+        f"ERROR: [youtube] {ID}: Private video. If the owner of this video has "
+        "granted you access, please sign in."
+    )
+    removed = DownloadError(f"ERROR: [youtube] {ID}: This video is unavailable")
+
+    assert classify(private, [THROTTLED]) is FetchKind.PRIVATE
+    assert classify(removed, [FAILING]) is FetchKind.UNAVAILABLE
+
+
 def test_a_private_videos_sign_in_request_is_not_age_restriction() -> None:
     error = DownloadError(
         "ERROR: [youtube] x: Private video. If the owner of this video has granted "
@@ -234,6 +293,20 @@ def test_a_private_videos_sign_in_request_is_not_age_restriction() -> None:
     )
 
     assert classify(error) is FetchKind.PRIVATE
+
+
+@pytest.mark.parametrize(
+    ("message", "kind"),
+    [
+        ("Sign in to view this video.", FetchKind.AGE_RESTRICTED),  # L4
+        ("Sign in to confirm you're not a bot.", FetchKind.RATE_LIMITED),  # L12
+        ("Private video. Please sign in.", FetchKind.PRIVATE),  # L1
+    ],
+)
+def test_a_sign_in_request_is_age_restriction_unless_it_says_more(
+    message: str, kind: FetchKind
+) -> None:  # L4: "age-restricted, or sign-in required"
+    assert classify(DownloadError(f"ERROR: [youtube] {ID}: {message}")) is kind
 
 
 def test_the_chain_follows_exc_info_cause_and_context() -> None:
