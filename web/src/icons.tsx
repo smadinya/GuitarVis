@@ -65,6 +65,15 @@ export function ForwardIcon() {
   );
 }
 
+/** The link field's marker: two chain links. */
+export function LinkIcon() {
+  return (
+    <Icon>
+      <path d="M3.9 12a3.1 3.1 0 0 1 3.1-3.1h4V7H7a5 5 0 0 0 0 10h4v-1.9H7A3.1 3.1 0 0 1 3.9 12zM8 13h8v-2H8v2zm9-6h-4v1.9h4a3.1 3.1 0 0 1 0 6.2h-4V17h4a5 5 0 0 0 0-10z" />
+    </Icon>
+  );
+}
+
 /** The warnings line's marker. */
 export function AlertIcon() {
   return (

@@ -8042,7 +8042,7 @@ Under the drop zone, as the WebHome mockup has it: an "or paste a link" divider,
 **Interfaces:**
 - Produces: `UploadPage({ upload?, sendLink?, features? })`; `pages/link.ts`: `linkHint`, `BLANK_HINT`, `NOT_A_LINK_HINT`; `icons.LinkIcon`; `STAGES.download = "Fetching the audio"`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `web/src/pages/UploadPage.test.tsx`:
 
@@ -8281,12 +8281,12 @@ In `web/src/pages/progress.test.ts`:
    it("doubles from the polling interval and stops at the cap", () => {
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npm --prefix web test -- src/pages`
 Expected: FAIL in `tsc`: `Property 'sendLink' does not exist on type 'IntrinsicAttributes & UploadPageProps'` (and `features`), and `link.test.ts` cannot find `./link`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `web/src/icons.tsx`:
 
@@ -8668,12 +8668,12 @@ In `web/src/styles.css`:
 +}
 ```
 
-- [ ] **Step 4: Run them to verify they pass**
+- [x] **Step 4: Run them to verify they pass**
 
 Run: `npm --prefix web test -- src/pages`
 Expected: PASS, the existing upload tests unchanged.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 make lint typecheck test

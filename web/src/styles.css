@@ -872,3 +872,80 @@ progress {
   width: 100%;
   max-width: 400px;
 }
+
+/* The link field, under the drop zone (spec 012; the WebHome mockup). */
+.link-form .divider {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 16px 0 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.link-form .divider::before,
+.link-form .divider::after {
+  flex: 1;
+  border-top: 1px solid var(--border);
+  content: "";
+}
+
+.link-row {
+  display: flex;
+  gap: 8px;
+}
+
+.link-field {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-raised);
+  color: var(--muted);
+}
+
+.link-field:focus-within {
+  border-color: var(--accent);
+}
+
+.link-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  outline: none;
+}
+
+.link-field:has(input[aria-invalid="true"]) {
+  border-color: var(--accent);
+}
+
+.link-row button {
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.link-row button:disabled,
+.link-field input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.link-hint {
+  margin: 8px 0 0;
+  color: var(--accent);
+  font-size: 14px;
+}

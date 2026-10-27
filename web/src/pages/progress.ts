@@ -7,6 +7,7 @@ export const MAX_POLL_MS = 10_000;
 export const MAX_ATTEMPTS = 3;
 
 const STAGES: Record<string, string> = {
+  download: "Fetching the audio",
   separation: "Isolating the guitar",
   transcription: "Transcribing notes",
   structure: "Finding the beat and chords",
