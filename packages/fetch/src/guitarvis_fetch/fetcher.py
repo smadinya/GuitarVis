@@ -13,9 +13,19 @@ The protocol, one JSON object per line on the child's stdout:
     {"result": {...}, "ytdlp": "2026.10.26", "js": "deno/2.5.4"}
     {"error": {"kind": "private", "detail": "...", "duration_sec": null},
      "ytdlp": "...", "js": "..."}
+
+`ytdlp` and `js` may ride on any line; the last ones seen go on every failure
+raised for the call, so a timeout or a crash still says which version broke.
+
+The child is in a session of its own, which takes it out of any process group
+its parent's supervisor kills (RQ kills its work horse's group). So the parent
+holds the write end of the child's stdin, writes nothing to it, and the child
+calls `watch_parent()`: when the parent dies, even by SIGKILL, the kernel
+closes the pipe and the child kills its own group.
 """
 
 import contextlib
+import importlib.metadata
 import json
 import logging
 import math
@@ -45,6 +55,7 @@ LOOKUP_DEADLINE_SEC = 30.0
 DOWNLOAD_DEADLINE_SEC = 300.0
 DETAIL_CHARS = 500
 TAIL_BYTES = 2048
+REAP_SEC = 5.0  # how long to wait for the reader thread after the kill
 # yt_dlp.utils._jsruntime.DenoJsRuntime.MIN_SUPPORTED_VERSION in 2026.10.26.
 MIN_DENO_VERSION = (2, 3, 0)
 
@@ -161,12 +172,20 @@ def check_info(info: VideoInfo, *, max_duration_sec: float = MAX_DURATION_SEC) -
     """
     live = _REFUSED_LIVE.get(info.live_status or "")
     if live is not None:
-        raise FetchError(live, f"live_status={info.live_status}")
+        raise FetchError(
+            live, f"live_status={info.live_status}", versions=info.versions
+        )
     refused = _REFUSED_AVAILABILITY.get(info.availability or "")
     if refused is not None:
-        raise FetchError(refused, f"availability={info.availability}")
+        raise FetchError(
+            refused, f"availability={info.availability}", versions=info.versions
+        )
     if info.duration_sec is None:
-        raise FetchError(FetchKind.NO_DURATION, "no duration in the metadata")
+        raise FetchError(
+            FetchKind.NO_DURATION,
+            "no duration in the metadata",
+            versions=info.versions,
+        )
     try:
         check_duration(info.duration_sec, max_duration_sec)
     except PipelineError as error:
@@ -175,9 +194,12 @@ def check_info(info: VideoInfo, *, max_duration_sec: float = MAX_DURATION_SEC) -
                 FetchKind.TOO_LONG,
                 f"duration={info.duration_sec}",
                 duration_sec=info.duration_sec,
+                versions=info.versions,
             ) from None
         raise FetchError(  # zero, negative or NaN
-            FetchKind.NO_DURATION, f"duration={info.duration_sec}"
+            FetchKind.NO_DURATION,
+            f"duration={info.duration_sec}",
+            versions=info.versions,
         ) from None
     return info.duration_sec
 
@@ -233,6 +255,28 @@ def child_environment(environ: Mapping[str, str] | None = None) -> dict[str, str
     }
     env["YTDLP_NO_PLUGINS"] = "1"
     return env
+
+
+def watch_parent() -> None:
+    """For the child to call first thing: die when the parent does.
+
+    ChildFetcher holds the write end of the child's stdin and never writes to
+    it. When the parent dies, SIGKILL included, the kernel closes that end;
+    the read here returns end-of-file and the child kills its own process
+    group, the JavaScript runtime it started with it. A child whose stdin is
+    already at end-of-file (`/dev/null`) therefore ends at once. Stdlib only.
+    """
+    threading.Thread(target=_die_with_parent, daemon=True).start()
+
+
+def _die_with_parent() -> None:
+    with contextlib.suppress(OSError):  # a stdin that cannot be read is gone too
+        while os.read(0, 4096):
+            pass
+    pid = os.getpid()
+    if os.getpgrp() == pid:  # ChildFetcher's start_new_session made us its leader
+        os.killpg(pid, signal.SIGKILL)
+    os.kill(pid, signal.SIGKILL)  # not the leader: never signal a group not ours
 
 
 class ChildFetcher:
@@ -299,21 +343,33 @@ class ChildFetcher:
         timeout_kind: FetchKind,
         progress: Progress | None = None,
     ) -> tuple[dict[str, Any], Versions]:
-        with tempfile.TemporaryFile() as stderr:
-            process = subprocess.Popen(
-                [*self._command, *args],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=stderr,
-                env=child_environment(),
-                start_new_session=True,  # its own process group, to kill whole
-            )
+        try:
+            stderr = tempfile.TemporaryFile()  # noqa: SIM115  (closed by `with`)
+        except OSError as error:
+            raise _could_not_start("a file for the child's stderr", error) from None
+        with stderr:
+            try:
+                process = subprocess.Popen(
+                    [*self._command, *args],
+                    # Never written to: its closing is the child's cue that we
+                    # are gone (see watch_parent).
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=stderr,
+                    env=child_environment(),
+                    start_new_session=True,  # its own process group, to kill whole
+                )
+            except OSError as error:
+                raise _could_not_start("the child", error) from None
             lines: queue.Queue[bytes | None] = queue.Queue()
             reader = threading.Thread(
                 target=_read_lines, args=(process.stdout, lines), daemon=True
             )
-            reader.start()
             try:
+                try:
+                    reader.start()
+                except RuntimeError as error:  # no thread to be had
+                    raise _could_not_start("a reader thread", error) from None
                 return _answer(
                     lines,
                     process,
@@ -327,6 +383,55 @@ class ChildFetcher:
                 # child, and no JavaScript runtime it started, outlives this.
                 _kill_group(process)
                 process.wait()
+                _close_pipes(process, reader)
+
+
+def _could_not_start(what: str, error: Exception) -> FetchError:
+    return FetchError(
+        FetchKind.CRASHED,
+        f"could not start {what}: {type(error).__name__}: {error}",
+        versions=Versions(ytdlp=_installed_ytdlp()),
+    )
+
+
+def _close_pipes(process: "subprocess.Popen[bytes]", reader: threading.Thread) -> None:
+    """After the kill: let the reader reach end of output, then close our ends."""
+    if reader.is_alive():  # false if it never started
+        reader.join(timeout=REAP_SEC)
+    if process.stdout is not None and not reader.is_alive():
+        process.stdout.close()  # closing under a blocked reader would block too
+    if process.stdin is not None:
+        with contextlib.suppress(OSError):
+            process.stdin.close()
+
+
+class _Seen:
+    """The versions the child has reported, from whichever lines carried them.
+    Every failure raised for a call carries them: a timeout or a crash is
+    when "which version broke" matters most."""
+
+    def __init__(self) -> None:
+        self._ytdlp: str | None = None
+        self._js: str | None = None
+
+    def note(self, message: dict[str, Any]) -> None:
+        if message.get("ytdlp"):
+            self._ytdlp = str(message["ytdlp"])
+        if message.get("js"):
+            self._js = str(message["js"])
+
+    @property
+    def versions(self) -> Versions:
+        return Versions(ytdlp=self._ytdlp or _installed_ytdlp(), js=self._js or "-")
+
+
+def _installed_ytdlp() -> str:
+    """The installed yt-dlp's version, for when the child never said: read
+    from package metadata, without importing yt-dlp."""
+    try:
+        return importlib.metadata.version("yt-dlp")
+    except importlib.metadata.PackageNotFoundError:
+        return "-"
 
 
 def _answer(
@@ -338,11 +443,15 @@ def _answer(
     timeout_kind: FetchKind,
     progress: Progress | None,
 ) -> tuple[dict[str, Any], Versions]:
+    seen = _Seen()
     while True:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise FetchError(
-                timeout_kind, "no answer before the deadline", tail=_tail(stderr)
+                timeout_kind,
+                "no answer before the deadline",
+                tail=_tail(stderr),
+                versions=seen.versions,
             )
         try:
             line = lines.get(timeout=remaining)
@@ -355,21 +464,30 @@ def _answer(
                 f"exited with {code} and no answer",
                 tail=_tail(stderr),
                 exit_code=code,
+                versions=seen.versions,
             )
-        message = _decode(line, stderr)
-        versions = Versions(
-            ytdlp=str(message.get("ytdlp") or "-"), js=str(message.get("js") or "-")
-        )
+        message = _decode(line)
+        if message is None:
+            raise FetchError(
+                FetchKind.CRASHED,
+                f"unreadable line: {line[:200]!r}",
+                tail=_tail(stderr),
+                versions=seen.versions,
+            )
+        seen.note(message)
         if "progress" in message:
             if progress is not None:
                 _report(progress, message["progress"])
             continue
         if isinstance(message.get("result"), dict):
-            return message["result"], versions
+            return message["result"], seen.versions
         if isinstance(message.get("error"), dict):
-            raise _error_from(message["error"], versions, _tail(stderr))
+            raise _error_from(message["error"], seen.versions, _tail(stderr))
         raise FetchError(
-            FetchKind.CRASHED, f"unexpected line: {line[:200]!r}", tail=_tail(stderr)
+            FetchKind.CRASHED,
+            f"unexpected line: {line[:200]!r}",
+            tail=_tail(stderr),
+            versions=seen.versions,
         )
 
 
@@ -380,16 +498,12 @@ def _read_lines(stream: IO[bytes] | None, lines: "queue.Queue[bytes | None]") ->
     lines.put(None)  # end of output: the child has exited, or closed stdout
 
 
-def _decode(line: bytes, stderr: IO[bytes]) -> dict[str, Any]:
+def _decode(line: bytes) -> dict[str, Any] | None:
     try:
         message = json.loads(line)
     except ValueError:
-        message = None
-    if not isinstance(message, dict):
-        raise FetchError(
-            FetchKind.CRASHED, f"unreadable line: {line[:200]!r}", tail=_tail(stderr)
-        )
-    return message
+        return None
+    return message if isinstance(message, dict) else None
 
 
 def _report(progress: Progress, value: object) -> None:
@@ -469,18 +583,24 @@ def log_failed(
 ) -> None:
     """One line per failure, at the catalog's level (spec 012, *Logging*)."""
     entry = error.entry
-    detail = error.detail[:DETAIL_CHARS].replace('"', "'")
     line = (
         f"link fetch failed kind={error.kind} phase={phase} site={link.site} "
         f"video={link.video_id} job={job_id or '-'} attempt={attempt or '-'} "
         f"elapsed={elapsed_sec:.1f}s ytdlp={error.versions.ytdlp} "
-        f'js={error.versions.js} detail="{detail}"'
+        f"js={error.versions.js} detail={_quoted(error.detail[:DETAIL_CHARS])}"
     )
     if error.exit_code is not None:
         line += f" exit={error.exit_code}"
     if entry.tail and error.tail:
-        line += f"\n{error.tail}"
+        line += f" tail={_quoted(error.tail)}"
     log.log(entry.level, "%s", line)
+
+
+def _quoted(text: str) -> str:
+    """`text` as one double-quoted token. yt-dlp's words, and the stderr they
+    end up in, are untrusted: no newline, quote or control character in them
+    may end the field or start another line (spec 012, *Logging*)."""
+    return json.dumps(text)
 
 
 def log_fetched(

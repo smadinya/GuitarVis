@@ -10,6 +10,8 @@ import subprocess
 import sys
 import time
 
+from guitarvis_fetch.fetcher import watch_parent
+
 VERSIONS = {"ytdlp": "2026.10.26", "js": "deno/2.5.4"}
 INFO = {
     "title": "Elephants Dream - 10 years of open movies",
@@ -25,6 +27,7 @@ def say(message: dict[str, object]) -> None:
 
 
 def main() -> None:
+    watch_parent()  # as the real child does, first thing
     scenario, rest = sys.argv[1], sys.argv[2:]
     if scenario == "lookup-ok":
         say({"result": INFO, **VERSIONS})
@@ -71,6 +74,18 @@ def main() -> None:
         sys.exit(3)
     elif scenario == "silent":
         sys.exit(0)
+    elif scenario == "versions-then-crash":
+        say({"progress": 0.1, **VERSIONS})
+        sys.exit(3)
+    elif scenario == "versions-split-then-crash":
+        say({"progress": 0.1, "ytdlp": VERSIONS["ytdlp"]})
+        say({"progress": 0.2, "js": VERSIONS["js"]})
+        sys.exit(3)
+    elif scenario == "versions-then-garbage":
+        say({"progress": 0.1, **VERSIONS})
+        sys.stdout.write("not json\n")
+        sys.stdout.flush()
+        time.sleep(60)
     elif scenario == "bad-result":
         say(
             {
@@ -88,13 +103,16 @@ def main() -> None:
         info = {**INFO, "title": json.dumps([seen, os.environ.get("YTDLP_NO_PLUGINS")])}
         say({"result": info, **VERSIONS})
     elif scenario == "hang":
-        # A grandchild, as yt-dlp starts Deno, and its pid for the test.
+        # A grandchild, as yt-dlp starts Deno, and both pids for the test: ours
+        # first, so that the grandchild's file says everything is up.
         grandchild = subprocess.Popen(
             [sys.executable, "-c", "import time; time.sleep(60)"]
         )
+        with open(rest[0] + ".child", "w") as out:
+            out.write(str(os.getpid()))
         with open(rest[0], "w") as out:
             out.write(str(grandchild.pid))
-        say({"progress": 0.1})
+        say({"progress": 0.1, **VERSIONS})
         time.sleep(60)
     else:
         raise SystemExit(f"unknown scenario {scenario}")

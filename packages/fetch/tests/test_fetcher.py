@@ -2,12 +2,20 @@
 fake child: results, progress, each error, garbage, a crash, and a hang
 killed at its deadline along with its process group."""
 
+import contextlib
+import errno
+import importlib.metadata
 import logging
 import os
+import signal
 import stat
+import subprocess
 import sys
+import tempfile
+import threading
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 from guitarvis_core.contracts import FailureReason
@@ -25,11 +33,24 @@ from guitarvis_fetch.fetcher import (
     log_fetched,
 )
 from guitarvis_fetch.links import parse
-from guitarvis_fetch.testing import FakeFetcher, video_info
+from guitarvis_fetch.testing import VERSIONS, FakeFetcher, video_info
 
 FAKE_CHILD = Path(__file__).with_name("fake_child.py")
 LINK = parse("https://youtu.be/kPdv44HtEoA")
 SENTINEL = "SENTINEL-4f2a"
+CHILD_VERSIONS = Versions(ytdlp="2026.10.26", js="deno/2.5.4")
+
+# A parent that runs ChildFetcher against a hanging child, to be SIGKILLed.
+PARENT = """
+import sys
+from guitarvis_fetch.fetcher import ChildFetcher
+from guitarvis_fetch.links import parse
+
+fake_child, pid_file = sys.argv[1:]
+ChildFetcher(
+    command=[sys.executable, "-I", fake_child, "hang", pid_file]
+).lookup(parse("https://youtu.be/kPdv44HtEoA"))
+"""
 
 
 def child(*scenario: str, **deadlines: float) -> ChildFetcher:
@@ -57,6 +78,30 @@ def wait_until_gone(pid: int, seconds: float = 5.0) -> bool:
     return False
 
 
+def read_pid(path: Path, seconds: float = 10.0) -> int:
+    """The pid in `path`, once the fake child has written it."""
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if path.exists() and (text := path.read_text()).strip():
+            return int(text)
+        time.sleep(0.05)
+    raise AssertionError(f"{path.name} never appeared")
+
+
+def spy_on_popen(monkeypatch: pytest.MonkeyPatch) -> list["subprocess.Popen[bytes]"]:
+    """Every child ChildFetcher starts, so a test can look at it afterwards."""
+    started: list[subprocess.Popen[bytes]] = []
+    real = subprocess.Popen
+
+    def popen(*args: Any, **kwargs: Any) -> "subprocess.Popen[bytes]":
+        process: subprocess.Popen[bytes] = real(*args, **kwargs)
+        started.append(process)
+        return process
+
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    return started
+
+
 # The fetchers
 
 
@@ -68,25 +113,25 @@ def test_child_fetcher_and_the_fake_satisfy_the_protocol() -> None:
 # check_info: step 6, and the child's check before downloading
 
 
-@pytest.mark.parametrize(
-    ("info", "kind"),
-    [
-        (video_info(live_status="is_live", duration_sec=None), FetchKind.LIVE),  # L6
-        (video_info(live_status="is_upcoming"), FetchKind.UPCOMING),  # L7
-        (
-            video_info(live_status="post_live", duration_sec=7200),
-            FetchKind.POST_LIVE,
-        ),  # L8
-        (video_info(availability="private"), FetchKind.PRIVATE),  # L1
-        (video_info(availability="needs_auth"), FetchKind.AGE_RESTRICTED),  # L4
-        (video_info(availability="subscriber_only"), FetchKind.MEMBERS_ONLY),  # L5
-        (video_info(availability="premium_only"), FetchKind.MEMBERS_ONLY),  # L5
-        (video_info(duration_sec=None), FetchKind.NO_DURATION),  # L9
-        (video_info(duration_sec=0), FetchKind.NO_DURATION),  # L9
-        (video_info(duration_sec=float("nan")), FetchKind.NO_DURATION),  # L9
-        (video_info(duration_sec=721), FetchKind.TOO_LONG),  # L10
-    ],
-)
+REFUSED = [
+    (video_info(live_status="is_live", duration_sec=None), FetchKind.LIVE),  # L6
+    (video_info(live_status="is_upcoming"), FetchKind.UPCOMING),  # L7
+    (
+        video_info(live_status="post_live", duration_sec=7200),
+        FetchKind.POST_LIVE,
+    ),  # L8
+    (video_info(availability="private"), FetchKind.PRIVATE),  # L1
+    (video_info(availability="needs_auth"), FetchKind.AGE_RESTRICTED),  # L4
+    (video_info(availability="subscriber_only"), FetchKind.MEMBERS_ONLY),  # L5
+    (video_info(availability="premium_only"), FetchKind.MEMBERS_ONLY),  # L5
+    (video_info(duration_sec=None), FetchKind.NO_DURATION),  # L9
+    (video_info(duration_sec=0), FetchKind.NO_DURATION),  # L9
+    (video_info(duration_sec=float("nan")), FetchKind.NO_DURATION),  # L9
+    (video_info(duration_sec=721), FetchKind.TOO_LONG),  # L10
+]
+
+
+@pytest.mark.parametrize(("info", "kind"), REFUSED)
 def test_check_info_refuses_what_we_cannot_use(
     info: VideoInfo, kind: FetchKind
 ) -> None:
@@ -94,6 +139,16 @@ def test_check_info_refuses_what_we_cannot_use(
         check_info(info)
 
     assert excinfo.value.kind is kind
+
+
+@pytest.mark.parametrize(("info", "kind"), REFUSED)
+def test_a_refusal_carries_the_versions_the_lookup_saw(
+    info: VideoInfo, kind: FetchKind
+) -> None:
+    with pytest.raises(FetchError) as excinfo:
+        check_info(info)
+
+    assert excinfo.value.versions == VERSIONS != Versions()
 
 
 @pytest.mark.parametrize("live_status", ["not_live", "was_live", None])
@@ -278,6 +333,58 @@ def test_a_child_that_exits_without_an_answer_is_a_crash() -> None:  # L18
     assert (excinfo.value.kind, excinfo.value.exit_code) == (FetchKind.CRASHED, 0)
 
 
+@pytest.mark.parametrize("scenario", ["versions-then-crash", "versions-then-garbage"])
+def test_a_crash_after_the_child_reported_versions_still_names_them(
+    scenario: str,
+) -> None:
+    with pytest.raises(FetchError) as excinfo:
+        child(scenario).lookup(LINK)
+
+    assert excinfo.value.kind is FetchKind.CRASHED
+    assert excinfo.value.versions == CHILD_VERSIONS
+
+
+def test_versions_reported_on_different_lines_are_put_together() -> None:
+    with pytest.raises(FetchError) as excinfo:
+        child("versions-split-then-crash").lookup(LINK)
+
+    assert excinfo.value.versions == CHILD_VERSIONS
+
+
+def test_a_failure_before_any_versions_names_the_installed_yt_dlp(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real = importlib.metadata.version
+
+    def installed(name: str) -> str:
+        return "9.9.9" if name == "yt-dlp" else real(name)
+
+    monkeypatch.setattr(importlib.metadata, "version", installed)
+
+    with pytest.raises(FetchError) as excinfo:
+        child("silent").lookup(LINK)
+
+    assert excinfo.value.versions == Versions(ytdlp="9.9.9", js="-")
+
+
+def test_a_failure_with_no_versions_and_no_yt_dlp_has_dashes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real = importlib.metadata.version
+
+    def missing(name: str) -> str:
+        if name == "yt-dlp":
+            raise importlib.metadata.PackageNotFoundError(name)
+        return real(name)
+
+    monkeypatch.setattr(importlib.metadata, "version", missing)
+
+    with pytest.raises(FetchError) as excinfo:
+        child("silent").lookup(LINK)
+
+    assert excinfo.value.versions == Versions(ytdlp="-", js="-")
+
+
 def test_a_result_missing_a_field_is_a_crash(tmp_path: Path) -> None:
     with pytest.raises(FetchError) as excinfo:
         child("bad-result").download(LINK, tmp_path, max_bytes=10)
@@ -295,6 +402,7 @@ def test_a_lookup_past_its_deadline_is_killed_with_its_process_group(
         child("hang", str(pid_file), lookup_deadline_sec=2).lookup(LINK)
 
     assert excinfo.value.kind is FetchKind.LOOKUP_TIMEOUT
+    assert excinfo.value.versions == CHILD_VERSIONS  # from its progress line
     assert time.monotonic() - started < 10
     assert wait_until_gone(int(pid_file.read_text())), (
         "the grandchild outlived its group"
@@ -310,6 +418,85 @@ def test_a_download_past_its_deadline_is_a_download_timeout(
         )
 
     assert excinfo.value.kind is FetchKind.DOWNLOAD_TIMEOUT
+
+
+def test_a_child_that_cannot_be_started_is_a_crash() -> None:  # L18
+    with pytest.raises(FetchError) as excinfo:
+        ChildFetcher(command=["/nonexistent/python"]).lookup(LINK)
+
+    assert excinfo.value.kind is FetchKind.CRASHED
+    assert "/nonexistent/python" in excinfo.value.detail
+
+
+def test_no_scratch_file_for_the_childs_stderr_is_a_crash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:  # L18
+    def refuse() -> None:
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(tempfile, "TemporaryFile", refuse)
+
+    with pytest.raises(FetchError) as excinfo:
+        child("lookup-ok").lookup(LINK)
+
+    assert excinfo.value.kind is FetchKind.CRASHED
+    assert "No space left on device" in excinfo.value.detail
+
+
+def test_a_reader_thread_that_cannot_start_still_kills_the_child(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:  # L18
+    started = spy_on_popen(monkeypatch)
+
+    def no_thread(self: threading.Thread) -> None:
+        raise RuntimeError("can't start new thread")
+
+    monkeypatch.setattr(threading.Thread, "start", no_thread)
+
+    with pytest.raises(FetchError) as excinfo:
+        child("hang", str(tmp_path / "pid")).lookup(LINK)
+
+    assert excinfo.value.kind is FetchKind.CRASHED
+    [process] = started
+    assert process.returncode == -signal.SIGKILL  # killed, and reaped
+
+
+def test_the_childs_pipes_are_closed_when_the_call_ends(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    started = spy_on_popen(monkeypatch)
+
+    child("lookup-ok").lookup(LINK)
+
+    [process] = started
+    assert process.stdin is not None and process.stdin.closed
+    assert process.stdout is not None and process.stdout.closed
+
+
+def test_a_child_whose_parent_is_killed_does_not_outlive_it(tmp_path: Path) -> None:
+    """RQ kills its work horse's process group, which the child is not in. When
+    the horse is SIGKILLed no `finally` runs, so the child must notice."""
+    pid_file = tmp_path / "grandchild.pid"
+    parent = subprocess.Popen(
+        [sys.executable, "-I", "-c", PARENT, str(FAKE_CHILD), str(pid_file)]
+    )
+    pids: list[int] = []
+    try:
+        pids.append(read_pid(tmp_path / "grandchild.pid.child"))
+        pids.append(read_pid(pid_file))
+        child_pid, grandchild_pid = pids
+
+        parent.kill()  # SIGKILL
+        parent.wait()
+
+        assert wait_until_gone(child_pid), "the child outlived its parent"
+        assert wait_until_gone(grandchild_pid), "the grandchild outlived its parent"
+    finally:
+        parent.kill()
+        parent.wait()
+        for pid in pids:  # only reached alive if the test is failing
+            with contextlib.suppress(ProcessLookupError):
+                os.kill(pid, signal.SIGKILL)
 
 
 class JobTimeout(BaseException):
@@ -381,7 +568,33 @@ def test_an_error_level_failure_adds_the_childs_stderr(
     [record] = caplog.records
     assert record.levelno == logging.ERROR
     assert "job=j attempt=2" in record.getMessage()
-    assert record.getMessage().endswith("\nSTDERR-TAIL")
+    assert record.getMessage().endswith(' tail="STDERR-TAIL"')
+
+
+def test_untrusted_text_cannot_start_another_line(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Spec 012, *Logging*: one line per outcome, and yt-dlp's words (and the
+    child's stderr, which carries them) are untrusted."""
+    log = logging.getLogger("test.fetch")
+    forged = "link fetched phase=download site=youtube video=FORGED"
+    error = FetchError(
+        FetchKind.EXTRACTOR_BROKEN,
+        f'first\nsecond "quoted"\r\n{forged}\x1b[31m',
+        tail=f"Traceback:\n  File x\r\n{forged}\n",
+        exit_code=1,
+    )
+
+    with caplog.at_level(logging.INFO, logger="test.fetch"):
+        log_failed(log, error, phase="download", link=LINK, elapsed_sec=1)
+
+    [record] = caplog.records
+    line = record.getMessage()
+    assert len(line.splitlines()) == 1
+    assert "\n" not in line and "\r" not in line and "\x1b" not in line
+    assert 'detail="first\\nsecond \\"quoted\\"\\r\\nlink fetched ' in line
+    assert "Traceback:\\n  File x\\r\\nlink fetched " in line
+    assert line.endswith('\\n"')  # the tail, and the field, end together
 
 
 def test_a_success_is_logged_with_its_format(
