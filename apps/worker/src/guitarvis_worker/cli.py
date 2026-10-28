@@ -7,7 +7,6 @@ patch. `serve` hands the same stages to the queue worker in runner.py.
 
 import argparse
 import contextlib
-import logging
 import os
 import sys
 import tempfile
@@ -17,6 +16,7 @@ from guitarvis_core.audio import MAX_DURATION_SEC
 from guitarvis_core.contracts import FailureReason, PipelineError
 from guitarvis_core.fretboard import parse_pitch
 from guitarvis_core.tabdoc import STANDARD_TUNING
+from guitarvis_jobs import logs
 from guitarvis_jobs.settings import Settings
 
 from guitarvis_worker import runner
@@ -29,9 +29,9 @@ from guitarvis_worker.stages.transcription import BasicPitchTranscriber
 
 TUNING_STRING_COUNT = 6  # matches Instrument.string_count and the fretboard invariant
 
-LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
-# Ours and RQ's speak at INFO; every other library only when something is wrong.
-INFO_LOGGERS = ("guitarvis_worker", "guitarvis_jobs", "rq")
+# Ours and RQ's speak at INFO; every other library only when something is
+# wrong. guitarvis_jobs.logs adds the packages both apps share.
+INFO_LOGGERS = ("guitarvis_worker", "rq")
 
 
 def _print_progress(update: StageProgress) -> None:
@@ -120,9 +120,7 @@ def configure_logging() -> None:
     handler only when it has none. With this one in place first, neither adds
     a handler, so every line prints once, with its time and logger name.
     """
-    logging.basicConfig(level=logging.WARNING, format=LOG_FORMAT)
-    for name in INFO_LOGGERS:
-        logging.getLogger(name).setLevel(logging.INFO)
+    logs.configure_logging(*INFO_LOGGERS)
 
 
 def _serve(args: argparse.Namespace) -> int:
