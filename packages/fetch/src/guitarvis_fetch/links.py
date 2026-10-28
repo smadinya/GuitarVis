@@ -20,6 +20,10 @@ MAX_LINK_CHARS = 2048
 
 _SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 _YOUTUBE_ID = re.compile(r"[A-Za-z0-9_-]{11}")
+# Paths yt-dlp reads as something other than a video, though each is an id's
+# eleven characters: /embed/videoseries?list=… is a playlist, and
+# /embed/live_stream?channel=… a channel's live stream.
+_NOT_IDS = frozenset({"videoseries", "live_stream"})
 
 
 class RefusalKind(StrEnum):
@@ -74,9 +78,7 @@ def _youtube_id(host: str, parts: SplitResult) -> str | None:
         values = parse_qs(parts.query).get("v", [])
         candidate = values[0] if len(values) == 1 else None
     elif len(segments) == 2 and segments[0] in ("shorts", "live", "embed", "v"):
-        # /embed/videoseries?list=… is a playlist, as yt-dlp reads it too,
-        # though "videoseries" has an id's eleven characters.
-        candidate = None if segments[1] == "videoseries" else segments[1]
+        candidate = None if segments[1] in _NOT_IDS else segments[1]
     else:
         candidate = None
     if candidate is None or not _YOUTUBE_ID.fullmatch(candidate):
@@ -121,16 +123,16 @@ def parse(raw: str) -> Link:
     except ValueError:  # an unbalanced [ in the host, say
         raise LinkRefused(RefusalKind.NOT_A_LINK) from None
     if parts.scheme not in ("http", "https"):
+        # Not a web link, so it has no host or path to log: what follows the
+        # scheme is code, an address or data.
         raise LinkRefused(RefusalKind.BAD_SCHEME)
     host = _host_of(parts)
     site = next((site for site in SITES if host in site.hosts), None)
     if site is None:
-        raise LinkRefused(RefusalKind.UNSUPPORTED_SITE, host=host)
+        raise _refused(RefusalKind.UNSUPPORTED_SITE, parts, host)
     video_id = site.video_id(host, parts)
     if video_id is None:
-        raise LinkRefused(
-            RefusalKind.NOT_A_VIDEO, host=host, segment=_first_segment(parts)
-        )
+        raise _refused(RefusalKind.NOT_A_VIDEO, parts, host)
     return Link(
         site=site.name, video_id=video_id, canonical_url=site.canonical_url(video_id)
     )
@@ -164,17 +166,30 @@ def _host_of(parts: SplitResult) -> str:
     try:
         port = parts.port
     except ValueError:  # not a number, or out of range
-        raise LinkRefused(RefusalKind.UNSUPPORTED_SITE) from None
+        raise _refused(RefusalKind.UNSUPPORTED_SITE, parts) from None
     host = parts.hostname or ""
     if not host:
-        raise LinkRefused(RefusalKind.NOT_A_LINK)
+        raise _refused(RefusalKind.NOT_A_LINK, parts)
     if "@" in parts.netloc or port is not None or not host.isascii():
-        raise LinkRefused(RefusalKind.UNSUPPORTED_SITE)
+        raise _refused(RefusalKind.UNSUPPORTED_SITE, parts)
     try:
         ipaddress.ip_address(host)
     except ValueError:
         return host.removesuffix(".")
-    raise LinkRefused(RefusalKind.UNSUPPORTED_SITE)
+    raise _refused(RefusalKind.UNSUPPORTED_SITE, parts)
+
+
+def _refused(
+    kind: RefusalKind, parts: SplitResult, host: str | None = None
+) -> LinkRefused:
+    """A web link refused once parsed, with what the log may keep of it: the
+    host (never the user info or port) and the first path segment (never the
+    query or fragment, where a share id rides)."""
+    return LinkRefused(
+        kind,
+        host=(parts.hostname or "") if host is None else host,
+        segment=_first_segment(parts),
+    )
 
 
 def _first_segment(parts: SplitResult) -> str:

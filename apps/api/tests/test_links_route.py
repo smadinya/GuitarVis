@@ -305,11 +305,11 @@ def test_a_refused_links_host_and_segment_are_cut_to_100_characters_each(
     long_segment = "s" * 500
 
     with caplog.at_level(logging.INFO, logger=ROUTE_LOG):
-        post_link(api.client, f"https://{long_host}/x")
+        post_link(api.client, f"https://{long_host}/{long_segment}?si=SHARER")
         post_link(api.client, f"https://www.youtube.com/{long_segment}?si=SHARER")
 
     assert caplog.messages == [
-        f"link refused kind=unsupported_site host={'h' * 100} path=-",
+        f"link refused kind=unsupported_site host={'h' * 100} path={'s' * 100}",
         f"link refused kind=not_a_video host=www.youtube.com path={'s' * 100}",
     ]
 

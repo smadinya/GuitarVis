@@ -136,6 +136,10 @@ def test_ids_keep_their_case_and_their_dashes() -> None:
             "https://www.youtube.com/embed/videoseries?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI",
             RefusalKind.NOT_A_VIDEO,
         ),
+        (  # a channel's live embed: "live_stream" has eleven characters too
+            "https://www.youtube.com/embed/live_stream?channel=UCSMOQeBJ2RAnuFungnQOxLg",
+            RefusalKind.NOT_A_VIDEO,
+        ),
         ("https://youtu.be/", RefusalKind.NOT_A_VIDEO),
         (f"https://youtu.be/{ID}/{ID}", RefusalKind.NOT_A_VIDEO),
     ],
@@ -157,13 +161,43 @@ def test_a_link_at_the_limit_is_read_and_one_over_is_not() -> None:
         parse(at_limit + "a")
 
 
-def test_a_refusal_carries_only_the_host_and_first_segment_for_the_log() -> None:
+@pytest.mark.parametrize(
+    ("raw", "host", "segment"),
+    [
+        # A web link, refused once parsed: its host and first path segment.
+        (
+            "https://www.youtube.com/playlist?list=PL123&si=SHARER-ID",
+            "www.youtube.com",
+            "playlist",
+        ),
+        ("https://vimeo.com/123?si=SHARER-ID", "vimeo.com", "123"),
+        (
+            f"https://www.youtube.com.example.net/watch?v={ID}&si=SHARER-ID",
+            "www.youtube.com.example.net",
+            "watch",
+        ),
+        (f"https://SHARER-ID@www.youtube.com/watch?v={ID}", "www.youtube.com", "watch"),
+        (f"https://www.youtube.com:8080/watch?v={ID}", "www.youtube.com", "watch"),
+        (f"https://www.youtube.com:http/watch?v={ID}", "www.youtube.com", "watch"),
+        ("http://169.254.169.254/latest/meta-data/", "169.254.169.254", "latest"),
+        ("https://example.com/?si=SHARER-ID#SHARER-ID", "example.com", ""),
+        (f"https:///watch?v={ID}", "", "watch"),
+        # Refused before parsing, or not a web link, whose "path" is code, an
+        # address or data: the kind alone.
+        ("hello there", "", ""),
+        ("javascript:alert(1)", "", ""),
+        ("mailto:someone@example.com", "", ""),
+    ],
+)
+def test_a_refusal_carries_only_the_host_and_first_segment_for_the_log(
+    raw: str, host: str, segment: str
+) -> None:
     with pytest.raises(LinkRefused) as excinfo:
-        parse("https://www.youtube.com/playlist?list=PL123&si=SHARER-ID")
+        parse(raw)
 
     refused = excinfo.value
-    assert (refused.host, refused.segment) == ("www.youtube.com", "playlist")
-    assert "SHARER-ID" not in str(refused)
+    assert (refused.host, refused.segment) == (host, segment)
+    assert "SHARER-ID" not in f"{refused} {refused.host} {refused.segment}"
 
 
 def test_the_canonical_url_is_built_from_the_id_never_edited_from_the_input() -> None:
