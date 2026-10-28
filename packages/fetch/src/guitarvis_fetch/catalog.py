@@ -257,9 +257,11 @@ CATALOG: dict[FetchKind, Entry] = {
         _WARNING,
         Retry.NO,
     ),
+    # D7. Our filter chose an audio format, so the video has audio: what
+    # left nothing is ours, or yt-dlp's, and something to look at.
     FetchKind.EMPTY_DOWNLOAD: Entry(
-        _UNUSABLE, 422, _NO_AUDIO, _WARNING, Retry.NO
-    ),  # D7
+        _FAILED, 502, _UNRECOGNISED, _ERROR, Retry.RQ, tail=True
+    ),
     FetchKind.LOCAL_IO: Entry(  # D8
         FailureReason.INTERNAL, 500, INTERNAL_MESSAGE, _ERROR, Retry.RQ, tail=True
     ),

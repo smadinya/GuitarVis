@@ -39,17 +39,46 @@
     "message": "ERROR: [youtube] jfKfPfyJRdk: This live stream recording is not available."
   },
   {
-    "kind": "no_audio",
-    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "kind": "extractor_broken",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); nothing shows the video has no audio, so it is ours",
     "message": "[youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats"
   },
   {
     "kind": "no_audio",
-    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); the warning is one that is not about challenges",
+    "source": "written from the source, not recorded live: yt-dlp 2026.10.26's own text (YoutubeDL.py:3090-3093), with the formats the extractor offered all video, with URLs, and none with audio",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "video_only": true
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "written from the source, not recorded live: yt-dlp 2026.10.26's own text (YoutubeDL.py:1191), with nothing left once the formats with no URL and those with DRM are dropped (YoutubeDL.py:2925-2960)",
+    "message": "ERROR: [youtube] kPdv44HtEoA: No video formats found!"
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); the warning is not about challenges, but nothing shows the video has no audio, so it is ours",
     "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
     "warnings": [
       "[youtube] kPdv44HtEoA: This video is age-restricted; some formats may be missing without authentication. Use --cookies-from-browser or --cookies for the authentication."
     ]
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "written from the source, not recorded live: yt-dlp 2026.10.26's own text; the warning is the one extractor/youtube/_video.py:3536-3549 gives for the SABR-only experiment. What was offered was all video, but formats were skipped, so it proves nothing",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: Some tv_samsung client https formats have been skipped as they are missing a URL. YouTube may have enabled the SABR-only streaming experiment for the current session. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details"
+    ],
+    "video_only": true
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "written from the source, not recorded live: yt-dlp 2026.10.26's own text; the warning is the one extractor/youtube/_video.py:3418-3427 gives for the experiment that applies DRM on the tv client. What was offered was all video, but formats were skipped, so it proves nothing",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: Some tv client https formats have been skipped as they are DRM protected. The current session may have an experiment that applies DRM to all videos on the tv client. See  https://github.com/yt-dlp/yt-dlp/issues/12563  for more details."
+    ],
+    "video_only": true
   },
   {
     "kind": "extractor_broken",

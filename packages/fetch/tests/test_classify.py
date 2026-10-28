@@ -14,13 +14,14 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import pytest
-import yt_dlp
 from guitarvis_fetch.catalog import FetchKind
 from guitarvis_fetch.child import (
     ChildLog,
+    _new_ydl,
     classify,
     exception_chain,
     lookup,
+    offers_only_video,
     ydl_options,
 )
 from yt_dlp.networking import Response
@@ -118,8 +119,12 @@ def disk_full() -> None:
 )
 def test_each_recorded_message_classifies_as_its_kind(fixture: dict[str, Any]) -> None:
     error = DownloadError(fixture["message"])
+    warnings = fixture.get("warnings", [])
+    video_only = fixture.get("video_only", False)  # what the lookup was offered
 
-    assert classify(error, fixture.get("warnings", [])) is FetchKind(fixture["kind"])
+    assert classify(error, warnings, video_only=video_only) is FetchKind(
+        fixture["kind"]
+    )
 
 
 def test_every_fixture_says_where_it_came_from() -> None:
@@ -210,21 +215,145 @@ def test_a_forbidden_media_url_after_challenge_warnings_is_a_broken_extractor() 
     assert classify(error, [CHALLENGE]) is FetchKind.EXTRACTOR_BROKEN
 
 
-def test_a_format_error_is_no_audio_unless_challenges_failed() -> None:  # L11, L15
-    error = reported(
-        raises(
-            ExtractorError(
-                "Requested format is not available. Use --list-formats for a "
-                "list of available formats",
-                expected=True,
-                video_id=ID,
-                ie="youtube",
-            )
-        )
+REQUESTED_FORMAT = (
+    "Requested format is not available. Use --list-formats for a list of "
+    "available formats"
+)
+
+
+def format_error(message: str = REQUESTED_FORMAT) -> ExtractorError:
+    """What process_ie_result raises when no format passes our filter
+    (YoutubeDL.py:3090-3093), or none is left (:2959-2960, :1188-1196). It
+    is not wrapped: only extract_info catches and reports (:1858)."""
+    return ExtractorError(message, expected=True, video_id=ID, ie="youtube")
+
+
+@pytest.mark.parametrize("message", [REQUESTED_FORMAT, "No video formats found!"])
+def test_a_format_error_is_ours_unless_the_formats_show_no_audio(
+    message: str,
+) -> None:  # L11, L15
+    """YouTube withholding formats, for want of a PO token or during a SABR
+    rollout, looks the same from here as a video with no audio. Only the
+    formats the extractor offered can tell them apart."""
+    error = format_error(message)
+
+    assert classify(error) is FetchKind.EXTRACTOR_BROKEN
+    assert classify(error, video_only=True) is FetchKind.NO_AUDIO
+
+
+# yt-dlp's warnings that YouTube withheld formats, in its words
+# (extractor/youtube/_video.py). The default clients' own notices are debug
+# lines, and never reach the classifier: see test_child.py.
+DRM_SKIPPED = (  # :3418-3427
+    f"[youtube] {ID}: Some tv_samsung client https formats have been skipped as "
+    "they are DRM protected. "
+)
+SABR_SKIPPED = (  # :3536-3549, for a client other than web
+    f"[youtube] {ID}: Some tv_samsung client https formats have been skipped as "
+    "they are missing a URL. YouTube may have enabled the SABR-only streaming "
+    "experiment for the current session. See  "
+    "https://github.com/yt-dlp/yt-dlp/issues/12482  for more details"
+)
+POT_SKIPPED = (  # :3195-3206, for a client not among the defaults
+    f"[youtube] {ID}: mweb client https formats require a GVS PO Token which was "
+    "not provided. They will be skipped as they may yield HTTP Error 403. You "
+    'can manually pass a GVS PO Token for this client with --extractor-args "'
+    'youtube:po_token=mweb.gvs+XXX". For more information, refer to  '
+    "https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide"
+)
+NO_RUNTIME = (  # :2994-2999
+    "[youtube] No supported JavaScript runtime could be found. Only deno is "
+    "enabled by default; to use another runtime add  --js-runtimes "
+    "RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS "
+    "runtime has been deprecated, and some formats may be missing. See  "
+    "https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one"
+)
+
+
+@pytest.mark.parametrize(
+    "warning",
+    [CHALLENGE, NO_RUNTIME, DRM_SKIPPED, SABR_SKIPPED, POT_SKIPPED],
+    ids=["challenge", "no-runtime", "drm", "sabr", "po-token"],
+)
+def test_formats_withheld_make_a_format_error_ours_whatever_was_offered(
+    warning: str,
+) -> None:  # L15
+    """Some formats skipped: what is left proves nothing about the rest."""
+    assert classify(format_error(), [warning], video_only=True) is (
+        FetchKind.EXTRACTOR_BROKEN
     )
 
-    assert classify(error) is FetchKind.NO_AUDIO
-    assert classify(error, [CHALLENGE]) is FetchKind.EXTRACTOR_BROKEN
+
+# Formats as the YouTube extractor builds them (_video.py:3446-3486 for
+# https, :3786-3803 for storyboards), cut to the fields that matter here.
+def media(itag: str, **fields: Any) -> dict[str, Any]:
+    return {
+        "format_id": itag,
+        "url": f"https://rr1---sn-qja5mc-54.googlevideo.com/videoplayback?itag={itag}",
+        "protocol": "https",
+        "has_drm": False,
+        **fields,
+    }
+
+
+VIDEO = media("137", ext="mp4", vcodec="avc1.640028", acodec="none")
+AUDIO = media("140", ext="m4a", vcodec="none", acodec="mp4a.40.2")
+MUXED = media("18", ext="mp4", vcodec="avc1.42001E", acodec="mp4a.40.2")
+HLS = media(
+    "96", ext="mp4", vcodec="avc1.640028", acodec="mp4a.40.2", protocol="m3u8_native"
+)
+STORYBOARD = {
+    "format_id": "sb0",
+    "format_note": "storyboard",
+    "ext": "mhtml",
+    "protocol": "mhtml",
+    "acodec": "none",
+    "vcodec": "none",
+    "url": f"https://i.ytimg.com/sb/{ID}/storyboard3_L0/default.jpg",
+}
+
+
+@pytest.mark.parametrize(
+    ("formats", "only_video"),
+    [
+        ([VIDEO], True),
+        ([VIDEO, STORYBOARD], True),
+        ([{**VIDEO, "has_drm": "maybe"}], True),  # playable (YoutubeDL.py:2928)
+        ([], False),
+        (None, False),
+        ([STORYBOARD], False),  # only images
+        ([VIDEO, AUDIO], False),
+        ([MUXED], False),  # audio our filter refuses: it wants audio alone
+        ([VIDEO, HLS], False),  # audio our filter refuses: not one GET
+        ([{**VIDEO, "url": None}], False),  # nothing playable
+        ([{**VIDEO, "has_drm": True}], False),  # nothing playable
+        ([VIDEO, {**AUDIO, "has_drm": True}], False),  # audio, locked
+        ([{**VIDEO, "acodec": None}], False),  # audio unknown
+        ([{**VIDEO, "vcodec": None, "acodec": None}], False),  # nothing known
+        ([VIDEO, "not a format"], False),
+    ],
+    ids=[
+        "video",
+        "video-and-storyboard",
+        "video-maybe-drm",
+        "empty",
+        "none",
+        "storyboard",
+        "video-and-audio",
+        "muxed",
+        "hls-with-audio",
+        "no-url",
+        "drm",
+        "drm-audio",
+        "audio-unknown",
+        "codecs-unknown",
+        "junk",
+    ],
+)
+def test_only_real_video_and_nothing_with_audio_shows_a_video_has_no_audio(
+    formats: Any, only_video: bool
+) -> None:  # L11
+    assert offers_only_video(formats) is only_video
 
 
 # YouTube's extractor reports a player client whose request failed as a
@@ -259,20 +388,11 @@ def test_a_format_error_beside_a_failed_player_client_is_that_failure(
     format skipped: yt-dlp says "Requested format is not available". Read as
     no audio, that would refuse every link, for good, for as long as YouTube
     throttles us or is down."""
-    error = reported(
-        raises(
-            ExtractorError(
-                "Requested format is not available. Use --list-formats for a "
-                "list of available formats",
-                expected=True,
-                video_id=ID,
-                ie="youtube",
-            )
-        )
-    )
+    error = reported(raises(format_error()))
 
     assert classify(error, [warning]) is kind
     assert classify(error, [CHALLENGE, warning]) is kind  # challenges failed too
+    assert classify(error, [warning], video_only=True) is kind  # first, still
 
 
 def test_a_videos_own_words_beat_another_clients_failure() -> None:
@@ -454,10 +574,10 @@ def test_a_lookup_that_fails_in_transit_classifies_as_its_cause(
     player response", with no cause. Only the warnings still say why."""
     log = ChildLog(io.StringIO())
 
-    with yt_dlp.YoutubeDL(ydl_options(deno="deno", logger=log)) as ydl:
+    with _new_ydl(ydl_options(deno="deno", logger=log)) as ydl:
         ydl.urlopen = urlopen
         with pytest.raises(DownloadError) as excinfo:
-            lookup(ydl, WATCH_URL)
+            lookup(ydl, WATCH_URL, log)
 
     assert classify(excinfo.value, log.warnings) is kind
 
@@ -483,9 +603,70 @@ def test_a_download_that_fails_in_transit_classifies_as_its_cause(
     log = ChildLog(io.StringIO())
     options = ydl_options(deno="deno", logger=log, work_dir=tmp_path, max_bytes=10**8)
 
-    with yt_dlp.YoutubeDL(options) as ydl:
+    with _new_ydl(options) as ydl:
         ydl.urlopen = urlopen
         with pytest.raises(DownloadError) as excinfo:
             ydl.process_info(dict(MEDIA))  # as download() calls it
 
     assert classify(excinfo.value, log.warnings) is kind
+
+
+# What verbose brings to stderr. The parent logs the last 2 KB of it with an
+# ERROR line: the extractor's notices that YouTube withheld formats must be
+# there, and nothing verbose adds may push them out.
+
+POT_DEBUG = (  # _video.py:3195-3204: a default client's, so a debug line
+    f"{ID}: tv_samsung client https formats require a GVS PO Token which was "
+    "not provided."
+)
+SABR_DEBUG = (  # _video.py:3536-3543: web's, so a debug line
+    f"{ID}: Some web client https formats have been skipped as they are missing "
+    "a URL. YouTube is forcing SABR streaming for this client. See  "
+    "https://github.com/yt-dlp/yt-dlp/issues/12482  for more details"
+)
+
+
+def test_youtubes_notices_of_skipped_formats_reach_stderr_once() -> None:
+    """For the default clients (_video.py:143), the extractor says it skipped
+    formats only in debug lines, which YoutubeDL writes only when verbose
+    (YoutubeDL.py:1164-1172), and through a logger once per format: it drops
+    `only_once` there."""
+    stderr = io.StringIO()
+
+    with _new_ydl(ydl_options(deno="deno", logger=ChildLog(stderr))) as ydl:
+        youtube: Any = ydl.get_info_extractor("Youtube")
+        for _ in range(20):  # one call per format, as _extract_formats makes
+            youtube._report_pot_format_skipped(ID, "tv_samsung", "https")
+            youtube.write_debug(SABR_DEBUG, only_once=True)
+
+    written = stderr.getvalue().splitlines()
+    assert len(written) == 2, written
+    assert POT_DEBUG in written[0]
+    assert written[1] == f"[debug] [youtube] {SABR_DEBUG}"
+
+
+def lookup_stderr(*, verbose: bool) -> str:
+    """A lookup whose player requests all fail, offline: yt-dlp's whole say,
+    an ERROR at the end of it, after one of the extractor's notices."""
+    stderr = io.StringIO()
+    log = ChildLog(stderr)
+    options = ydl_options(deno="deno", logger=log) | {"verbose": verbose}
+    with _new_ydl(options) as ydl:
+        ydl.urlopen = Offline(status(404), only="/player")
+        ydl.get_info_extractor("Youtube").write_debug(SABR_DEBUG)
+        with pytest.raises(DownloadError):
+            lookup(ydl, WATCH_URL, log)
+    return stderr.getvalue()
+
+
+@pytest.mark.usefixtures("offline")
+def test_verbose_adds_only_the_notices_to_stderr() -> None:
+    """Not its other debug lines, and not the traceback it writes after an
+    ERROR line (YoutubeDL.py:1085-1095): those would push the notices out of
+    the tail. So the tail holds what it held before, and the notices."""
+    verbose, plain = lookup_stderr(verbose=True), lookup_stderr(verbose=False)
+
+    notice = f"[debug] [youtube] {SABR_DEBUG}\n"
+    assert "ERROR: [youtube]" in plain
+    assert notice not in plain
+    assert verbose == notice + plain

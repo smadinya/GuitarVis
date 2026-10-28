@@ -330,6 +330,12 @@ RETRIED = [
         FailureReason.FETCH_FAILED,
         message_for(FetchKind.DOWNLOAD_TIMEOUT),
     ),
+    (  # our audio format, downloaded to nothing: not the video's fault
+        "D7",
+        FetchKind.EMPTY_DOWNLOAD,
+        FailureReason.FETCH_FAILED,
+        message_for(FetchKind.EMPTY_DOWNLOAD),
+    ),
     ("D8", FetchKind.LOCAL_IO, FailureReason.INTERNAL, INTERNAL_FAILURE_MESSAGE),
     ("D9", FetchKind.CRASHED, FailureReason.INTERNAL, INTERNAL_FAILURE_MESSAGE),
     (
@@ -379,7 +385,6 @@ def test_the_last_attempt_keeps_the_downloads_own_reason(
         ("D4", FetchKind.MISCONFIGURED, FailureReason.FETCH_FAILED),
         ("D5", FetchKind.MEDIA_REFUSED, FailureReason.FETCH_FAILED),
         ("D6", FetchKind.TOO_LARGE, FailureReason.LINK_UNUSABLE),
-        ("D7", FetchKind.EMPTY_DOWNLOAD, FailureReason.LINK_UNUSABLE),
     ],
 )
 def test_a_download_that_will_not_pass_soon_is_not_retried(
@@ -456,7 +461,7 @@ LOGGED = [
     ("D4", FetchKind.MISCONFIGURED, logging.ERROR, False),  # the catalog's L16
     ("D5", FetchKind.MEDIA_REFUSED, logging.ERROR, False),  # a security event
     ("D6", FetchKind.TOO_LARGE, logging.WARNING, False),
-    ("D7", FetchKind.EMPTY_DOWNLOAD, logging.WARNING, False),
+    ("D7", FetchKind.EMPTY_DOWNLOAD, logging.ERROR, True),
     ("D8", FetchKind.LOCAL_IO, logging.ERROR, True),
     ("D9", FetchKind.CRASHED, logging.ERROR, True),
     ("D10", FetchKind.UNKNOWN, logging.ERROR, True),
@@ -674,18 +679,21 @@ def test_an_empty_file_is_an_empty_download_whatever_the_child_says(
         path.write_bytes(b"")
         return path
 
-    with caplog.at_level(logging.INFO, logger="guitarvis_worker"):
-        run_with(harness, ClaimingFetcher(empty, size=1000), retries_left=2)
+    with (
+        caplog.at_level(logging.INFO, logger="guitarvis_worker"),
+        pytest.raises(PipelineError),
+    ):
+        run_with(harness, ClaimingFetcher(empty, size=1000), retries_left=0)
 
-    row = harness.row()  # not retried: it returned
+    row = harness.row()  # ours, so retried until this, the last attempt
     assert (row.status, row.failure_reason, row.failure_message) == (
         JobStatus.FAILED,
-        FailureReason.LINK_UNUSABLE,
+        FailureReason.FETCH_FAILED,
         message_for(FetchKind.EMPTY_DOWNLOAD),
     )
     assert asked == []
     [record] = [r for r in caplog.records if r.getMessage().startswith("link fetch")]
-    assert record.levelno == logging.WARNING
+    assert record.levelno == logging.ERROR
     assert "kind=empty_download" in record.getMessage()
 
 
@@ -701,10 +709,11 @@ def test_a_path_that_is_no_file_is_an_empty_download(
 ) -> None:  # D7: the download produced no file
     asked = recording_probe(harness)
 
-    run_with(harness, ClaimingFetcher(named), retries_left=2)
+    with pytest.raises(PipelineError):
+        run_with(harness, ClaimingFetcher(named), retries_left=0)
 
     row = harness.row()
-    assert row.failure_reason is FailureReason.LINK_UNUSABLE
+    assert row.failure_reason is FailureReason.FETCH_FAILED
     assert row.failure_message == message_for(FetchKind.EMPTY_DOWNLOAD)
     assert asked == []
 

@@ -23,6 +23,7 @@ from guitarvis_fetch.child import (
     FORMAT,
     ChildLog,
     ProgressHook,
+    _new_ydl,
     check_media,
     download,
     lookup,
@@ -39,6 +40,11 @@ from guitarvis_fetch.links import parse
 from guitarvis_fetch.testing import read_pid, wait_until_gone
 
 URL = "https://www.youtube.com/watch?v=kPdv44HtEoA"
+FORMAT_ERROR = yt_dlp.utils.ExtractorError(
+    "Requested format is not available. Use --list-formats for a list of "
+    "available formats",
+    expected=True,
+)
 RAW = {
     "id": "kPdv44HtEoA",
     "title": "Elephants Dream - 10 years of open movies",
@@ -88,6 +94,9 @@ class FakeYdl:
         assert download is False
         self.calls.append("select")
         if self.select_error is not None:
+            # As YoutubeDL does: the info's formats become those that passed
+            # its own filters (YoutubeDL.py:3028-3033), here none.
+            raw["formats"] = []
             raise self.select_error
         return self.selected
 
@@ -125,6 +134,7 @@ def test_the_options_are_exactly_these() -> None:
     assert ydl_options(deno="/usr/bin/deno", logger=logger) == {
         "logger": logger,
         "quiet": True,
+        "verbose": True,
         "noprogress": True,
         "color": "never",
         "ignoreerrors": False,
@@ -161,7 +171,7 @@ def test_a_download_adds_a_fixed_template_in_the_job_directory_and_the_cap(
 
 
 def test_yt_dlp_accepts_the_options_and_loads_only_the_youtube_extractor() -> None:
-    with yt_dlp.YoutubeDL(ydl_options(deno="deno", logger=log())) as ydl:
+    with _new_ydl(ydl_options(deno="deno", logger=log())) as ydl:
         # _ies is private, but it is the one place this is visible, and it
         # is what keeps the generic extractor, which fetches anything, away.
         assert set(ydl._ies) == {"Youtube"}
@@ -232,7 +242,7 @@ def test_the_child_loads_no_ytdlp_plugins(tmp_path: Path) -> None:
 def test_a_lookup_checks_the_metadata_then_chooses_a_format() -> None:
     ydl = FakeYdl()
 
-    info = lookup(ydl, URL)
+    info = lookup(ydl, URL, log())
 
     assert info == {
         "title": "Elephants Dream - 10 years of open movies",
@@ -247,7 +257,7 @@ def test_a_live_stream_is_refused_before_formats_are_chosen() -> None:  # L6
     ydl = FakeYdl(raw={**RAW, "live_status": "is_live", "duration": None})
 
     with pytest.raises(FetchError) as excinfo:
-        lookup(ydl, URL)
+        lookup(ydl, URL, log())
 
     assert excinfo.value.kind is FetchKind.LIVE
     assert ydl.calls == ["extract"]  # choosing first would have said "no audio"
@@ -259,18 +269,73 @@ def test_a_trailer_in_place_of_a_paid_video_is_members_only() -> None:  # L5
     )
 
     with pytest.raises(FetchError) as excinfo:
-        lookup(ydl, URL)
+        lookup(ydl, URL, log())
 
     assert excinfo.value.kind is FetchKind.MEMBERS_ONLY
 
 
 def test_a_format_error_is_left_for_the_classifier() -> None:  # L11
-    error = yt_dlp.utils.ExtractorError(
-        "Requested format is not available", expected=True
-    )
+    with pytest.raises(yt_dlp.utils.ExtractorError):
+        lookup(FakeYdl(select_error=FORMAT_ERROR), URL, log())
+
+
+# Formats as the extractor offers them: real video and nothing with audio,
+# or only the storyboards, as when YouTube withholds the rest.
+VIDEO_ONLY = [
+    {
+        "format_id": "137",
+        "url": "https://rr1---sn-qja5mc-54.googlevideo.com/videoplayback?itag=137",
+        "protocol": "https",
+        "vcodec": "avc1.640028",
+        "acodec": "none",
+    }
+]
+STORYBOARDS = [
+    {
+        "format_id": "sb0",
+        "format_note": "storyboard",
+        "protocol": "mhtml",
+        "vcodec": "none",
+        "acodec": "none",
+        "url": "https://i.ytimg.com/sb/kPdv44HtEoA/storyboard3_L0/default.jpg",
+    }
+]
+
+
+@pytest.mark.parametrize(
+    ("formats", "video_only"), [(VIDEO_ONLY, True), (STORYBOARDS, False)]
+)
+def test_a_lookup_notes_what_was_offered_before_choosing(
+    formats: list[dict[str, Any]], video_only: bool
+) -> None:  # L11
+    """If no format passes, what was offered is the only evidence of whose
+    fault that is, and choosing replaces it."""
+    child_log = log()
 
     with pytest.raises(yt_dlp.utils.ExtractorError):
-        lookup(FakeYdl(select_error=error), URL)
+        lookup(
+            FakeYdl(raw={**RAW, "formats": formats}, select_error=FORMAT_ERROR),
+            URL,
+            child_log,
+        )
+
+    assert child_log.video_only is video_only
+
+
+@pytest.mark.parametrize(
+    ("formats", "video_only"), [(VIDEO_ONLY, True), (STORYBOARDS, False)]
+)
+def test_a_download_notes_what_was_offered_before_choosing(
+    tmp_path: Path, formats: list[dict[str, Any]], video_only: bool
+) -> None:  # W2 as L11
+    child_log = log()
+    ydl = FakeYdl(raw={**RAW, "formats": formats}, select_error=FORMAT_ERROR)
+
+    with pytest.raises(yt_dlp.utils.ExtractorError):
+        fetch(ydl, tmp_path, child_log=child_log)
+
+    assert child_log.video_only is video_only
+    assert "download" not in ydl.calls
 
 
 # A download
@@ -549,6 +614,92 @@ def test_nothing_but_answers_reaches_the_childs_stdout() -> None:
     assert last["result"] == {"title": "t"}
     assert "chatter on stdout" in answer.stderr
     assert "and from a subprocess" in answer.stderr
+
+
+# The real child, its YoutubeDL replaced by one whose formats all fail our
+# filter, after the debug lines verbose brings: the extractor's notice that
+# web's formats need a PO token, once per format, and some of its chatter.
+FORMATS_REFUSED = """
+import guitarvis_fetch.child as child
+from guitarvis_fetch.fetcher import JsRuntime
+from yt_dlp.utils import ExtractorError
+
+child.find_deno = lambda: JsRuntime("deno", "deno", "2.5.4")
+
+
+class Ydl:
+    def __init__(self, options):
+        self.log = options["logger"]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def extract_info(self, url, *, download, process):
+        self.log.debug("[debug] [youtube] [jsc] JS Challenge Providers: deno")
+        for _ in range(3):
+            self.log.debug({notice!r})
+        return {raw!r}
+
+    def process_ie_result(self, raw, *, download):
+        raise ExtractorError({error!r}, expected=True)
+
+
+child._new_ydl = Ydl
+child.main(["lookup", {url!r}])
+"""
+POT_NOTICE = (  # extractor/youtube/_video.py:3195-3204, as verbose logs it
+    "[debug] [youtube] kPdv44HtEoA: web client https formats require a GVS PO "
+    "Token which was not provided. They will be skipped as they may yield HTTP "
+    "Error 403."
+)
+
+
+@pytest.mark.parametrize(
+    ("formats", "kind"),
+    [
+        (STORYBOARDS, FetchKind.EXTRACTOR_BROKEN),  # L15: YouTube withheld them
+        (VIDEO_ONLY, FetchKind.NO_AUDIO),  # L11
+    ],
+    ids=["storyboards", "video-only"],
+)
+def test_a_format_error_is_answered_by_what_was_offered(
+    formats: list[dict[str, Any]], kind: FetchKind
+) -> None:
+    """The child classifies with what the lookup saw offered, and leaves the
+    extractor's notices in stderr, each once, for the log's tail. web's notice
+    comes with every lookup (its formats always want a PO token), so it does
+    not make a video with no audio ours."""
+    code = FORMATS_REFUSED.format(
+        notice=POT_NOTICE,
+        raw={**RAW, "formats": formats},
+        error=str(FORMAT_ERROR),
+        url=URL,
+    )
+
+    answer = run_python(code, dict(os.environ))
+
+    assert answer.returncode == 0, answer.stderr
+    *_, last = [json.loads(line) for line in answer.stdout.splitlines()]
+    assert last["error"]["kind"] == kind.value
+    assert answer.stderr.count(POT_NOTICE) == 1
+    assert "[jsc]" not in answer.stderr
+
+
+def test_the_child_asks_yt_dlp_for_no_verbose_header() -> None:
+    """Verbose prints a header when a YoutubeDL is made, and runs ffmpeg,
+    ffprobe and others to fill it (YoutubeDL.py:751-752, 4147-4157)."""
+    logged: list[str] = []
+
+    class Recorder:
+        debug = info = warning = error = logged.append
+
+    with _new_ydl(ydl_options(deno="deno", logger=Recorder())):
+        pass
+
+    assert not any("exe versions" in line for line in logged), logged
 
 
 # The real child, stopped once it knows its versions, by a lookup that hangs.

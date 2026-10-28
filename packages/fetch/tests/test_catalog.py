@@ -285,15 +285,15 @@ def test_no_message_carries_ytdlp_text(message: str) -> None:
             Retry.NO,
             False,
         ),
-        (
+        (  # our audio format, downloaded to nothing: not the video's fault
             "D7",
             FetchKind.EMPTY_DOWNLOAD,
-            UNUSABLE,
-            422,
-            NO_AUDIO,
-            WARNING,
-            Retry.NO,
-            False,
+            FAILED,
+            502,
+            UNRECOGNISED,
+            ERROR,
+            Retry.RQ,
+            True,
         ),
         (
             "D8",
@@ -391,6 +391,7 @@ def test_only_upstream_trouble_and_our_own_failures_are_retried_by_rq() -> None:
         FetchKind.NETWORK,
         FetchKind.DOWNLOAD_TIMEOUT,
         FetchKind.UNKNOWN,
+        FetchKind.EMPTY_DOWNLOAD,
         FetchKind.CRASHED,
         FetchKind.LOCAL_IO,
     }
@@ -405,8 +406,8 @@ def test_messages_shared_between_rows_are_the_same_words() -> None:
         CATALOG[FetchKind.MEDIA_REFUSED].message == CATALOG[FetchKind.UNKNOWN].message
     )  # D5 as L17
     assert (
-        CATALOG[FetchKind.EMPTY_DOWNLOAD].message == CATALOG[FetchKind.NO_AUDIO].message
-    )  # D7 as L11
+        CATALOG[FetchKind.EMPTY_DOWNLOAD].message == CATALOG[FetchKind.UNKNOWN].message
+    )  # D7 as L17
 
 
 def test_internal_kinds_say_what_every_internal_failure_says() -> None:

@@ -58,10 +58,16 @@ def ydl_options(
     only, one video, no cookies, no geo-bypass, no post-processors of ours,
     no code fetched at run time, and low retry counts, since RQ retries the
     job. yt-dlp's own fixup still remuxes a DASH m4a with ffmpeg, which
-    makes it a file every browser plays."""
+    makes it a file every browser plays.
+
+    Verbose, because the extractor says it skipped the default clients'
+    formats, for want of a PO token or a URL, only in debug lines, and
+    yt-dlp drops those otherwise (YoutubeDL.py:1164-1167). ChildLog keeps
+    only those of what verbose adds."""
     options: dict[str, Any] = {
         "logger": logger,
         "quiet": True,
+        "verbose": True,
         "noprogress": True,
         "color": "never",
         "ignoreerrors": False,
@@ -90,19 +96,32 @@ def ydl_options(
 
 
 class ChildLog:
-    """yt-dlp's logger: everything to stderr, where the parent keeps the
-    tail. Warnings are kept too: a format error means "no audio" without
-    challenge warnings, and a broken extractor with them."""
+    """yt-dlp's logger, and the evidence a failure is classified by.
+
+    Everything goes to stderr, where the parent keeps the last 2 KB for the
+    log; of what verbose adds, only the notices that formats were withheld,
+    each once, since the rest would push them out. Warnings are kept too,
+    and whether the formats offered were only video (`_choose`): a format
+    error is "no audio" only when they were, and no warning said formats
+    were withheld."""
 
     def __init__(self, stream: IO[str]) -> None:
         self._stream = stream
         self.warnings: list[str] = []
         self.hit_size_cap = False
+        self.video_only = False
+        self._notices: set[str] = set()
 
     def debug(self, message: str) -> None:
         # yt-dlp's max_filesize gives up quietly: no error, and no file.
         if "max-filesize" in message:
             self.hit_size_cap = True
+        if message.startswith("[debug] "):  # verbose's own (YoutubeDL.py:1168)
+            # Each notice once: through a logger, yt-dlp drops write_debug's
+            # only_once (:1169-1170), and the extractor notes each format.
+            if not _WITHHELD.search(message) or message in self._notices:
+                return
+            self._notices.add(message)
         self._write(message)
 
     def info(self, message: str) -> None:
@@ -113,6 +132,10 @@ class ChildLog:
         self._write(f"WARNING: {message}")
 
     def error(self, message: str) -> None:
+        # Verbose follows an ERROR line with its traceback, more than 1 KB
+        # of it (YoutubeDL.py:1085-1095); the ERROR line is what matters.
+        if _TRACEBACK.search(message):
+            return
         self._write(message)
 
     def _write(self, message: str) -> None:
@@ -120,17 +143,54 @@ class ChildLog:
         self._stream.flush()
 
 
-def lookup(ydl: Any, url: str) -> dict[str, Any]:
+def lookup(ydl: Any, url: str, log: ChildLog) -> dict[str, Any]:
     """The video's metadata, checked, then its formats chosen, so a video
     with no audio we can use is refused now rather than in the queue.
 
     Metadata first, without choosing formats: a live stream has no format
-    our filter accepts, and choosing first would call it "no audio".
+    our filter accepts, and choosing first would fail it as a format error.
     """
     raw = ydl.extract_info(url, download=False, process=False)
     info = _checked(raw)
-    ydl.process_ie_result(raw, download=False)
+    _choose(ydl, raw, log)
     return info
+
+
+def _choose(ydl: Any, raw: dict[str, Any], log: ChildLog) -> dict[str, Any]:
+    """The format our filter picks from those the extractor offered.
+
+    What was offered is noted first. If nothing passes, it is the only
+    evidence of whether the video has no audio or YouTube withheld it, and
+    choosing replaces it with what survived yt-dlp's own filters
+    (YoutubeDL.py:3028-3033).
+    """
+    log.video_only = offers_only_video(raw.get("formats"))
+    return ydl.process_ie_result(raw, download=False)
+
+
+def offers_only_video(formats: object) -> bool:
+    """Positive evidence that a video has no audio: the extractor offered
+    formats a player could use, with a URL, video and no DRM, and not one
+    format of any kind that carries audio, or may.
+
+    An empty list, only storyboards, or audio our filter refuses (in a
+    muxed or HLS format, or behind DRM) prove nothing: YouTube withholding
+    formats looks like that too.
+    """
+    if not isinstance(formats, list) or not all(isinstance(f, dict) for f in formats):
+        return False
+    playable = [
+        f
+        for f in formats
+        if f.get("url") and not _locked(f) and f.get("vcodec") not in (None, "none")
+    ]
+    return bool(playable) and all(f.get("acodec") == "none" for f in formats)
+
+
+def _locked(fmt: dict[str, Any]) -> bool:
+    """DRM, as yt-dlp drops it: "maybe", said of HLS, still plays
+    (YoutubeDL.py:2925-2928)."""
+    return bool(fmt.get("has_drm")) and fmt.get("has_drm") != "maybe"
 
 
 def download(
@@ -149,7 +209,7 @@ def download(
     """
     raw = ydl.extract_info(url, download=False, process=False)
     info = _checked(raw)
-    selected = ydl.process_ie_result(raw, download=False)
+    selected = _choose(ydl, raw, log)
     check_media(selected, max_bytes, resolve=resolve)
     ydl.process_info(selected)
 
@@ -309,6 +369,18 @@ _BROKEN = re.compile(
 _CHALLENGE_WARNING = re.compile(
     r"challenge|javascript runtime|signature solving|remote components?", re.IGNORECASE
 )
+# yt-dlp's words for formats YouTube withheld, in yt-dlp 2026.10.26's
+# extractor/youtube/_video.py: wanting a PO token (:3195-3206), missing a URL
+# under SABR (:3536-3549), DRM (:3418-3427), and challenges unsolved or no
+# runtime to solve them (:3349-3356, :2994-2999). For the default clients
+# (:143) the first two are debug lines, the rest warnings.
+_WITHHELD = re.compile(
+    r"formats (?:have been skipped|require a GVS PO Token|may be missing)",
+    re.IGNORECASE,
+)
+# A traceback as YoutubeDL.trouble writes it: whole, or as frames alone
+# (ExtractorError.format_traceback, utils/_utils.py:1010-1014).
+_TRACEBACK = re.compile(r'^(?:Traceback \(most recent call last\):|  File ")', re.M)
 # YouTube's extractor turns a failed player request into a warning and tries
 # its next client; when none is left it raises "Failed to extract any player
 # response", with no cause. Only the warnings still say why.
@@ -327,10 +399,15 @@ _NETWORK_WARNING = re.compile(
 _DOWNLOAD_GAVE_UP = re.compile(r"\[download\] got error:")
 
 
-def classify(error: BaseException, warnings: Sequence[str] = ()) -> FetchKind:
+def classify(
+    error: BaseException, warnings: Sequence[str] = (), *, video_only: bool = False
+) -> FetchKind:
     """The kind of a failure, from yt-dlp's exception types first and its
     messages second. Anything unrecognised is unknown: fetch_failed, and
     retried, which is honest if less helpful.
+
+    `video_only` is what the lookup saw offered (`offers_only_video`): the
+    one thing that can show a format error is the video's own fault.
 
     A yt-dlp that will not import has no types to compare with, and is the
     failure itself: misconfigured, whatever was raised (L16).
@@ -389,9 +466,19 @@ def classify(error: BaseException, warnings: Sequence[str] = ()) -> FetchKind:
     if _FORMAT_ERROR.search(text) and _NETWORK_WARNING.search(warned):
         return FetchKind.NETWORK
     if _FORMAT_ERROR.search(text):
-        # Without a working runtime YouTube offers few formats, and "no
-        # audio" would blame every video for our own problem.
-        return FetchKind.EXTRACTOR_BROKEN if challenged else FetchKind.NO_AUDIO
+        # No audio only on positive evidence: real video offered, nothing
+        # with audio, and no warning that formats were withheld. Anything
+        # less is ours. YouTube withholding formats, for want of a PO token,
+        # in a SABR rollout or without a working runtime, looks the same,
+        # and "no audio" would refuse every link, for good, at WARNING.
+        # The default clients' notices are debug lines, not warnings, and
+        # are no evidence: web's come with nearly every lookup, since its formats
+        # always want a PO token (extractor/youtube/_base.py:71-84). They go
+        # to the log's tail instead (ChildLog).
+        withheld = challenged or any(_WITHHELD.search(w) for w in warnings)
+        if video_only and not withheld:
+            return FetchKind.NO_AUDIO
+        return FetchKind.EXTRACTOR_BROKEN
     if _NO_PLAYER_RESPONSE.search(text) and _NETWORK_WARNING.search(warned):
         return FetchKind.NETWORK
     if _BROKEN.search(text):
@@ -439,7 +526,9 @@ def _new_ydl(options: dict[str, Any]) -> Any:
     os.environ["YTDLP_NO_PLUGINS"] = "1"
     import yt_dlp
 
-    return yt_dlp.YoutubeDL(options)
+    # Verbose prints a header when a YoutubeDL is made, and runs ffmpeg,
+    # ffprobe and others to fill it (YoutubeDL.py:635-638, 751-752, 4147).
+    return yt_dlp.YoutubeDL(options, auto_init="no_verbose_header")
 
 
 def _answer(
@@ -447,7 +536,7 @@ def _answer(
 ) -> dict[str, Any]:
     if len(args) == 2 and args[0] == "lookup":
         with _new_ydl(ydl_options(deno=runtime.path, logger=log)) as ydl:
-            return lookup(ydl, args[1])
+            return lookup(ydl, args[1], log)
     if len(args) == 4 and args[0] == "download":
         work_dir, max_bytes = Path(args[2]), int(args[3])
         hook = ProgressHook(out, max_bytes)
@@ -492,7 +581,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     except FetchError as error:
         _send_error(out, error.kind, error.detail, error.duration_sec, versions)
     except Exception as error:  # yt-dlp's, classified while its types are here
-        _send_error(out, classify(error, log.warnings), str(error), None, versions)
+        kind = classify(error, log.warnings, video_only=log.video_only)
+        _send_error(out, kind, str(error), None, versions)
     else:
         send(out, {"result": result, **_known(versions)})
     return 0
