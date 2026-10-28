@@ -456,11 +456,11 @@ work later; *no* means it won't. Tests are named as in *Testing*.
 | L8 | Stream just ended, still processing | `post_live` | `link_unusable` · 422 | That stream has only just ended, and YouTube is still processing it. Try the link again in a few hours. | INFO | later | route |
 | L9 | No duration in the metadata | step 6 | `link_unusable` · 422 | We couldn't tell how long that video is, so we didn't fetch it. Upload the audio file instead. | WARNING | no | route |
 | L10 | Over ten minutes | `check_duration` | `too_long` · 422 | That video is {length} long. The limit is 10 minutes: try a link to a single song. With no length to give: That video is over the 10-minute limit: try a link to a single song. | INFO | no | route |
-| L11 | No audio-only format, without challenge-solving, 429, 5xx or transport warnings | classify | `link_unusable` · 422 | That video has no audio we can use. Try a different link, or upload the audio file. | WARNING | no | classify |
+| L11 | No audio we can use: a format error when the formats offered show it, real video (a URL, no DRM) and nothing with audio or unknown audio, with no warning that formats were withheld or challenges failed, and no 429, 5xx or transport warnings | classify | `link_unusable` · 422 | That video has no audio we can use. Try a different link, or upload the audio file. | WARNING | no | classify |
 | L12 | Rate-limited: HTTP 429, or "Sign in to confirm you're not a bot" | classify | `fetch_failed` · 503 | YouTube is limiting how often we can fetch right now. Try again later, or upload the audio file. | WARNING | later | classify, route |
 | L13 | Network: DNS failure, connection refused or reset, TLS error, YouTube 5xx | classify | `fetch_failed` · 502 | We couldn't reach YouTube. Try again in a few minutes, or upload the audio file. | WARNING | later | classify, route |
 | L14 | Lookup past its 30 s deadline | `ChildFetcher` (kills the process group) | `fetch_failed` · 504 | YouTube took too long to answer. Try again in a few minutes, or upload the audio file. | WARNING | later | fetcher, route |
-| L15 | Extractor broken: "Unable to extract", "Unsupported URL" for our own canonical link, challenge solving failed, a format error with challenge warnings and no 429, 5xx or transport warnings | classify | `fetch_failed` · 502 | We can't fetch from YouTube at the moment. Upload the audio file instead, or try the link again tomorrow. | ERROR +tail | later | classify |
+| L15 | Extractor broken: "Unable to extract", "Unsupported URL" for our own canonical link, challenge solving failed, any other format error without 429, 5xx or transport warnings. YouTube withholding formats (no PO token, SABR, DRM) looks the same, and the tail holds yt-dlp's notices of what it skipped | classify | `fetch_failed` · 502 | We can't fetch from YouTube at the moment. Upload the audio file instead, or try the link again tomorrow. | ERROR +tail | later | classify |
 | L16 | Misconfigured: no JavaScript runtime, or yt-dlp won't import | the child's start-up check | `fetch_failed` · 503 | *(as L15)* | ERROR | later | fetcher |
 | L17 | A yt-dlp error the classifier doesn't recognise | classify (fallback) | `fetch_failed` · 502 | We couldn't fetch that video. Try again in a few minutes, or upload the audio file. | ERROR +tail | later | classify |
 | L18 | Child crashed, exited without a result, or wrote garbage | `ChildFetcher` | `internal` · 500 | `MSG_INTERNAL` | ERROR, exit code +tail | later | fetcher |
@@ -488,10 +488,10 @@ work later; *no* means it won't. Tests are named as in *Testing*.
 | D1 | Network | classify | `fetch_failed` · job | *(as L13)* | WARNING | RQ | worker |
 | D2 | Past its 300 s deadline | `ChildFetcher` | `fetch_failed` · job | Fetching that video took too long. Try again in a few minutes, or upload the audio file. | WARNING | RQ | fetcher, worker |
 | D3 | Rate-limited | classify | `fetch_failed` · job | *(as L12)* | WARNING | later | worker |
-| D4 | Extractor broken or misconfigured | classify | `fetch_failed` · job | *(as L15)* | ERROR +tail | later | worker |
+| D4 | Extractor broken or misconfigured | classify | `fetch_failed` · job | *(as L15)* | ERROR +tail; misconfigured without the tail, as L16 | later | worker |
 | D5 | Media URL refused: not HTTPS, host off the site's list, or resolves to a non-public address | child, before connecting | `fetch_failed` · job | *(as L17)* | ERROR (security) | no | classify, worker |
 | D6 | Over the 150 MB size cap | `max_filesize`, progress hook, file size | `link_unusable` · job | That video's audio is larger than we accept. Try a shorter video, or upload the audio file. | WARNING | no | fetcher, worker |
-| D7 | Download produced no file, or an empty one | child | `link_unusable` · job | *(as L11)* | WARNING | no | worker |
+| D7 | Download produced no file, or an empty one. Our filter chose an audio format, so this is ours, not the video's | child | `fetch_failed` · job | *(as L17)* | ERROR +tail | RQ | worker |
 | D8 | Disk full, or another local I/O error | child | `internal` · job | `MSG_INTERNAL` | ERROR +tail | RQ, then `internal` | worker |
 | D9 | Child crashed | `ChildFetcher` | `internal` · job | `MSG_INTERNAL` | ERROR +tail | RQ, then `internal` | fetcher, worker |
 | D10 | A yt-dlp error the classifier doesn't recognise | classify | `fetch_failed` · job | *(as L17)* | ERROR +tail | RQ | worker |
@@ -531,6 +531,11 @@ link fetch failed kind=private phase=lookup site=youtube video=dQw4w9WgXcQ
 
 - `detail` is yt-dlp's message, cut to 500 characters. ERROR lines add the
   last 2 KB of the child's stderr.
+- The child runs yt-dlp verbose, without its header: the extractor reports
+  skipping the default clients' formats (no PO token, no URL under SABR) only
+  in debug lines. Of what verbose adds, only those notices reach stderr, each
+  once. Its other debug lines, and the traceback it writes after an ERROR
+  line, would push them out of the tail.
 - **INFO** means the link itself is the problem. **WARNING** means upstream
   trouble that should pass. **ERROR** means something for us to fix: a broken
   extractor, a missing runtime, a crash, or a refused media host.
@@ -581,8 +586,9 @@ Nothing in `make check` makes a network request.
   `javascript:` and `file:`.
 - **classify:** the child's classifier against yt-dlp's exception types
   (built offline) and messages recorded from real failures (a fixture file).
-  An unknown message maps to `unknown`. A format error that comes with
-  challenge warnings maps to `extractor_broken`, not `no_audio`. The yt-dlp
+  An unknown message maps to `unknown`. A format error maps to `no_audio`
+  only when the formats offered show the video has none, and to
+  `extractor_broken` otherwise, a PO-token or SABR skip included. The yt-dlp
   options are a pure function, asserted in full: extractors, playlists off,
   no cookies, format, template, size cap, runtime, no remote components.
 - **fetcher:** `ChildFetcher` against a fake child module. Covers progress,
@@ -719,15 +725,19 @@ for each case, read by eye.
 - **Hosted servers may not be able to fetch at all.** YouTube treats
   datacenter addresses with suspicion, demanding sign-in or proof-of-origin
   tokens. v1 provides neither, so on a hosted deployment most lookups may end
-  `rate_limited`. Fetching works from a developer's machine. We can't know
-  until there is a host (decision 12), but the catalog makes it visible from
-  day one.
-- **A missing JavaScript runtime looks like the video's fault.** Without
-  Deno, YouTube offers few formats, and "no audio" would blame every video.
-  The classifier treats a format error that comes with challenge warnings as
-  `extractor_broken`. The child reports a missing runtime as `misconfigured`
-  before trying. The worker logs a warning at start when links are on and no
-  runtime is found.
+  `rate_limited`, or `extractor_broken` with yt-dlp's PO-token notices in the
+  tail. Fetching works from a developer's machine. We can't know until there
+  is a host (decision 12), but the catalog makes it visible from day one.
+- **YouTube withholding formats looks like the video's fault.** Without
+  Deno, without the PO tokens YouTube asks of some clients, or during a SABR
+  rollout, YouTube offers few formats or none we can use, and "no audio"
+  would blame every video, for good. So a format error is `no_audio` only
+  when the formats offered show it: real video, nothing with audio, and no
+  warning that formats were withheld. Anything less is `extractor_broken`,
+  at ERROR, with yt-dlp's notices of what it skipped in the tail. The child
+  reports a missing runtime as `misconfigured` before trying. The api and
+  the worker log a warning at start when links are on and no runtime is
+  found.
 - **Classifier drift.** When yt-dlp rewords a message, a known cause falls
   back to `unknown`: still `fetch_failed`, and retried. That is honest but
   less helpful. The fixtures and the smoke test catch it.
