@@ -11,10 +11,11 @@ log line for each case by eye, and copy it under the case.
 Filled in before the PR is merged.
 
 **This run:** by an agent (Claude Code), with no person present, on
-2026-10-27, against real YouTube. A check is ticked only where the run
-showed it pass; where only the api's half could be checked, the item names
-the half that was NOT RUN. Checks that need a person or a browser and have
-no api half, and checks that were not attempted, are unticked and say why.
+2026-10-27, against real YouTube. A box is ticked only where the run
+showed the whole check pass on the code as shipped. An item with a half
+that needs a person or a browser is unticked, and says what passed as "API
+half PASS: …". A logs item shown only with the workaround log config (bug 1)
+is unticked, and says so. Checks not attempted are unticked and say why.
 Its evidence (requests, responses, logs) stayed on the machine it ran on.
 
 ## Setup
@@ -59,13 +60,13 @@ A2 Guns N' Roses, "Sweet Child O' Mine" (`1w7OgIMMRc4`, job 286aa67c-c6a4-4f9f-b
 and A3 Nirvana, "Smells Like Teen Spirit" (`hTWKbfoikeg`, job 7e6e2a70-85c8-4b09-a7f3-664871dc1428).
 Each succeeded in 48 to 84 s, and each stored file was `format=140 ext=m4a`.
 
-- [x] `https://www.youtube.com/watch?v=ID` reaches the song page, titled with the video's title. API side: 202 with `Location: /jobs/{id}`, `title` the video's, `source_url` canonical. The page itself: NOT RUN (no browser)
-- [x] The job shows *Fetching the audio*, then the four stages. API side: A2 polled `download` 0 → `separation` 5…33 → `transcription` 43 → `structure` 66 → `fretboard` 81 → `succeeded` 100. The client's wording: NOT RUN (no browser)
+- [ ] `https://www.youtube.com/watch?v=ID` reaches the song page, titled with the video's title. API half PASS: 202 with `Location: /jobs/{id}`, `title` the video's, `source_url` canonical. The page itself: NOT RUN (no browser)
+- [ ] The job shows *Fetching the audio*, then the four stages. API half PASS: A2 polled `download` 0 → `separation` 5…33 → `transcription` 43 → `structure` 66 → `fretboard` 81 → `succeeded` 100. The client's wording: NOT RUN (no browser)
 - [ ] The song plays from our stored copy with the tab in sync: NOT RUN (needs a person and a browser). `audio_url` was `/jobs/{id}/audio/mix` for all three, and the bytes it served were the download's (see *Playback*)
 - [x] `https://youtu.be/ID` returns the same job: A1's first run; `youtu.be/bx1Bh8ZvH84?si=…` then gave 200 with its id
 - [x] `https://www.youtube.com/shorts/ID` returns the same job: A1 and A2, 200 with the same id. A Short for its own first run: NOT RUN
 - [x] `https://m.youtube.com/watch?v=ID` returns the same job: A3's first run (`…&list=PL…&si=…`, 202), then `www…`, `youtu.be` and `youtube-nocookie.com/embed` forms gave 200 with its id
-- [x] `…watch?v=ID&t=42s` returns the same job, and the song starts at 0:00: A2's first run; the canonical URL drops `t=`, and the stored file is the whole video (302.997 s against 303 s). Whether the client starts at 0:00: NOT RUN (no browser)
+- [ ] `…watch?v=ID&t=42s` returns the same job, and the song starts at 0:00. API half PASS: A2's first run; the canonical URL drops `t=`, and the stored file is the whole video (302.997 s against 303 s). Whether the client starts at 0:00: NOT RUN (no browser)
 - [x] `…watch?v=ID&list=PL…` returns the same job, and only that video is fetched: A3, one `link fetched phase=download` line and one song's file (4.5 MB, 278 s)
 - [x] `https://youtu.be/ID?si=…` returns the same job, and `si=` appears in no log line: four submissions carried `si=`; a search of every api and worker log found it 0 times
 
@@ -109,11 +110,11 @@ recording was not kept (`jfKfPfyJRdk`) is refused as L2, which is right.
 
 ## The switch
 
-- [x] With `make api GUITARVIS_URL_INGESTION=0`, the link field is gone after a reload, and `curl -X POST localhost:8000/jobs/from-url` answers 403 `links_disabled` (R1). API side (on :8001): `/features` gave `{"url_ingestion":false}`, and a link gave 403 `links_disabled` with the catalog's message, before parsing, the size check and dedupe alike, each logged `link refused kind=links_disabled`. The field: NOT RUN (no browser)
+- [ ] With `make api GUITARVIS_URL_INGESTION=0`, the link field is gone after a reload, and `curl -X POST localhost:8000/jobs/from-url` answers 403 `links_disabled` (R1). API half PASS (on :8001): `/features` gave `{"url_ingestion":false}`, and a link gave 403 `links_disabled` with the catalog's message, before parsing, the size check and dedupe alike, each logged `link refused kind=links_disabled` (with the workaround log config). The field: NOT RUN (no browser)
 - [ ] With the field showing, the api restarted with links off, and a link pasted: the field goes, and the page shows "Links are turned off." with the server's message: NOT RUN (no browser)
 - [x] A link job queued, then the worker restarted with `GUITARVIS_URL_INGESTION=0` before it ran: the job fails `links_disabled` with "Links were turned off before this song could be fetched…", not retried (W1). Job 88b3b62a-0207-4241-9876-98c18a438909 failed within 1 s, attempts 1, no download; RQ's registries empty afterwards
 - [ ] A link job whose download was stored, retried with links off, still runs: NOT RUN (not attempted: it needs a worker killed mid-pipeline after a second download)
-- [x] Jobs made from links are still served with links off: the song page and its audio load. API side: A1's job and document 200, `/audio/mix` followed to 200 with all 4,493,245 bytes, `/audio/guitar` 307. The song page: NOT RUN (no browser)
+- [ ] Jobs made from links are still served with links off: the song page and its audio load. API half PASS: A1's job and document 200, `/audio/mix` followed to 200 with all 4,493,245 bytes, `/audio/guitar` 307. The song page: NOT RUN (no browser)
 
 Notes: the W1 worker line:
 `2026-10-27 17:48:18,180 INFO guitarvis_worker.runner: job 88b3b62a-0207-4241-9876-98c18a438909 is a link job and links are off, and its audio was never stored`
@@ -121,7 +122,7 @@ Notes: the W1 worker line:
 ## Network and upstream
 
 - [ ] The network cut during a lookup (disconnect, then paste a new link): `fetch_failed` with "We couldn't reach YouTube…" (L13), or "YouTube took too long to answer…" after 30 s (L14); the api stays responsive meanwhile: NOT RUN (not attempted)
-- [x] Deno taken off the api's PATH and the api restarted: a new link answers 503 `fetch_failed`, and the log says `kind=misconfigured` at ERROR (L16). 503 in 0.21 s, with no request to YouTube:
+- [ ] Deno taken off the api's PATH and the api restarted: a new link answers 503 `fetch_failed`, and the log says `kind=misconfigured` at ERROR (L16). API half PASS: 503 in 0.21 s, with no request to YouTube. The log half: with the workaround log config; as shipped at b90e462: FAIL (bug 1: the line printed bare, with no time, level or logger), fixed in 01f27e7. With it:
   `2026-10-27 17:50:28,976 ERROR guitarvis_api.routes_links: link fetch failed kind=misconfigured phase=lookup site=youtube video=sOnqjkJTMaA job=- attempt=- elapsed=0.2s ytdlp=2026.10.26 js=- detail="no JavaScript runtime: Deno 2.3.0 or later is not installed"`
 - [x] Deno taken off the worker's PATH: the worker warns at start, and a queued link job fails `fetch_failed` (D4). It warned `links are on, but Deno 2.3 or later was not found: every link job will fail as fetch_failed until it is installed`, and job ee988964-c635-4e31-a5a2-cc66bd7da061 failed `fetch_failed` at `download` in 0.4 s, not retried:
   `2026-10-27 17:51:55,178 ERROR guitarvis_worker.ingest: link fetch failed kind=misconfigured phase=download site=youtube video=tAGnKpE4NCI job=ee988964-c635-4e31-a5a2-cc66bd7da061 attempt=1 elapsed=0.2s ytdlp=2026.10.26 js=- detail="no JavaScript runtime: Deno 2.3.0 or later is not installed"`
@@ -153,19 +154,19 @@ lines.** uvicorn configures only its own loggers, so the api's had no
 handler and stayed at WARNING: every `link fetched` lookup line and every
 L1 to L8, L10 and R1 to R7 line was lost, and ERROR lines printed bare,
 with no time, level or logger. The tests read the lines through caplog,
-which hid it. The checks below were made with the log config described in
-*Setup*.
+which hid it. The api's lines below were printed only through the log
+config described in *Setup*, so the items that rest on them are unticked.
 Fixed after this run (01f27e7): the api sets its logging up as it starts,
 as the worker does. At a6b57b5, `UVICORN_PORT=8011 make api` and a Vimeo
 link printed
 `2026-10-27 18:07:23,289 INFO guitarvis_api.routes_links: link refused kind=unsupported_site host=vimeo.com path=1`.
 
-- [x] Every lookup or download left exactly one `link fetch failed` or `link fetched` line, at the catalog's level: 16 outcomes, 16 lines (12 lookups, 4 downloads); INFO for fetched, L1, L2, L4, L6 and L10, ERROR for the two misconfigured
-- [x] Every one of those lines carries `ytdlp=` and `js=`: `ytdlp=2026.10.26` on all 16; `js=deno/2.9.8` on the 14 with Deno, `js=-` on the two without
-- [x] Each refused link (R rows, and the switch at the api) left one `link refused kind=…` line, with `host=` and `path=` for a link the parser refused, and no `ytdlp=` or `js=`: 0 of 11 carried either. Host refusals said `path=-` (see *Refused links*)
+- [ ] Every lookup or download left exactly one `link fetch failed` or `link fetched` line, at the catalog's level: with the workaround log config; as shipped at b90e462: FAIL (bug 1), fixed in 01f27e7. With it: 16 outcomes, 16 lines (12 lookups, 4 downloads); INFO for fetched, L1, L2, L4, L6 and L10, ERROR for the two misconfigured
+- [ ] Every one of those lines carries `ytdlp=` and `js=`: the worker's 4 as shipped; the api's 12 with the workaround log config; as shipped at b90e462: FAIL (bug 1), fixed in 01f27e7. With it: `ytdlp=2026.10.26` on all 16; `js=deno/2.9.8` on the 14 with Deno, `js=-` on the two without
+- [ ] Each refused link (R rows, and the switch at the api) left one `link refused kind=…` line, with `host=` and `path=` for a link the parser refused, and no `ytdlp=` or `js=`: with the workaround log config; as shipped at b90e462: FAIL (bug 1), fixed in 01f27e7. With it: 0 of 11 carried either. Host refusals said `path=-` (see *Refused links*)
 - [x] The queued link job that met the switch (W1) left one worker line, "job … is a link job and links are off, and its audio was never stored"
-- [x] Each outcome is one line, with `detail` and `tail` JSON-quoted: 16 of 16 had `detail="…"`. No `tail=` came up: neither ERROR came with the child's stderr
-- [x] No line carries a whole pasted link, a `si=` value, a database URL or a storage secret: 0 hits for `si=`, pasted forms, `password`, a credentialed `postgresql://` or `X-Amz-Signature`
+- [ ] Each outcome is one line, with `detail` and `tail` JSON-quoted: the worker's lines as shipped; the api's with the workaround log config; as shipped at b90e462: FAIL (bug 1), fixed in 01f27e7. With it: 16 of 16 had `detail="…"`. No `tail=` came up: neither ERROR came with the child's stderr
+- [x] No line carries a whole pasted link, a `si=` value, a database URL or a storage secret: 0 hits, over every log of the run, the first api's as shipped among them (the workaround only adds lines), for `si=`, pasted forms, `password`, a credentialed `postgresql://` or `X-Amz-Signature`
 - [x] No response body and no job row carries yt-dlp's text (`ERROR:`, `[youtube]`, `yt-dlp`, a traceback): 0 hits in every captured response and in the five link rows' `failure_message` and `title`
 
 A retried download failure (D1, D2, D8, D9, D10) also leaves RQ's own ERROR
