@@ -123,8 +123,10 @@ def parse(raw: str) -> Link:
     except ValueError:  # an unbalanced [ in the host, say
         raise LinkRefused(RefusalKind.NOT_A_LINK) from None
     if parts.scheme not in ("http", "https"):
-        # Not a web link, so it has no host or path to log: what follows the
-        # scheme is code, an address or data.
+        if parts.netloc:  # ftp://host/…, ws://host/…: a host and a path
+            raise _refused(RefusalKind.BAD_SCHEME, parts)
+        # No host: what follows the scheme (javascript:, mailto:, data:,
+        # file:///) is code, an address, data or a local path. Its kind alone.
         raise LinkRefused(RefusalKind.BAD_SCHEME)
     host = _host_of(parts)
     site = next((site for site in SITES if host in site.hosts), None)
@@ -182,9 +184,9 @@ def _host_of(parts: SplitResult) -> str:
 def _refused(
     kind: RefusalKind, parts: SplitResult, host: str | None = None
 ) -> LinkRefused:
-    """A web link refused once parsed, with what the log may keep of it: the
-    host (never the user info or port) and the first path segment (never the
-    query or fragment, where a share id rides)."""
+    """A link with a host, refused once parsed, with what the log may keep
+    of it: the host (never the user info or port) and the first path segment
+    (never the query or fragment, where a share id rides)."""
     return LinkRefused(
         kind,
         host=(parts.hostname or "") if host is None else host,

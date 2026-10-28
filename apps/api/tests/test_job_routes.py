@@ -283,10 +283,16 @@ def test_the_module_app_connects_to_nothing_until_it_starts(
         return make_api().services
 
     monkeypatch.setattr(app_module, "build_services", fake_build)
+    # Served, it sets up its logging; here, not in this process.
+    configured: list[tuple[str, ...]] = []
+    monkeypatch.setattr(
+        app_module, "configure_logging", lambda *names: configured.append(names)
+    )
 
     with TestClient(app_module.create_app()) as client:
         assert client.get("/health").status_code == 200
     assert len(built) == 1
+    assert configured == [("guitarvis_api",)]
 
 
 # Reconciliation: the two ways Postgres and Redis can disagree, repaired on read.

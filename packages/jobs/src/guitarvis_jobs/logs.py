@@ -18,9 +18,8 @@ SHARED_INFO_LOGGERS = ("guitarvis_core", "guitarvis_jobs", "guitarvis_fetch")
 def configure_logging(*info_loggers: str) -> None:
     """Our lines at INFO, with their time, level and logger.
 
-    A process whose root logger already has a handler is left as it is:
-    someone set its logging up on purpose, with a --log-config, say, or a
-    test runner capturing it, and their levels stand.
+    Does nothing when the root logger already has a handler: one from a
+    --log-config, say, or pytest's log capture.
     """
     if logging.getLogger().handlers:
         return

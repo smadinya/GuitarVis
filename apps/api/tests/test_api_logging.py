@@ -24,6 +24,9 @@ from pathlib import Path
 SERVE = [sys.executable, "-m", "uvicorn", "guitarvis_api.app:app"]
 STARTED = re.compile(r"Uvicorn running on http://127\.0\.0\.1:(\d+)")
 START_DEADLINE_SEC = 30.0
+# Straight to the child on loopback, never through an HTTP_PROXY from the
+# environment: nothing in `make check` may leave this machine.
+DIRECT = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 def wait_for_port(server: subprocess.Popen[bytes], stderr: Path) -> int:
@@ -45,7 +48,7 @@ def post_link(port: int, url: str) -> tuple[int, dict[str, str]]:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=10) as response:
+        with DIRECT.open(request, timeout=10) as response:
             return response.status, json.load(response)
     except urllib.error.HTTPError as error:
         with error:

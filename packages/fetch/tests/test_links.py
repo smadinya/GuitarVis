@@ -182,11 +182,20 @@ def test_a_link_at_the_limit_is_read_and_one_over_is_not() -> None:
         ("http://169.254.169.254/latest/meta-data/", "169.254.169.254", "latest"),
         ("https://example.com/?si=SHARER-ID#SHARER-ID", "example.com", ""),
         (f"https:///watch?v={ID}", "", "watch"),
-        # Refused before parsing, or not a web link, whose "path" is code, an
-        # address or data: the kind alone.
+        # Another scheme with a host (R5): its host and first segment too.
+        (
+            f"ftp://www.youtube.com/watch?v={ID}&si=SHARER-ID",
+            "www.youtube.com",
+            "watch",
+        ),
+        ("ws://SHARER-ID@example.com/socket", "example.com", "socket"),
+        # Refused before parsing, or a scheme with no host, where what follows
+        # is code, an address, data or a local path: the kind alone.
         ("hello there", "", ""),
         ("javascript:alert(1)", "", ""),
         ("mailto:someone@example.com", "", ""),
+        ("data:text/html,<script>alert(1)</script>", "", ""),
+        ("file:///etc/passwd", "", ""),
     ],
 )
 def test_a_refusal_carries_only_the_host_and_first_segment_for_the_log(
