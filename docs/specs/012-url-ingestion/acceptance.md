@@ -179,3 +179,33 @@ The structure stage reads an m4a through librosa's deprecated audioread
 fallback (`apps/worker/src/guitarvis_worker/stages/structure.py:145`). It
 works today; librosa 1.0 would drop beats and chords for link jobs, not
 fail them.
+
+## Bug 2: a job stopped in the worker's terminal
+
+**Found by the developer's own run, not the agent's.** `make worker` ran in
+an interactive terminal, a link was pasted (`https://youtu.be/RSpyNWVj4ek`),
+and job 81906d15-… downloaded and stored its audio (`upload_key` set), then
+sat at `separation`, 5%, for over 14 minutes. Every process of the job was in
+state `T` (stopped), with its CPU time frozen.
+
+Not caused by links: any job, upload or link, hung this way whenever the
+worker had a terminal. The agent's run above passed because its worker had
+no tty on stdin.
+
+Root cause. RQ's work-horse calls `os.setpgrp()`, so it is a background
+process group of the worker's terminal. `separation.py` started demucs
+without a `stdin`, so demucs inherited the terminal (`/proc/<pid>/fd/0` was
+the pty). Demucs's ffmpeg runs without `-nostdin` and reads stdin; a
+background group that reads its controlling terminal is sent SIGTTIN, and
+the kernel stops the whole group: horse, demucs and ffmpeg.
+
+Fixed in b1ac135: demucs and ffprobe (`probe_duration`, which also runs in
+the horse) start with `stdin=subprocess.DEVNULL`. The test runs the real
+`_demucs` against a real `python -m demucs` stand-in, with a pipe held open
+as the stage's stdin; it fails without the fix. Left alone on purpose:
+`guitarvis_fetch`'s `ChildFetcher` holds a stdin pipe for its watchdog, and
+`find_deno`'s `deno --version` never reads stdin. Not run again against real
+services after the fix: it needs a person to start `make worker` in a
+terminal and queue a job.
+
+- [ ] A link job run through a `make worker` started in an interactive terminal passes `separation` and succeeds: NOT RUN (needs a person at a terminal)
