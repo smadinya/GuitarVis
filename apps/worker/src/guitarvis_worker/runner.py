@@ -306,7 +306,7 @@ def _fetch(
       retried (another attempt finds the switch as it is).
     - W2, D1-D10 and P1-P2: UrlSource's. It logs each once and raises the
       catalog's PipelineError, whose `retryable` is the catalog's rule: only
-      D1, D2, D8, D9 and D10 are retried by RQ.
+      D1, D2, D7, D8, D9 and D10 are retried by RQ.
     - P3, no ffprobe: `internal`, retried. S1, the store fails, and S2, the key
       cannot be recorded: the exception propagates, so RQ retries (S1 then
       downloads again) and logs it at ERROR, and the last attempt fails the

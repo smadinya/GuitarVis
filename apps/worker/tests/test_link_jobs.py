@@ -429,7 +429,7 @@ def test_ytdlp_text_reaches_the_log_and_never_the_row(
 @pytest.mark.parametrize("retries_left", [2, 0])
 def test_ytdlp_text_stays_out_of_the_traceback_rq_keeps(
     harness: Harness, retries_left: int
-) -> None:  # D1, D2, D8-D10
+) -> None:  # D1, D2, D7-D10
     """RQ logs a retried job's traceback at ERROR and keeps it in Redis. The
     PipelineError it is handed must carry nothing of yt-dlp's behind it."""
     harness.fetcher.download_error = FetchError(
@@ -969,4 +969,5 @@ def test_serve_says_whether_links_are_on_and_warns_when_no_runtime_is_found(
     with caplog.at_level(logging.INFO, logger="guitarvis_worker"):
         runner.serve(Settings(url_ingestion=links_on), burst=True)
 
-    assert [(r.levelno, r.getMessage()) for r in caplog.records] == said
+    ours = [r for r in caplog.records if r.name.startswith("guitarvis_")]
+    assert [(r.levelno, r.getMessage()) for r in ours] == said

@@ -78,8 +78,8 @@ defaults to true for `internal` only. The runner retries whatever is
 retryable, and on the final attempt records the error's own reason and
 message, unless the reason is `internal`, whose detail stays in the log. The
 link failures RQ retries are network errors, download timeouts, unclassified
-yt-dlp errors, crashes and local I/O errors (the last two with reason
-`internal`); the per-kind rule is `Entry.retry` in
+yt-dlp errors, downloads that left no file, crashes and local I/O errors (the
+last two with reason `internal`); the per-kind rule is `Entry.retry` in
 `guitarvis_fetch/catalog.py`, and the api never retries a lookup (spec 012).
 
 ## Testing a stage

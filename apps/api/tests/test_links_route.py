@@ -108,6 +108,12 @@ def test_features_says_whether_links_are_on(on: bool) -> None:
 # At start
 
 
+def own_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+    """What guitarvis_* loggers said. A real build_services may make boto,
+    SQLAlchemy or another library warn, which says nothing of these tests."""
+    return [r for r in caplog.records if r.name.startswith("guitarvis_")]
+
+
 @pytest.mark.parametrize(
     ("links_on", "said"),
     [
@@ -139,7 +145,7 @@ def test_the_served_api_says_whether_links_are_on_and_warns_with_no_runtime(
     ):
         pass
 
-    assert [(r.levelno, r.getMessage()) for r in caplog.records] == said
+    assert [(r.levelno, r.getMessage()) for r in own_records(caplog)] == said
 
 
 def test_an_app_handed_its_services_says_nothing_of_links_at_start(
@@ -153,7 +159,7 @@ def test_an_app_handed_its_services_says_nothing_of_links_at_start(
     ):
         pass
 
-    assert caplog.records == []
+    assert own_records(caplog) == []
 
 
 # R. The request, before any network

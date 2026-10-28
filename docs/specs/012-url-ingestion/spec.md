@@ -737,7 +737,15 @@ for each case, read by eye.
   at ERROR, with yt-dlp's notices of what it skipped in the tail. The child
   reports a missing runtime as `misconfigured` before trying. The api and
   the worker log a warning at start when links are on and no runtime is
-  found.
+  found. The rule leans one way on purpose: `offers_only_video` counts any
+  muxed format as possible audio, and `web`'s itag 18, a muxed format, is
+  exempt from PO-token skipping, so it is likely on most lookups. A
+  genuinely silent upload may therefore read as `extractor_broken`
+  (`fetch_failed`, ERROR, retried) instead of `no_audio`. That is the
+  chosen direction: when unsure, it is ours. It would show as a steady
+  trickle of ERRORs for the same video ids. A known silent video belongs
+  in `make smoke-url` or the acceptance record, once the network is
+  allowed.
 - **Classifier drift.** When yt-dlp rewords a message, a known cause falls
   back to `unknown`: still `fetch_failed`, and retried. That is honest but
   less helpful. The fixtures and the smoke test catch it.

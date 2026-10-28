@@ -169,7 +169,7 @@ link printed
 - [x] No line carries a whole pasted link, a `si=` value, a database URL or a storage secret: 0 hits, over every log of the run, the first api's as shipped among them (the workaround only adds lines), for `si=`, pasted forms, `password`, a credentialed `postgresql://` or `X-Amz-Signature`
 - [x] No response body and no job row carries yt-dlp's text (`ERROR:`, `[youtube]`, `yt-dlp`, a traceback): 0 hits in every captured response and in the five link rows' `failure_message` and `title`
 
-A retried download failure (D1, D2, D8, D9, D10) also leaves RQ's own ERROR
+A retried download failure (D1, D2, D7, D8, D9, D10) also leaves RQ's own ERROR
 line, with a traceback, beside our `link fetch failed` line. That is expected,
 as it is for every retried job, and is not a second line for one outcome. Its
 traceback carries the catalog's message, never yt-dlp's words.
