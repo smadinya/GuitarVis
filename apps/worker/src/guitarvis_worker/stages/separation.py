@@ -186,8 +186,13 @@ class DemucsSeparator:
             command += ["-d", self.device]
 
         try:
+            # stdin on /dev/null: RQ's horse is a background process group, and a
+            # child that reads the worker's terminal (demucs's ffmpeg) is stopped.
             process = subprocess.Popen(
-                command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
             )
         except FileNotFoundError as exc:
             raise PipelineError(

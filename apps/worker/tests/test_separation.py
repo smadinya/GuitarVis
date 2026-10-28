@@ -4,10 +4,12 @@ The Demucs call is stubbed out: what is under test is the fallback decision,
 which must hold whether or not the ml extra is installed.
 """
 
+import os
 import subprocess
 import sys
 import wave
 from pathlib import Path
+from typing import IO, cast
 
 import pytest
 from guitarvis_core.contracts import FailureReason, PipelineError, SeparationProgress
@@ -407,3 +409,95 @@ def test_a_failing_progress_hook_also_kills_the_child(
         )
 
     assert fake.processes[0].killed
+
+
+# RQ's work-horse calls os.setpgrp(), so under `make worker` in an interactive
+# terminal it is a background process group of that terminal. A child that
+# inherits the terminal as stdin and reads it (demucs runs an ffmpeg without
+# -nostdin) is sent SIGTTIN, and the kernel stops the whole group: the job sat
+# at "separation" with every process in state T. The unit tests above fake
+# Popen away, so none of them could see which stdin a real child gets. This
+# one runs the real _demucs, a real `python -m demucs` (a stand-in package
+# first on PYTHONPATH) and a real pipe, held open and never written, in place
+# of the terminal.
+FAKE_DEMUCS_MAIN = """\
+import os
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+model = args[args.index("-n") + 1]
+out_dir = Path(args[args.index("-o") + 1])
+audio = Path(args[args.index("-o") + 2])
+
+# What ffmpeg does with its stdin, without waiting: end-of-file (/dev/null)
+# is what a job may see. An empty pipe whose writer is still open (the
+# worker's terminal, here) is what would stop it.
+os.set_blocking(0, False)
+try:
+    seen = os.read(0, 1)
+except BlockingIOError:
+    sys.exit("demucs inherited the worker's stdin: it would block on a terminal")
+except OSError as error:
+    sys.exit(f"demucs had no usable stdin: {error!r}")
+if seen != b"":
+    sys.exit(f"demucs read {seen!r} from the worker's stdin")
+
+stem = out_dir / model / audio.stem
+stem.mkdir(parents=True)
+(stem / "guitar.wav").write_bytes(b"")
+"""
+
+RUN_DEMUCS_STAGE = """\
+import sys
+from pathlib import Path
+
+from guitarvis_worker.stages.separation import DemucsSeparator
+
+work_dir = Path(sys.argv[1])
+stem = DemucsSeparator(work_dir=work_dir)._demucs(
+    "htdemucs_6s", work_dir / "song.wav", "guitar"
+)
+print(stem)
+"""
+
+
+def test_demucs_never_inherits_the_workers_stdin(tmp_path: Path) -> None:
+    fake_packages = tmp_path / "fake-packages"
+    (fake_packages / "demucs").mkdir(parents=True)
+    (fake_packages / "demucs" / "__init__.py").write_text("")
+    (fake_packages / "demucs" / "__main__.py").write_text(FAKE_DEMUCS_MAIN)
+    work_dir = tmp_path / "work"
+    work_dir.mkdir()
+    env = {
+        **os.environ,
+        "PYTHONPATH": os.pathsep.join(
+            [str(fake_packages), *filter(None, [os.environ.get("PYTHONPATH")])]
+        ),
+    }
+
+    # The stage runs in its own process so that its stdin is a pipe this test
+    # holds open: pytest points the runner's own stdin at /dev/null, which
+    # would hide the bug. Nothing is ever written to it, and it stays open
+    # until the stage is done.
+    stage = subprocess.Popen(
+        [sys.executable, "-c", RUN_DEMUCS_STAGE, str(work_dir)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=env,
+        text=True,
+    )
+    try:
+        stage.wait(timeout=60)
+        output = cast(IO[str], stage.stdout).read()
+    finally:
+        if stage.poll() is None:
+            stage.kill()
+            stage.wait()
+        for pipe in (stage.stdin, stage.stdout):
+            if pipe is not None:
+                pipe.close()
+
+    assert stage.returncode == 0, output
+    assert output.strip() == str(work_dir / "htdemucs_6s" / "song" / "guitar.wav")
