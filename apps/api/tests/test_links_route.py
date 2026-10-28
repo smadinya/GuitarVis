@@ -8,12 +8,14 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from typing import Any
 
+import guitarvis_fetch.fetcher
 import httpx2
 import pytest
 from api_fixture import CLIENT_IP, Api, make_api
 from fastapi.testclient import TestClient
+from guitarvis_api import app as app_module
 from guitarvis_fetch.catalog import CATALOG, FetchKind, message_for
-from guitarvis_fetch.fetcher import FetchError, VideoInfo
+from guitarvis_fetch.fetcher import NO_DENO_WARNING, FetchError, VideoInfo
 from guitarvis_fetch.links import parse
 from guitarvis_fetch.testing import FakeFetcher, video_info
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE, JobStatus, NewJob
@@ -101,6 +103,57 @@ def test_features_says_whether_links_are_on(on: bool) -> None:
     response = api.client.get("/features")
 
     assert (response.status_code, response.json()) == (200, {"url_ingestion": on})
+
+
+# At start
+
+
+@pytest.mark.parametrize(
+    ("links_on", "said"),
+    [
+        (
+            "1",
+            [
+                (logging.INFO, "links are on (GUITARVIS_URL_INGESTION)"),
+                (logging.WARNING, NO_DENO_WARNING),
+            ],
+        ),
+        ("0", [(logging.INFO, "links are off (GUITARVIS_URL_INGESTION)")]),
+    ],
+)
+def test_the_served_api_says_whether_links_are_on_and_warns_with_no_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    links_on: str,
+    said: list[tuple[int, str]],
+) -> None:  # W1 is told from these lines and the worker's; L16
+    """Served: the real services, built at start. They connect to nothing
+    until used, and here nothing uses them."""
+    monkeypatch.setenv("GUITARVIS_URL_INGESTION", links_on)
+    monkeypatch.setattr(app_module, "configure_logging", lambda *names: None)
+    monkeypatch.setattr(guitarvis_fetch.fetcher, "find_deno", lambda: None)
+
+    with (
+        caplog.at_level(logging.INFO, logger="guitarvis_api"),
+        TestClient(app_module.create_app()),
+    ):
+        pass
+
+    assert [(r.levelno, r.getMessage()) for r in caplog.records] == said
+
+
+def test_an_app_handed_its_services_says_nothing_of_links_at_start(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(guitarvis_fetch.fetcher, "find_deno", lambda: None)
+
+    with (
+        caplog.at_level(logging.INFO, logger="guitarvis_api"),
+        TestClient(app_module.create_app(links_api().services)),
+    ):
+        pass
+
+    assert caplog.records == []
 
 
 # R. The request, before any network

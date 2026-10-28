@@ -283,13 +283,21 @@ CATALOG: dict[FetchKind, Entry] = {
 }
 
 
+# L10's words when there is no length to give.
+TOO_LONG_UNTIMED_MESSAGE = (
+    "That video is over the {limit}-minute limit: try a link to a single song."
+)
+
+
 def message_for(kind: FetchKind, *, duration_sec: float | None = None) -> str:
     """The user's message for `kind`. Only too_long has blanks to fill."""
     template = CATALOG[kind].message
     if kind is not FetchKind.TOO_LONG:
         return template
-    length = "over" if duration_sec is None else clock(duration_sec)
-    return template.format(length=length, limit=f"{MAX_DURATION_SEC / 60:.0f}")
+    limit = f"{MAX_DURATION_SEC / 60:.0f}"
+    if duration_sec is None:
+        return TOO_LONG_UNTIMED_MESSAGE.format(limit=limit)
+    return template.format(length=clock(duration_sec), limit=limit)
 
 
 def clock(seconds: float) -> str:

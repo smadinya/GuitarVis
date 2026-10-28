@@ -5,12 +5,15 @@
  */
 export const BLANK_HINT = "Paste a link first.";
 export const NOT_A_LINK_HINT = "That doesn't look like a link.";
+/** The api's limit (spec 012; `guitarvis_fetch.links.MAX_LINK_CHARS`). Past
+ * it, the api answers in words meant for developers. */
+export const MAX_LINK_CHARS = 2048;
 
 /** A hint for the user, or null when the text may be sent. */
 export function linkHint(raw: string): string | null {
   const text = raw.trim();
   if (text === "") return BLANK_HINT;
-  if (/\s/.test(text)) return NOT_A_LINK_HINT;
+  if (text.length > MAX_LINK_CHARS || /\s/.test(text)) return NOT_A_LINK_HINT;
   const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`;
   let url: URL;
   try {

@@ -32,7 +32,7 @@ from guitarvis_core.contracts import (
     Transcriber,
 )
 from guitarvis_fetch.catalog import LINKS_OFF_IN_QUEUE_MESSAGE
-from guitarvis_fetch.fetcher import ChildFetcher, UrlFetcher, find_deno
+from guitarvis_fetch.fetcher import ChildFetcher, UrlFetcher, log_links_at_start
 from guitarvis_fetch.links import Link, LinkRefused, parse
 from guitarvis_jobs.blobs import BlobStore, S3BlobStore
 from guitarvis_jobs.models import (
@@ -409,11 +409,7 @@ def serve(settings: Settings, *, burst: bool = False) -> None:
     The scheduler is on because RQ needs it to run retries after their
     intervals.
     """
-    if settings.url_ingestion and find_deno() is None:
-        log.warning(
-            "links are on, but Deno 2.3 or later was not found: every link job "
-            "will fail as fetch_failed until it is installed"
-        )
+    log_links_at_start(log, settings.url_ingestion)
     connection = Redis.from_url(settings.redis_url)
     JobWorker([QUEUE_NAME], connection=connection).work(
         with_scheduler=True, burst=burst

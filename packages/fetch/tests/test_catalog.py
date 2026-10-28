@@ -45,6 +45,7 @@ INTERNAL = "Something went wrong on our side. Try again later."
 def every_message() -> list[str]:
     return [
         *(message_for(kind, duration_sec=721) for kind in FetchKind),
+        message_for(FetchKind.TOO_LONG),  # with no length to give
         *REFUSALS.values(),
         LINKS_OFF_MESSAGE,
         LINKS_OFF_IN_QUEUE_MESSAGE,
@@ -422,6 +423,12 @@ def test_too_long_names_the_videos_length_and_the_limit() -> None:
         "single song."
     )
     assert "3:00:00 long" in message_for(FetchKind.TOO_LONG, duration_sec=10800)
+
+
+def test_too_long_with_no_length_to_give_still_reads_as_a_sentence() -> None:  # L10
+    assert message_for(FetchKind.TOO_LONG) == (
+        "That video is over the 10-minute limit: try a link to a single song."
+    )
 
 
 @pytest.mark.parametrize(

@@ -12,6 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+import guitarvis_fetch.fetcher
 import pytest
 from guitarvis_core.audio import probe_duration
 from guitarvis_core.contracts import (
@@ -26,6 +27,7 @@ from guitarvis_core.contracts import (
 from guitarvis_core.tabdoc import TabDocument, Timing
 from guitarvis_fetch.catalog import FetchKind, message_for
 from guitarvis_fetch.fetcher import (
+    NO_DENO_WARNING,
     ChildFetcher,
     Download,
     FetchError,
@@ -942,19 +944,29 @@ class FakeWorker:
         return False
 
 
-@pytest.mark.parametrize(("links_on", "warned"), [(True, True), (False, False)])
-def test_serve_warns_when_links_are_on_and_no_runtime_is_found(
+@pytest.mark.parametrize(
+    ("links_on", "said"),
+    [
+        (
+            True,
+            [
+                (logging.INFO, "links are on (GUITARVIS_URL_INGESTION)"),
+                (logging.WARNING, NO_DENO_WARNING),
+            ],
+        ),
+        (False, [(logging.INFO, "links are off (GUITARVIS_URL_INGESTION)")]),
+    ],
+)
+def test_serve_says_whether_links_are_on_and_warns_when_no_runtime_is_found(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
     links_on: bool,
-    warned: bool,
-) -> None:
-    monkeypatch.setattr(runner, "find_deno", lambda: None)
+    said: list[tuple[int, str]],
+) -> None:  # W1 is told from these lines; D4
+    monkeypatch.setattr(guitarvis_fetch.fetcher, "find_deno", lambda: None)
     monkeypatch.setattr(runner, "JobWorker", FakeWorker)
 
-    with caplog.at_level(logging.WARNING, logger="guitarvis_worker"):
+    with caplog.at_level(logging.INFO, logger="guitarvis_worker"):
         runner.serve(Settings(url_ingestion=links_on), burst=True)
 
-    assert (
-        any("Deno 2.3 or later was not found" in m for m in caplog.messages) is warned
-    )
+    assert [(r.levelno, r.getMessage()) for r in caplog.records] == said

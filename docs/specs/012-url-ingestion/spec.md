@@ -379,7 +379,10 @@ development.
 | client | Reads `/features` and hides the link field unless the answer is true, including when the call fails. A 403 `links_disabled` after the field was shown removes it and shows the message |
 
 The setting is read at start, like every other, so flipping it means
-restarting the api and the workers, which takes seconds. A job that was
+restarting the api and the workers, which takes seconds. Each logs at start,
+in the same words, `links are on` or `links are off`, so a worker left off
+while the api is on (W1) shows in the logs, and a warning when links are on
+but no Deno is found. A job that was
 mid-download when its worker restarted is retried by RQ, and the retry fails
 with `links_disabled`. The api and the worker are configured separately, and
 each enforces its own step.
@@ -452,7 +455,7 @@ work later; *no* means it won't. Tests are named as in *Testing*.
 | L7 | Upcoming, or premiere not yet started | classify (YouTube's reason; there are no formats, so no metadata comes back), or `is_upcoming` | `link_unusable` · 422 | That video hasn't premiered yet. Try the link again once it has. | INFO | later | classify, route |
 | L8 | Stream just ended, still processing | `post_live` | `link_unusable` · 422 | That stream has only just ended, and YouTube is still processing it. Try the link again in a few hours. | INFO | later | route |
 | L9 | No duration in the metadata | step 6 | `link_unusable` · 422 | We couldn't tell how long that video is, so we didn't fetch it. Upload the audio file instead. | WARNING | no | route |
-| L10 | Over ten minutes | `check_duration` | `too_long` · 422 | That video is {length} long. The limit is 10 minutes: try a link to a single song. | INFO | no | route |
+| L10 | Over ten minutes | `check_duration` | `too_long` · 422 | That video is {length} long. The limit is 10 minutes: try a link to a single song. With no length to give: That video is over the 10-minute limit: try a link to a single song. | INFO | no | route |
 | L11 | No audio-only format, without challenge-solving, 429, 5xx or transport warnings | classify | `link_unusable` · 422 | That video has no audio we can use. Try a different link, or upload the audio file. | WARNING | no | classify |
 | L12 | Rate-limited: HTTP 429, or "Sign in to confirm you're not a bot" | classify | `fetch_failed` · 503 | YouTube is limiting how often we can fetch right now. Try again later, or upload the audio file. | WARNING | later | classify, route |
 | L13 | Network: DNS failure, connection refused or reset, TLS error, YouTube 5xx | classify | `fetch_failed` · 502 | We couldn't reach YouTube. Try again in a few minutes, or upload the audio file. | WARNING | later | classify, route |
@@ -546,8 +549,9 @@ an "or paste a link" divider, a URL field with the link icon and `https://…`,
 and a *Get tab* button. It shows only when `/features` says links are on.
 
 - **Before sending:** a blank field shows "Paste a link first." Text that
-  isn't an `http(s)` URL (after adding a missing `https://`) shows "That
-  doesn't look like a link." Both appear under the field (`aria-invalid`,
+  isn't an `http(s)` URL (after adding a missing `https://`), or is over
+  2,048 characters once trimmed, shows "That doesn't look like a link."
+  Both appear under the field (`aria-invalid`,
   `aria-describedby`), and nothing is sent. Which hosts are supported is the
   api's call, so the client keeps no list that could drift.
 - **While sending:** "Checking the link…". The drop zone and the field are

@@ -59,6 +59,12 @@ TAIL_BYTES = 2048
 REAP_SEC = 5.0  # how long to wait for the reader thread after the kill
 # yt_dlp.utils._jsruntime.DenoJsRuntime.MIN_SUPPORTED_VERSION in 2026.10.26.
 MIN_DENO_VERSION = (2, 3, 0)
+# What the api and the worker say at start when links are on and Deno isn't.
+NO_DENO_WARNING = (
+    f"links are on, but Deno {'.'.join(str(part) for part in MIN_DENO_VERSION)} "
+    "or later was not found: every link will fail as fetch_failed until it is "
+    "installed"
+)
 
 Progress = Callable[[float], None]
 
@@ -243,6 +249,15 @@ def find_deno(*, which: Callable[[str], str | None] = shutil.which) -> JsRuntime
         if version >= MIN_DENO_VERSION:
             return JsRuntime("deno", candidate, ".".join(match.groups()))
     return None
+
+
+def log_links_at_start(log: logging.Logger, links_on: bool) -> None:
+    """What the api and the worker each say at start, in the same words:
+    whether links are on, so one on and the other off (W1) shows in the
+    logs, and a warning when they are on but Deno is missing."""
+    log.info("links are %s (GUITARVIS_URL_INGESTION)", "on" if links_on else "off")
+    if links_on and find_deno() is None:
+        log.warning("%s", NO_DENO_WARNING)
 
 
 def child_environment(environ: Mapping[str, str] | None = None) -> dict[str, str]:
