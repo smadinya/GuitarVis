@@ -6,8 +6,10 @@ import {
   ApiError,
   MAX_UPLOAD_BYTES,
   createJob,
+  createJobFromUrl,
   errorFrom,
   getDocument,
+  getFeatures,
   getJob,
   type Fetch,
 } from "./client";
@@ -234,6 +236,105 @@ describe("createJob", () => {
   });
 });
 
+describe("createJobFromUrl", () => {
+  const LINK = "https://youtu.be/kPdv44HtEoA";
+
+  it("posts the link as JSON in a field named url", async () => {
+    const sent: Array<[string, RequestInit | undefined]> = [];
+    const recording: Fetch = async (path, init) => {
+      sent.push([path, init]);
+      return new Response(JSON.stringify(jobView()), { status: 202 });
+    };
+
+    await createJobFromUrl(LINK, undefined, recording);
+
+    const [[path, init]] = sent;
+    expect([path, init?.method]).toEqual(["/jobs/from-url", "POST"]);
+    expect(new Headers(init?.headers).get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual({ url: LINK });
+  });
+
+  it("resolves a new job on 202 and an existing one on 200", async () => {
+    await expect(createJobFromUrl(LINK, undefined, answering(202, jobView()))).resolves.toEqual({
+      job: jobView(),
+      created: true,
+    });
+    await expect(
+      createJobFromUrl(LINK, undefined, answering(200, jobView({ status: "running" }))),
+    ).resolves.toMatchObject({ created: false });
+  });
+
+  it.each<[number, string]>([
+    [403, "links_disabled"],
+    [422, "unsupported_link"],
+    [422, "link_unusable"],
+    [422, "too_long"],
+    [429, "too_many_jobs"],
+    [503, "fetch_failed"],
+    [504, "fetch_failed"],
+    [500, "internal"],
+  ])("rejects a %i carrying %s with the server's message", async (status, reason) => {
+    const error = await rejection(
+      createJobFromUrl(LINK, undefined, answering(status, errorBody(reason, "Server words."))),
+    );
+
+    expect(error).toMatchObject({ status, reason, message: "Server words." });
+  });
+
+  it("rejects as unreachable when nothing answers, or when told to stop", async () => {
+    const offline: Fetch = async () => {
+      throw new TypeError("Failed to fetch");
+    };
+    const controller = new AbortController();
+    const listening: Fetch = (_path, init) =>
+      new Promise((_resolve, reject) =>
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError"))),
+      );
+
+    const stopped = createJobFromUrl(LINK, controller.signal, listening);
+    controller.abort();
+
+    expect(await rejection(createJobFromUrl(LINK, undefined, offline))).toMatchObject({
+      status: null,
+      reason: "unreachable",
+    });
+    expect(await rejection(stopped)).toMatchObject({ reason: "unreachable" });
+  });
+
+  it("reads an answer that is not JSON as no answer", async () => {
+    const error = await rejection(createJobFromUrl(LINK, undefined, answering(202, "<html>")));
+
+    expect(error.reason).toBe("unreachable");
+  });
+});
+
+describe("getFeatures", () => {
+  it("says links are on only when the api says true", async () => {
+    await expect(getFeatures(answering(200, { url_ingestion: true }))).resolves.toEqual({
+      url_ingestion: true,
+    });
+    for (const body of [{ url_ingestion: false }, { url_ingestion: "yes" }, {}, [], null]) {
+      await expect(getFeatures(answering(200, body))).resolves.toEqual({ url_ingestion: false });
+    }
+  });
+
+  it("asks /features", async () => {
+    const paths: string[] = [];
+    await getFeatures(async (path) => {
+      paths.push(path);
+      return new Response("{}");
+    });
+
+    expect(paths).toEqual(["/features"]);
+  });
+
+  it("rejects like every other call when the api cannot be reached", async () => {
+    expect(await rejection(getFeatures(answering(404, "nope")))).toMatchObject({
+      reason: "unreachable",
+    });
+  });
+});
+
 describe("MESSAGES", () => {
   it("gives every reason a headline and an action", () => {
     for (const [reason, message] of Object.entries(MESSAGES)) {
@@ -241,7 +342,7 @@ describe("MESSAGES", () => {
       expect(message.headline.length).toBeGreaterThan(0);
       expect(message.action.length).toBeGreaterThan(0);
     }
-    expect(Object.keys(MESSAGES)).toHaveLength(10); // nine from the api, plus unreachable
+    expect(Object.keys(MESSAGES)).toHaveLength(13); // twelve from the api, plus unreachable
     expect(isReason("toString")).toBe(false);
   });
 });

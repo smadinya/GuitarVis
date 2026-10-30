@@ -69,9 +69,18 @@ outright only when there is no usable guitar audio.
 When a stage fails, omit its track from the tab document and continue. Raise
 `PipelineError` with a typed `FailureReason` only when the job genuinely cannot
 produce anything: `unsupported_format`, `no_guitar_detected`, `too_long`,
-`fetch_failed`, `internal`. Those strings are a contract — the UI maps each to
-actionable text so the user knows whether to try a different file, a different
-song, or come back later.
+`fetch_failed`, `link_unusable`, `links_disabled`, `internal`. Those strings are
+a contract — the UI maps each to actionable text so the user knows whether to
+try a different file, a different song, or come back later.
+
+`PipelineError` also says whether another attempt might pass: `retryable`
+defaults to true for `internal` only. The runner retries whatever is
+retryable, and on the final attempt records the error's own reason and
+message, unless the reason is `internal`, whose detail stays in the log. The
+link failures RQ retries are network errors, download timeouts, unclassified
+yt-dlp errors, downloads that left no file, crashes and local I/O errors (the
+last two with reason `internal`); the per-kind rule is `Entry.retry` in
+`guitarvis_fetch/catalog.py`, and the api never retries a lookup (spec 012).
 
 ## Testing a stage
 

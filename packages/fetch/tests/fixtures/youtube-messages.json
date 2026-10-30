@@ -1,0 +1,233 @@
+[
+  {
+    "kind": "private",
+    "source": "live: recorded 2026-10-26 with yt-dlp 2026.10.26, no JavaScript runtime",
+    "message": "ERROR: [youtube] yZIXLfi8CZQ: Private video. If the owner of this video has granted you access, please sign in. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies"
+  },
+  {
+    "kind": "age_restricted",
+    "source": "live: recorded 2026-10-26 with yt-dlp 2026.10.26, no JavaScript runtime",
+    "message": "ERROR: [youtube] HtVdAasjOgU: Sign in to confirm your age. This video may be inappropriate for some users. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies",
+    "warnings": [
+      "[youtube] No supported JavaScript runtime could be found. Only deno is enabled by default; to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. See  https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one",
+      "[youtube] HtVdAasjOgU: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS"
+    ]
+  },
+  {
+    "kind": "age_restricted",
+    "source": "reported: YouTube's reason as yt-dlp users report it, with the login hint yt-dlp 2026.10.26 adds to any reason that says \"sign in\" (extractor/youtube/_video.py:4071–4073); not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Sign in to view this video. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies"
+  },
+  {
+    "kind": "unavailable",
+    "source": "live: recorded 2026-10-26 with yt-dlp 2026.10.26, no JavaScript runtime",
+    "message": "ERROR: [youtube] Q39EVAstoRM: This video is unavailable"
+  },
+  {
+    "kind": "unavailable",
+    "source": "live: recorded 2026-10-26 with yt-dlp 2026.10.26, no JavaScript runtime",
+    "message": "ERROR: [youtube] JOhiWY7XmoY: This video is not available"
+  },
+  {
+    "kind": "unavailable",
+    "source": "live: recorded 2026-10-26 with yt-dlp 2026.10.26, no JavaScript runtime",
+    "message": "ERROR: [youtube] 6SJNVb0GnPI: This video has been removed for violating YouTube's policy on hate speech. Learn more about combating hate speech in your country."
+  },
+  {
+    "kind": "unavailable",
+    "source": "live: recorded 2026-10-26 with yt-dlp 2026.10.26, no JavaScript runtime",
+    "message": "ERROR: [youtube] jfKfPfyJRdk: This live stream recording is not available."
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); nothing shows the video has no audio, so it is ours",
+    "message": "[youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats"
+  },
+  {
+    "kind": "no_audio",
+    "source": "written from the source, not recorded live: yt-dlp 2026.10.26's own text (YoutubeDL.py:3090-3093), with the formats the extractor offered all video, with URLs, and none with audio",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "video_only": true
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "written from the source, not recorded live: yt-dlp 2026.10.26's own text (YoutubeDL.py:1191), with nothing left once the formats with no URL and those with DRM are dropped (YoutubeDL.py:2925-2960)",
+    "message": "ERROR: [youtube] kPdv44HtEoA: No video formats found!"
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); the warning is not about challenges, but nothing shows the video has no audio, so it is ours",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: This video is age-restricted; some formats may be missing without authentication. Use --cookies-from-browser or --cookies for the authentication."
+    ]
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "written from the source, not recorded live: yt-dlp 2026.10.26's own text; the warning is the one extractor/youtube/_video.py:3536-3549 gives for the SABR-only experiment. What was offered was all video, but formats were skipped, so it proves nothing",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: Some tv_samsung client https formats have been skipped as they are missing a URL. YouTube may have enabled the SABR-only streaming experiment for the current session. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details"
+    ],
+    "video_only": true
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "written from the source, not recorded live: yt-dlp 2026.10.26's own text; the warning is the one extractor/youtube/_video.py:3418-3427 gives for the experiment that applies DRM on the tv client. What was offered was all video, but formats were skipped, so it proves nothing",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: Some tv client https formats have been skipped as they are DRM protected. The current session may have an experiment that applies DRM to all videos on the tv client. See  https://github.com/yt-dlp/yt-dlp/issues/12563  for more details."
+    ],
+    "video_only": true
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "message": "[youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] HtVdAasjOgU: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS"
+    ]
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "message": "[youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] No supported JavaScript runtime could be found. Only deno is enabled by default; to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. See  https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one"
+    ]
+  },
+  {
+    "kind": "rate_limited",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); the warning is the one its extractor gives when a player client's request fails and it tries the next (_video.py:3118–3120), as the offline tests record it for a 429",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: Unable to download API page: HTTP Error 429: Too Many Requests (caused by <HTTPError 429: Too Many Requests>)"
+    ]
+  },
+  {
+    "kind": "network",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); the warning is the one its extractor gives when a player client's request fails and it tries the next (_video.py:3118–3120), as the offline tests record it for a 503",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: Unable to download API page: HTTP Error 503: Service Unavailable (caused by <HTTPError 503: Service Unavailable>)"
+    ]
+  },
+  {
+    "kind": "network",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py); the warning is the one its extractor gives when a player client's request fails and it tries the next (_video.py:3118–3120), as the offline tests record it for a dropped connection",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Requested format is not available. Use --list-formats for a list of available formats",
+    "warnings": [
+      "[youtube] kPdv44HtEoA: Unable to download API page: [Errno 104] Connection reset by peer (caused by TransportError('[Errno 104] Connection reset by peer'))"
+    ]
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Failed to extract any player response; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U"
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Unable to extract yt initial data; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U"
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "message": "ERROR: Unsupported URL: https://www.youtube.com/watch?v=kPdv44HtEoA"
+  },
+  {
+    "kind": "extractor_broken",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "message": "ERROR: No suitable extractor found for URL https://www.youtube.com/watch?v=kPdv44HtEoA"
+  },
+  {
+    "kind": "rate_limited",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "message": "ERROR: [youtube] kPdv44HtEoA: This content isn't available, try again later. The current session has been rate-limited by YouTube for up to an hour. It is recommended to use `-t sleep` to add a delay between video requests to avoid exceeding the rate limit. For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#this-content-isnt-available-try-again-later"
+  },
+  {
+    "kind": "rate_limited",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "message": "ERROR: [youtube] kPdv44HtEoA: All player responses are invalid. Your IP is likely being blocked by Youtube"
+  },
+  {
+    "kind": "rate_limited",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "message": "ERROR: [youtube] kPdv44HtEoA: This video is unavailable. YouTube is requiring a captcha challenge before playback"
+  },
+  {
+    "kind": "members_only",
+    "source": "source: yt-dlp 2026.10.26's own text (YoutubeDL.py, extractor/youtube/_video.py)",
+    "message": "ERROR: [youtube] kPdv44HtEoA: This video is DRM protected"
+  },
+  {
+    "kind": "rate_limited",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies"
+  },
+  {
+    "kind": "rate_limited",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Sign in to confirm you're not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies"
+  },
+  {
+    "kind": "members_only",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Join this channel to get access to members-only content like this video, and other exclusive perks."
+  },
+  {
+    "kind": "members_only",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: This video is available to this channel's members on level: Fan (or any higher level). Join this channel to get access to members-only content and other exclusive perks."
+  },
+  {
+    "kind": "members_only",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: This video requires payment to watch."
+  },
+  {
+    "kind": "members_only",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: This video is only available to Music Premium members"
+  },
+  {
+    "kind": "upcoming",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: This live event will begin in 3 hours."
+  },
+  {
+    "kind": "upcoming",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: This live event will begin in a few moments."
+  },
+  {
+    "kind": "upcoming",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Premieres in 10 hours"
+  },
+  {
+    "kind": "upcoming",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Premiere will begin shortly"
+  },
+  {
+    "kind": "unavailable",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated."
+  },
+  {
+    "kind": "unavailable",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Video unavailable. This video is no longer available due to a copyright claim by Example Records"
+  },
+  {
+    "kind": "geo_restricted",
+    "source": "reported: YouTube's reason as yt-dlp users report it, wrapped as the source does; not reproduced here",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Video unavailable. The uploader has not made this video available in your country"
+  },
+  {
+    "kind": "unknown",
+    "source": "made up: a message no rule knows",
+    "message": "ERROR: [youtube] kPdv44HtEoA: Something YouTube has never said before"
+  }
+]

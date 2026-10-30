@@ -5,7 +5,7 @@
  * Paths are relative: the client is served from the api's origin (in
  * development, through the Vite proxy), so there is no CORS.
  */
-import type { FailureView, JobView } from "../types/api";
+import type { FailureView, Features, JobView, LinkRequest } from "../types/api";
 import type { TabDocument } from "../types/tabDocument";
 import { isFailureReason, isReason, type Reason } from "./messages";
 
@@ -89,6 +89,51 @@ export function createJob(
     form.append("file", file, file.name);
     xhr.send(form);
   });
+}
+
+/**
+ * POST /jobs/from-url. Through fetch, since a link has no upload progress to
+ * report. Aborting `signal` stops the request, which then rejects as
+ * unreachable, as an aborted upload does.
+ */
+export async function createJobFromUrl(
+  url: string,
+  signal?: AbortSignal,
+  fetcher: Fetch = browserFetch,
+): Promise<Upload> {
+  const request: LinkRequest = { url };
+  let response: Response;
+  let body: string;
+  try {
+    response = await fetcher("/jobs/from-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(request),
+      signal,
+    });
+    body = await response.text();
+  } catch {
+    throw noAnswer();
+  }
+  if (response.status !== 200 && response.status !== 202) {
+    throw errorFrom(response.status, body);
+  }
+  try {
+    return { job: knownReasons(JSON.parse(body) as WireJob), created: response.status === 202 };
+  } catch {
+    throw new ApiError(response.status, "unreachable", "The answer was not JSON.");
+  }
+}
+
+/**
+ * GET /features: what the api has switched on. Anything but a plain `true`
+ * reads as off, so the page never offers what the api would refuse.
+ */
+export async function getFeatures(fetcher: Fetch = browserFetch): Promise<Features> {
+  const body = await getJson("/features", fetcher);
+  const on =
+    typeof body === "object" && body !== null && "url_ingestion" in body && body.url_ingestion === true;
+  return { url_ingestion: on };
 }
 
 /**

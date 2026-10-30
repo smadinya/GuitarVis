@@ -13,6 +13,7 @@ export function jobView(fields: Partial<JobView> = {}): JobView {
     title: "Song",
     duration_sec: 13.871,
     failure: null,
+    source_url: null,
     created_at: "2026-10-08T12:00:00Z",
     updated_at: "2026-10-08T12:00:00Z",
     ...fields,

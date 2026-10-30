@@ -14,7 +14,7 @@ from guitarvis_core.tabdoc import Instrument, Source, TabDocument, Timing
 from guitarvis_jobs.blobs import PRESIGN_EXPIRES_SEC
 from guitarvis_jobs.models import INTERNAL_FAILURE_MESSAGE, JobStatus
 from guitarvis_jobs.store import InMemoryJobStore
-from guitarvis_jobs.testing import FakeClock, sample_new_job
+from guitarvis_jobs.testing import FakeClock, sample_link_job, sample_new_job
 
 MISSING_ID = "5f0c6c2e-0000-4000-8000-0000000000ff"
 STEM_KEY = "cache/v1/" + "a" * 64 + "/separation/stem.wav"
@@ -87,9 +87,21 @@ def test_a_queued_job() -> None:
         "title": "song",
         "duration_sec": 30.0,
         "failure": None,
+        "source_url": None,
         "created_at": "2026-10-08T12:00:00Z",
         "updated_at": "2026-10-08T12:00:00Z",
     }
+
+
+def test_a_job_names_the_link_it_was_made_from_and_an_upload_none() -> None:
+    api = make_api()
+    upload = queued(api)
+    link, _ = api.store.create(sample_link_job())
+
+    assert api.client.get(f"/jobs/{upload}").json()["source_url"] is None
+    assert api.client.get(f"/jobs/{link.id}").json()["source_url"] == (
+        "https://www.youtube.com/watch?v=kPdv44HtEoA"
+    )
 
 
 def test_timestamps_are_utc_whatever_offset_the_store_returns() -> None:
@@ -172,9 +184,34 @@ def test_the_mix_redirects_to_a_presigned_url() -> None:
 
     response = api.client.get(f"/jobs/{job_id}/audio/mix", follow_redirects=False)
 
+    key = api.job(job_id).upload_key
+    assert key is not None  # an upload's, from the start
     assert response.status_code == 307
     assert response.headers["location"] == api.blobs.presign_get(
-        api.job(job_id).upload_key, expires_sec=PRESIGN_EXPIRES_SEC
+        key, expires_sec=PRESIGN_EXPIRES_SEC
+    )
+
+
+def test_the_mix_of_a_link_job_is_not_ready_until_its_download_is_stored() -> None:
+    """G1: never a presigned URL for a key that does not exist yet."""
+    api = make_api()
+    job, _ = api.store.create(sample_link_job())
+    api.store.mark_running(job.id)
+
+    before = api.client.get(f"/jobs/{job.id}/audio/mix", follow_redirects=False)
+    api.store.attach_upload(job.id, upload_key="uploads/e.m4a", duration_sec=37.0)
+    after = api.client.get(f"/jobs/{job.id}/audio/mix", follow_redirects=False)
+
+    assert before.status_code == 409
+    assert before.json() == {
+        "error": {
+            "reason": "not_ready",
+            "message": "The audio is not ready yet. Poll the job until it succeeds.",
+        }
+    }
+    assert after.status_code == 307
+    assert after.headers["location"] == api.blobs.presign_get(
+        "uploads/e.m4a", expires_sec=PRESIGN_EXPIRES_SEC
     )
 
 
@@ -222,10 +259,16 @@ def test_an_unexpected_error_uses_the_error_body_and_hides_the_detail() -> None:
     }
 
 
-def test_the_http_layer_adds_exactly_four_reasons() -> None:
+def test_the_http_layer_adds_exactly_five_reasons() -> None:
     http = {reason.value for reason in HttpReason}
 
-    assert http == {"too_large", "too_many_jobs", "not_found", "not_ready"}
+    assert http == {
+        "too_large",
+        "too_many_jobs",
+        "not_found",
+        "not_ready",
+        "unsupported_link",
+    }
     assert not http & {reason.value for reason in FailureReason}
 
 
@@ -240,10 +283,16 @@ def test_the_module_app_connects_to_nothing_until_it_starts(
         return make_api().services
 
     monkeypatch.setattr(app_module, "build_services", fake_build)
+    # Served, it sets up its logging; here, not in this process.
+    configured: list[tuple[str, ...]] = []
+    monkeypatch.setattr(
+        app_module, "configure_logging", lambda *names: configured.append(names)
+    )
 
     with TestClient(app_module.create_app()) as client:
         assert client.get("/health").status_code == 200
     assert len(built) == 1
+    assert configured == [("guitarvis_api",)]
 
 
 # Reconciliation: the two ways Postgres and Redis can disagree, repaired on read.

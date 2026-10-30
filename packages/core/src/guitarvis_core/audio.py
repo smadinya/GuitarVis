@@ -37,6 +37,7 @@ def probe_duration(path: Path) -> float:
                 "json",
                 str(path),
             ],
+            stdin=subprocess.DEVNULL,  # never the worker's terminal (SIGTTIN)
             capture_output=True,
             text=True,
             check=True,

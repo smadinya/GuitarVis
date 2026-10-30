@@ -104,3 +104,23 @@ def test_check_duration_honours_a_custom_limit() -> None:
     with pytest.raises(PipelineError) as excinfo:
         check_duration(2.0, max_duration_sec=1.0)
     assert excinfo.value.reason is FailureReason.TOO_LONG
+
+
+def test_ffprobe_never_reads_the_workers_stdin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The worker's RQ horse is a background process group of its terminal; a
+    # child that reads that terminal is stopped by SIGTTIN, and the job with
+    # it. ffprobe is given /dev/null so it cannot touch one.
+    seen: dict[str, object] = {}
+
+    def answers(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        seen["stdin"] = kwargs.get("stdin")
+        return subprocess.CompletedProcess(
+            args=[], returncode=0, stdout='{"format": {"duration": "1.5"}}'
+        )
+
+    monkeypatch.setattr(subprocess, "run", answers)
+
+    assert probe_duration(tmp_path / "a.wav") == 1.5
+    assert seen["stdin"] == subprocess.DEVNULL

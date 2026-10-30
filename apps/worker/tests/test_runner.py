@@ -5,6 +5,7 @@ end-to-end test (test_end_to_end.py) runs it under a real RQ worker.
 """
 
 import importlib
+import logging
 import signal
 import time
 from collections.abc import Callable, Iterator
@@ -31,6 +32,7 @@ from guitarvis_jobs.store import InMemoryJobStore
 from guitarvis_jobs.testing import (
     integration_settings,
     redis_connection,
+    sample_link_job,
     sample_new_job,
 )
 from guitarvis_worker import runner
@@ -119,6 +121,7 @@ def harness(monkeypatch: pytest.MonkeyPatch) -> Harness:
     store = InMemoryJobStore()
     blobs = InMemoryBlobStore()
     job, _ = store.create(sample_new_job(title="My Song"))
+    assert job.upload_key is not None  # an upload's, from the start
     blobs.put_bytes(job.upload_key, b"pretend mp3 bytes")
     return Harness(store, blobs, StubSeparator(), StubTranscriber(), job.id)
 
@@ -208,6 +211,56 @@ def test_an_internal_pipeline_error_on_the_last_attempt_hides_its_detail(
     assert row.failure_reason is FailureReason.INTERNAL
     assert row.failure_message == INTERNAL_FAILURE_MESSAGE
     assert row.failed_stage == "separation"
+
+
+UPSTREAM_DOWN = PipelineError(
+    FailureReason.FETCH_FAILED,
+    "We couldn't reach YouTube. Try again in a few minutes, or upload the audio file.",
+    retryable=True,
+)
+
+
+def test_a_retryable_failure_with_retries_left_requeues_and_reraises(
+    harness: Harness,
+) -> None:
+    harness.separator.error = UPSTREAM_DOWN
+
+    with pytest.raises(PipelineError):
+        harness.run(retries_left=1)
+
+    row = harness.row()
+    assert row.status is JobStatus.QUEUED
+    assert (row.stage, row.percent, row.attempts) == (None, 0, 1)
+
+
+def test_a_retryable_failure_on_the_last_attempt_keeps_its_own_reason(
+    harness: Harness,
+) -> None:
+    """A fetch that kept failing ends as fetch_failed, not as our fault."""
+    harness.separator.error = UPSTREAM_DOWN
+
+    with pytest.raises(PipelineError):
+        harness.run(retries_left=0)
+
+    row = harness.row()
+    assert row.status is JobStatus.FAILED
+    assert row.failure_reason is FailureReason.FETCH_FAILED
+    assert row.failure_message == str(UPSTREAM_DOWN)
+    assert row.failed_stage == "separation"
+
+
+def test_an_internal_failure_that_is_not_retryable_still_hides_its_detail(
+    harness: Harness,
+) -> None:
+    harness.separator.error = PipelineError(
+        FailureReason.INTERNAL, "Traceback: the detail", retryable=False
+    )
+
+    harness.run(retries_left=2)  # no retry, so it returns normally
+
+    row = harness.row()
+    assert row.failure_reason is FailureReason.INTERNAL
+    assert row.failure_message == INTERNAL_FAILURE_MESSAGE
 
 
 def test_a_file_the_worker_rejects_fails_before_any_stage(
@@ -324,6 +377,29 @@ def test_a_result_after_the_row_was_failed_is_dropped(harness: Harness) -> None:
     assert row.status is JobStatus.FAILED
     assert row.failure_message == "lost"
     assert row.document is None
+
+
+def test_a_link_job_with_no_stored_audio_fails_when_nothing_fetches(
+    harness: Harness, caplog: pytest.LogCaptureFixture
+) -> None:  # W1
+    job, _ = harness.store.create(sample_link_job())
+
+    with caplog.at_level(logging.INFO, logger="guitarvis_worker.runner"):
+        process_job(job.id, harness.deps(), retries_left=2)  # no retry: returns
+
+    row = harness.store.get(job.id)
+    assert row is not None
+    assert row.failure_reason is FailureReason.LINKS_DISABLED
+    assert row.failure_message == (
+        "Links were turned off before this song could be fetched. "
+        "Upload the audio file instead."
+    )
+    assert harness.separator.calls == 0
+    [entry] = [r for r in caplog.records if r.name == "guitarvis_worker.runner"]
+    assert entry.levelno == logging.INFO
+    assert job.id in entry.getMessage()
+    assert "links are off" in entry.getMessage()
+    assert "youtube.com" not in caplog.text  # the url is the row's, not the log's
 
 
 def test_an_unknown_job_is_dropped(harness: Harness) -> None:

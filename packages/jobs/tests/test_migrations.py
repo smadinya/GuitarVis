@@ -1,6 +1,8 @@
 """The Alembic migration and the table the code queries must agree."""
 
+import pytest
 import sqlalchemy as sa
+from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
@@ -36,3 +38,36 @@ def test_migration_files_have_importable_names() -> None:
 
     assert versions, "no migrations found"
     assert all(path.stem.isidentifier() for path in versions)
+
+
+def test_r0002_goes_down_and_up_again() -> None:
+    url = integration_settings().database_url
+
+    with postgres_store() as store:
+        command.downgrade(alembic_config(url), "0001")
+        with store.engine.connect() as connection:
+            columns = {c["name"]: c for c in sa.inspect(connection).get_columns("jobs")}
+            assert "source_url" not in columns
+            assert columns["upload_key"]["nullable"] is False
+
+        upgrade(url)
+        with store.engine.connect() as connection:
+            columns = {c["name"]: c for c in sa.inspect(connection).get_columns("jobs")}
+            assert columns["source_url"]["nullable"] is True
+            assert columns["upload_key"]["nullable"] is True
+
+
+def test_the_table_refuses_a_row_with_no_way_to_its_audio() -> None:
+    insert = sa.text(
+        "INSERT INTO jobs (id, content_hash, status, percent, attempts, title, "
+        "duration_sec, upload_key, client_ip, created_at, updated_at, source_url) "
+        "VALUES (gen_random_uuid(), 'h', 'queued', 0, 0, 't', 1, NULL, 'ip', "
+        "now(), now(), NULL)"
+    )
+
+    with (
+        postgres_store() as store,
+        pytest.raises(sa.exc.IntegrityError, match="jobs_has_audio_source"),
+        store.engine.begin() as connection,
+    ):
+        connection.execute(insert)

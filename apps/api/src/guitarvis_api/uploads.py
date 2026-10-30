@@ -8,12 +8,14 @@ arrives; `receive` then counts the file's own bytes exactly while hashing.
 
 import hashlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 
 from fastapi.responses import JSONResponse
 from guitarvis_core.contracts import FailureReason
+from guitarvis_jobs.settings import Settings
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from guitarvis_api.errors import ApiError, HttpReason, error_body
@@ -34,34 +36,57 @@ def too_large(max_bytes: int) -> ApiError:
     )
 
 
+def _upload_limit(settings: Settings) -> int:
+    return settings.max_upload_bytes + MULTIPART_ALLOWANCE
+
+
+def _upload_too_large(settings: Settings) -> ApiError:
+    return too_large(settings.max_upload_bytes)
+
+
 class UploadSizeLimit:
-    """ASGI middleware: refuse an oversized POST /jobs before it lands.
+    """ASGI middleware: refuse an oversized POST body before it lands.
 
     A declared Content-Length over the limit is refused before a byte is
     read. A body that declares none (chunked) is counted as it streams and
     abandoned the moment it passes the limit: the ApiError raised here comes
     out of FastAPI's body parsing untouched, as the 413 itself.
+
+    One instance guards one path: POST /jobs by default, at the upload limit.
+    The link route adds another for its own body (spec 012). `refuse` builds
+    the error, and its status is the answer: 413, except for a link route
+    that is switched off, which answers 403 before it looks at the size.
     """
 
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        path: str = "/jobs",
+        limit: Callable[[Settings], int] = _upload_limit,
+        refuse: Callable[[Settings], ApiError] = _upload_too_large,
+    ) -> None:
         self.app = app
+        self.path = path
+        self.limit = limit
+        self.refuse = refuse
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if (
             scope["type"] != "http"
             or scope["method"] != "POST"
-            or scope["path"] != "/jobs"
+            or scope["path"] != self.path
         ):
             await self.app(scope, receive, send)
             return
 
-        max_bytes: int = scope["app"].state.services.settings.max_upload_bytes
-        limit = max_bytes + MULTIPART_ALLOWANCE
+        settings: Settings = scope["app"].state.services.settings
+        limit = self.limit(settings)
         declared = _content_length(scope)
         if declared is not None and declared > limit:
-            error = too_large(max_bytes)
+            error = self.refuse(settings)
             response = JSONResponse(
-                error_body(error.reason, error.message), status_code=413
+                error_body(error.reason, error.message), status_code=error.status_code
             )
             await response(scope, receive, send)
             return
@@ -74,7 +99,7 @@ class UploadSizeLimit:
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
                 if received > limit:
-                    raise too_large(max_bytes)
+                    raise self.refuse(settings)
             return message
 
         await self.app(scope, counted, send)

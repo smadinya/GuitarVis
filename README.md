@@ -4,10 +4,11 @@ Takes a recording of a song, isolates the guitar, transcribes what it plays,
 and renders the result as tablature you can play along with — a scrolling tab
 strip and a guitar shown in 2D or 3D, synced to the audio.
 
-**Status: phase 5 of 6 done.** Upload a song in the browser, watch it
-process, and play it back with a scrolling tab strip and a guitar above it, in
-sync with the audio: slowed down, looped, or with the guitar isolated. URL
-ingestion (phase 6) is next.
+**Status: all six phases built.** Upload a song in the browser, or paste a
+YouTube link to it, watch it process, and play it back with a scrolling tab
+strip and a guitar above it, in sync with the audio: slowed down, looped, or
+with the guitar isolated. Links are off unless a deployment turns them on;
+`make api` and `make worker` do.
 
 ## How it works
 
@@ -20,6 +21,9 @@ upload ──▶ api ──▶ [jobs] ──▶ worker
                                 ▼
                         tab document ──▶ api ──▶ web
 ```
+
+For a link job the worker downloads the audio first: the download fills
+0–5%, and the four stages are scaled onto 5–100%.
 
 Four independent stages, each behind a narrow interface. The last of them —
 placing pitches on the neck — is deterministic code rather than a model, so
@@ -50,6 +54,7 @@ v1 has no editing, so transcription errors cannot be corrected by hand.
 |---|---|
 | `packages/core` | The tab document, the stage interfaces, the fretboard invariant |
 | `packages/jobs` | The job record, object storage and the queue, shared by the api and the worker |
+| `packages/fetch` | Links: parsing, the yt-dlp child process and the failure catalog. Walled off (ADR 0010) |
 | `apps/api` | FastAPI. Thin; no ML code, enforced by test |
 | `apps/worker` | The pipeline. The only component that needs torch |
 | `apps/eval` | GuitarSet evaluation harness |
@@ -120,9 +125,15 @@ curl -F file=@song.mp3 localhost:8000/jobs        # → 202 and a job id
 curl localhost:8000/jobs/<id>                      # stage and percent
 curl localhost:8000/jobs/<id>/document             # the tab document
 curl -L localhost:8000/jobs/<id>/audio/mix -o mix  # a redirect to storage
+curl -H 'content-type: application/json' \
+  -d '{"url": "https://youtu.be/kPdv44HtEoA"}' localhost:8000/jobs/from-url
 ```
 
-Uploading the same file again returns the same job, unless that job failed.
+Uploading the same file again returns the same job, unless that job failed;
+so does pasting the same video again, in any form of its link. Links are on
+under `make api` and `make worker`, and need [Deno](https://deno.com) 2.3 or
+later installed. Hosting must route `/features` to the api beside `/jobs` and
+`/health`.
 Uploads and stems stay in storage until you run `docker compose down -v`.
 
 ## Documentation

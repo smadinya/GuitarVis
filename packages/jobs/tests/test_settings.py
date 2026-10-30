@@ -18,6 +18,33 @@ def test_defaults_match_compose_and_the_spec() -> None:
     assert settings.max_active_jobs_per_ip == 2
     assert settings.job_timeout_sec == 1800
     assert settings.device is None
+    assert settings.url_ingestion is False  # links stay off until turned on
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("1", True),
+        ("true", True),
+        ("on", True),
+        ("TRUE", True),
+        (" On ", True),
+        ("0", False),
+        ("false", False),
+        ("off", False),
+        ("False", False),
+    ],
+)
+def test_a_switch_reads_the_words_people_write(raw: str, expected: bool) -> None:
+    settings = Settings.from_env({"GUITARVIS_URL_INGESTION": raw})
+
+    assert settings.url_ingestion is expected
+
+
+@pytest.mark.parametrize("raw", ["yes", "2", "enabled", "tru"])
+def test_a_switch_that_is_not_a_switch_fails_at_start(raw: str) -> None:
+    with pytest.raises(ValueError, match="GUITARVIS_URL_INGESTION"):
+        Settings.from_env({"GUITARVIS_URL_INGESTION": raw})
 
 
 def test_from_env_reads_prefixed_variables() -> None:
@@ -68,7 +95,10 @@ def test_settings_env_round_trips_through_from_env() -> None:
     from guitarvis_jobs.testing import settings_env
 
     settings = Settings(
-        redis_url="redis://elsewhere:6380/15", max_upload_mb=3, device="cuda"
+        redis_url="redis://elsewhere:6380/15",
+        max_upload_mb=3,
+        device="cuda",
+        url_ingestion=True,
     )
 
     assert Settings.from_env(settings_env(settings)) == settings

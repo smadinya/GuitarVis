@@ -38,18 +38,33 @@ def test_the_export_writes_exactly_the_committed_file(tmp_path: Path) -> None:
     )
 
 
-def test_the_schema_names_all_nine_reasons() -> None:
+def test_the_schema_names_all_twelve_reasons() -> None:
     definitions = api_schema()["$defs"]
     named = set(definitions["FailureReason"]["enum"]) | set(
         definitions["HttpReason"]["enum"]
     )
 
     assert named == {r.value for r in FailureReason} | {r.value for r in HttpReason}
-    assert len(named) == 9
+    assert len(named) == 12
+
+
+def test_the_schema_describes_features_and_the_link_request() -> None:
+    definitions = api_schema()["$defs"]
+
+    assert definitions["Features"]["properties"] == {
+        "url_ingestion": {"type": "boolean"}
+    }
+    assert definitions["Features"]["required"] == ["url_ingestion"]
+    assert definitions["LinkRequest"]["properties"] == {
+        "url": {"type": "string", "maxLength": 2048}
+    }
+    assert definitions["JobView"]["properties"]["source_url"] == {
+        "anyOf": [{"type": "string"}, {"type": "null"}]
+    }
 
 
 def test_a_failed_job_can_carry_only_a_failure_reason() -> None:
-    """The four HttpReason values describe a request, never a job."""
+    """The five HttpReason values describe a request, never a job."""
     reason = api_schema()["$defs"]["FailureView"]["properties"]["reason"]
 
     assert reason == {"$ref": "#/$defs/FailureReason"}

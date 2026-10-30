@@ -41,17 +41,23 @@ jobs = sa.Table(
     sa.Column("failed_stage", sa.Text(), nullable=True),
     sa.Column("title", sa.Text(), nullable=False),
     sa.Column("duration_sec", sa.Float(), nullable=False),
-    sa.Column("upload_key", sa.Text(), nullable=False),
+    sa.Column("upload_key", sa.Text(), nullable=True),
     sa.Column("stem_key", sa.Text(), nullable=True),
     sa.Column("client_ip", sa.Text(), nullable=False),
     sa.Column("document", JSONB(), nullable=True),
     sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("source_url", sa.Text(), nullable=True),
     sa.CheckConstraint(
         "status IN ('queued', 'running', 'succeeded', 'failed')",
         name="jobs_status_valid",
     ),
     sa.CheckConstraint("percent BETWEEN 0 AND 100", name="jobs_percent_range"),
+    # Every row has a way to its audio: stored, or a link to fetch it from.
+    sa.CheckConstraint(
+        "upload_key IS NOT NULL OR source_url IS NOT NULL",
+        name="jobs_has_audio_source",
+    ),
     # The dedupe rule: one live job per upload; a failed one never blocks.
     sa.Index(
         "jobs_content_hash_live",
@@ -99,6 +105,7 @@ class PostgresJobStore:
                     client_ip=new.client_ip,
                     created_at=now,
                     updated_at=now,
+                    source_url=new.source_url,
                 )
                 .on_conflict_do_nothing(
                     index_elements=[jobs.c.content_hash],
@@ -163,6 +170,16 @@ class PostgresJobStore:
     def set_progress(self, job_id: str, stage: str, percent: int) -> bool:
         changed = self._update(
             job_id, {JobStatus.RUNNING}, {"stage": stage, "percent": percent}
+        )
+        return changed is not None
+
+    def attach_upload(
+        self, job_id: str, *, upload_key: str, duration_sec: float
+    ) -> bool:
+        changed = self._update(
+            job_id,
+            {JobStatus.RUNNING},
+            {"upload_key": upload_key, "duration_sec": duration_sec},
         )
         return changed is not None
 
@@ -308,6 +325,7 @@ def _to_job(row: sa.RowMapping) -> Job:
         document=row["document"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
+        source_url=row["source_url"],
     )
 
 

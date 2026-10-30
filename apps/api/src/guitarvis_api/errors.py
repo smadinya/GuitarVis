@@ -1,7 +1,7 @@
 """One error vocabulary for every client.
 
 Every error body is {"error": {"reason": ..., "message": ...}}. `reason` is a
-FailureReason value or one of the four HttpReason values only the HTTP layer
+FailureReason value or one of the five HttpReason values only the HTTP layer
 produces, so a client maps one vocabulary to text.
 """
 
@@ -26,6 +26,7 @@ class HttpReason(StrEnum):
     TOO_MANY_JOBS = "too_many_jobs"
     NOT_FOUND = "not_found"
     NOT_READY = "not_ready"
+    UNSUPPORTED_LINK = "unsupported_link"
 
 
 Reason = FailureReason | HttpReason

@@ -3,7 +3,8 @@
 #
 # `eval` and `sweep` are deliberately absent from `check`. Evaluation is
 # measured, never gated: a suite that fails because a model got two percent
-# worse on a Tuesday is a suite people learn to ignore.
+# worse on a Tuesday is a suite people learn to ignore. `smoke-url` is absent
+# too: it asks YouTube, whose answer changes by the day and by the address.
 
 .DEFAULT_GOAL := help
 UV  := uv
@@ -41,11 +42,20 @@ ARGS ?=
 # packages/core/tests, apps/api/tests, apps/worker/tests, apps/eval/tests all
 # have distinct basenames), but a future contributor adding a same-named test
 # file to two packages will hit this and should rename one of the files.
-PY_SOURCES := packages/core/src packages/jobs/src apps/api/src apps/worker/src apps/eval/src \
-              packages/core/tests packages/jobs/tests apps/api/tests apps/worker/tests apps/eval/tests
+PY_SOURCES := packages/core/src packages/jobs/src packages/fetch/src \
+              apps/api/src apps/worker/src apps/eval/src \
+              packages/core/tests packages/jobs/tests packages/fetch/tests \
+              packages/fetch/smoke \
+              apps/api/tests apps/worker/tests apps/eval/tests
 
 .PHONY: help install lint format typecheck test test-py test-web \
-        schema schema-check check eval sweep eval-data services migrate api worker web clean
+        schema schema-check check eval sweep eval-data smoke-url services migrate \
+        api worker web clean
+
+# Spec 012's switch is off unless a deployment turns it on; `make api` and
+# `make worker` turn it on for local development. Override with
+# `make api GUITARVIS_URL_INGESTION=0`, or in the environment.
+GUITARVIS_URL_INGESTION ?= 1
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -124,17 +134,20 @@ sweep: ## Tune MapperCosts and transcription settings on dev. Never gated.
 eval-data: ## Download GuitarSet into ~/.cache (ARGS=--audio for full mode's audio)
 	$(UV) run python -m guitarvis_eval.download $(ARGS)
 
+smoke-url: ## Live: fetch a Creative Commons video from YouTube. Needs Deno. Never gated.
+	GUITARVIS_LIVE_FETCH=1 $(UV) run pytest -s -p no:cacheprovider packages/fetch/smoke/live_fetch.py
+
 services: ## Start Postgres, Redis and object storage (docker compose)
 	docker compose up -d --wait
 
 migrate: ## Bring the schema up to date and create the bucket
 	$(UV) run python -m guitarvis_jobs.migrate
 
-api: ## Serve the api on localhost:8000, reloading on change
-	$(UV) run uvicorn guitarvis_api.app:app --reload
+api: ## Serve the api on localhost:8000, reloading on change; links on
+	GUITARVIS_URL_INGESTION=$(GUITARVIS_URL_INGESTION) $(UV) run uvicorn guitarvis_api.app:app --reload
 
-worker: ## Run jobs from the queue (ARGS="--device cuda"; needs `uv sync --extra ml`)
-	$(UV) run guitarvis-worker serve $(ARGS)
+worker: ## Run jobs from the queue (ARGS="--device cuda"; needs `uv sync --extra ml`); links on
+	GUITARVIS_URL_INGESTION=$(GUITARVIS_URL_INGESTION) $(UV) run guitarvis-worker serve $(ARGS)
 
 web: ## Serve the web client on localhost:5173, proxying the api on :8000
 	$(NPM) run dev

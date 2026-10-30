@@ -6,10 +6,12 @@ the job runner are all real. It lives with the worker because it drives
 run_job; the api's own tests never import the worker.
 """
 
+import hashlib
 import shutil
 import urllib.request
 import wave
 from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -23,6 +25,7 @@ from guitarvis_core.contracts import (
     StructureResult,
 )
 from guitarvis_core.tabdoc import TabDocument, Timing
+from guitarvis_fetch.testing import FakeFetcher
 from guitarvis_jobs.queue import QUEUE_NAME, RQJobQueue
 from guitarvis_jobs.testing import (
     integration_settings,
@@ -140,3 +143,72 @@ def test_upload_process_and_fetch(
 
     guitar = client.get(f"/jobs/{job_id}/audio/guitar", follow_redirects=False)
     assert guitar.status_code == 307
+
+
+@pytest.fixture
+def link_service(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> Iterator[tuple[TestClient, Redis, FakeFetcher]]:
+    """The same service with links on, and a fake fetcher at both ends: the
+    api's lookup and, through open_deps, the worker's download."""
+    content = write_wav(tmp_path / "fetched.wav", seconds=2.0).read_bytes()
+    fetcher = FakeFetcher(content=content)
+    with (
+        postgres_store() as store,
+        s3_blob_store() as blobs,
+        redis_connection() as redis,
+    ):
+        settings = replace(integration_settings(), url_ingestion=True)
+        for name, value in settings_env(settings).items():
+            monkeypatch.setenv(name, value)
+        monkeypatch.setattr(runner, "build_stages", stub_stages)
+        monkeypatch.setattr(runner, "ChildFetcher", lambda: fetcher)
+        services = Services(
+            store=store,
+            blobs=blobs,
+            queue=RQJobQueue(redis, job_timeout_sec=settings.job_timeout_sec),
+            settings=settings,
+            fetcher=fetcher,
+        )
+        yield TestClient(create_app(services)), redis, fetcher
+
+
+@requires_ffprobe
+def test_a_link_job_end_to_end(
+    link_service: tuple[TestClient, Redis, FakeFetcher],
+) -> None:
+    client, redis, fetcher = link_service
+    assert client.get("/features").json() == {"url_ingestion": True}
+
+    created = client.post(
+        "/jobs/from-url", json={"url": "https://youtu.be/kPdv44HtEoA"}
+    )
+    assert created.status_code == 202, created.text
+    job_id = created.json()["id"]
+    assert created.json()["source_url"] == "https://www.youtube.com/watch?v=kPdv44HtEoA"
+    again = client.post(
+        "/jobs/from-url", json={"url": "https://www.youtube.com/shorts/kPdv44HtEoA"}
+    )
+    assert (again.status_code, again.json()["id"]) == (200, job_id)
+    assert len(fetcher.lookups) == 1  # the repeat asked YouTube nothing
+    not_yet = client.get(f"/jobs/{job_id}/audio/mix", follow_redirects=False)
+    assert not_yet.status_code == 409
+
+    SimpleWorker([Queue(QUEUE_NAME, connection=redis)], connection=redis).work(
+        burst=True
+    )
+
+    job = client.get(f"/jobs/{job_id}").json()
+    assert (job["status"], job["percent"], job["attempts"]) == ("succeeded", 100, 1), (
+        job
+    )
+    assert job["title"] == "Elephants Dream - 10 years of open movies"
+    assert job["duration_sec"] == pytest.approx(2.0, abs=0.05)  # ffprobe's
+    document = TabDocument.model_validate(client.get(f"/jobs/{job_id}/document").json())
+    assert document.source.audio_url == f"/jobs/{job_id}/audio/mix"
+
+    mix = client.get(f"/jobs/{job_id}/audio/mix", follow_redirects=False)
+    assert mix.status_code == 307
+    assert hashlib.sha256(fetcher.content or b"").hexdigest() in mix.headers["location"]
+    with urllib.request.urlopen(mix.headers["location"], timeout=10) as response:
+        assert response.read() == fetcher.content
