@@ -39,7 +39,7 @@ Success conditions:
    one exception is a command that needs hardware the dev machine lacks,
    which today means `--device cuda`. It stays documented, and the doc says
    it was not verified here.
-5. The README does not name a licence. It says "See [LICENSE](LICENSE)", so
+5. The README does not name a licence. It says `See [LICENSE](LICENSE).`, so
    changing the licence later means editing that one file.
 6. Images added to the repository total under 10 MB.
 7. `make check` passes.
