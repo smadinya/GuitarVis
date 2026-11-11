@@ -42,7 +42,8 @@ the hook that refuses commits on `main`.
 | `make help` | List these targets with their one-line descriptions |
 
 The worker's ML dependencies are an optional extra and are not installed by
-default. When you need them: `uv sync --extra ml`.
+default. When you need them: `uv sync --extra ml`. `uv sync` is exact, so a
+later `make install` removes them again; run `uv sync --extra ml` after it.
 
 Tests that need Postgres, Redis or object storage skip when `make services`
 has not been run, the way ingest tests skip without ffprobe. CI runs them with
