@@ -311,9 +311,9 @@ git commit -m "docs(013): pass 2 of the setup check and the GitHub render"
 
 ### Task 6: Review and PR
 
-- [ ] **Step 1:** Get a fresh whole-branch review of the docs against the
+- [x] **Step 1:** Get a fresh whole-branch review of the docs against the
   spec (superpowers:requesting-code-review), and fix what it finds.
-- [ ] **Step 2:** Open the PR with `.github/pull_request_template.md`
+- [x] **Step 2:** Open the PR with `.github/pull_request_template.md`
   (`Spec:` line filled in, `--body-file`). Suggest to the owner, without
   doing it, an About text, topics, and a social preview image cropped from
   `player-3d.png`.

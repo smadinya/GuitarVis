@@ -104,9 +104,19 @@ Deno-less api come from pass 1, where each happened.
 `https://github.com/smadinya/GuitarVis/blob/<sha>/README.md`, rendered by
 GitHub and captured with Playwright.
 
-| Check | At `de2731e` | At `76ed171` |
-|---|---|---|
-| 1280 px: title, sentence, badges and GIF on the README's first screen | Pass | Pass |
-| Mermaid renders as an SVG, not code | Pass | Pass |
-| 390 px: the three view shots read | **Fail**: a three-column table squeezed them to 54–111 px | Pass: stacked, 324 px each |
-| Dark theme: nothing dark-on-dark | Pass | Pass |
+| Check | At `de2731e` | At `76ed171` | At `bc03f00` |
+|---|---|---|---|
+| 1280 px: title, sentence, badges and GIF on the README's first screen | Pass | Pass | Pass |
+| Mermaid renders as an SVG, not code | Pass | Pass | Pass |
+| 390 px: the three view shots read | **Fail**: a three-column table squeezed them to 54–111 px | Pass: stacked, 324 px each | Pass; the tab crop narrowed so frets read |
+| Dark theme: nothing dark-on-dark | Pass | Pass | Pass |
+
+## Final review
+
+A fresh reviewer found `demo.gif` frozen for most of its loop: the first take was timed on screencast
+timestamps that jumped by about 64 seconds, so it showed about a second of playback. It was re-recorded
+and checked frame by frame: 120 distinct frames of 128, no identical run longer than 3, and the clock
+reaching 0:20. The review also corrected the accuracy wording, since full mode skips separation, and
+nine smaller statements in the README and guides. Issues filed: [#57](https://github.com/smadinya/GuitarVis/issues/57)
+(CLI minutes message) and [#58](https://github.com/smadinya/GuitarVis/issues/58) (tempo doubles between
+byte-different copies).
