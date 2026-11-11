@@ -24,7 +24,7 @@ all in sync with the music.
 
 ![The same moment on a flat fretboard](docs/images/view-fretboard.png)
 
-**A scrolling tab** runs under a chord lane, with the playhead in red.
+**A scrolling tab** runs under a chord lane, with an orange playhead.
 
 ![The chord lane and the scrolling tab strip](docs/images/view-tab.png)
 
@@ -52,7 +52,9 @@ flowchart TB
     W -- "guitar stem" --> ST[("Object storage<br/>audio · stems")]
 ```
 
-The API stays thin: it accepts the song, queues a job and serves results.
+The API stays thin. It accepts the song and queues a job. It serves the
+finished tab document from Postgres, and redirects audio requests to
+storage.
 All the machine learning runs in a separate worker, in four stages. Each
 stage sits behind a narrow interface, so it can be swapped or measured on its
 own.
@@ -78,20 +80,22 @@ different client, such as a phone app, would only need to render it.
   published as [JSON Schema](schema/tab-document.schema.json). The client's
   TypeScript types are generated from it, and CI fails if any of the three
   drift apart.
-- **The tab always matches the notes.** Every note leaving stage 4 is
-  checked: its string and fret must produce exactly the pitch the
-  transcriber heard
+- **The fretboard stage never changes a pitch.** Every note it places is
+  checked: its string and fret must sound exactly the pitch the transcriber
+  heard
   ([`fretboard.py`](packages/core/src/guitarvis_core/fretboard.py),
-  [ADR 0003](docs/decisions/0003-deterministic-fretboard.md)). Transcription
-  can get a note wrong, but the fretboard stage never adds a second error on
-  top of it.
+  [ADR 0003](docs/decisions/0003-deterministic-fretboard.md)). A note it
+  can't place is dropped with a warning, never moved to a wrong fret.
 - **Degrade, never fail.** A stage that breaks leaves its part out and the
-  job carries on. Only "no usable guitar audio" fails a job outright.
+  job carries on. Within the pipeline, only finding no usable guitar audio
+  fails a job outright.
 - **Measured, not guessed.** Accuracy is measured against
-  [GuitarSet](https://guitarset.weebly.com/) and every run is committed. On
-  the test split (2026-10-20):
-  - end to end, note F1 is **0.81** and string accuracy is **59%**
-    ([full-mode results](eval/results/2026-10-20-7c8641c-full-test.json));
+  [GuitarSet](https://guitarset.weebly.com/), and every test-split run is
+  committed. On GuitarSet's solo-guitar recordings (test split, 2026-10-20):
+  - from transcription through fretboard, note F1 is **0.81** and string
+    accuracy is **59%**
+    ([full-mode results](eval/results/2026-10-20-7c8641c-full-test.json)).
+    Separation isn't measured: GuitarSet has no band to remove;
   - stage 4 alone, given the true pitches, puts **67%** of notes on the
     right string, against **38%** for always choosing the lowest fret
     ([oracle-mode results](eval/results/2026-10-20-7c8641c-oracle-test.json)).
@@ -112,7 +116,10 @@ different client, such as a phone app, would only need to render it.
 
 Reading a guitar part off a full mix, down to string and fret, is not a
 solved problem. Expect about **70–85% of notes right on clean recordings**,
-and fewer on dense mixes.
+and fewer on dense mixes. The figures above come from solo guitar. On a
+band mix, separation errors come on top, and that hasn't been measured.
+Chord symbols are the weakest output: on GuitarSet they match the labelled
+chord about a third of the time, so read the chord lane as a hint.
 
 Instead of hiding this, the player shows it. Unsure notes are drawn faded,
 and runs of them are hidden behind the chord they belong to, so a guess never
@@ -160,6 +167,7 @@ make web                             # open http://localhost:5173
 | `web` | React + TypeScript client, with three.js for the guitar |
 | `schema` | Generated JSON Schemas: the cross-language contract |
 | `eval/results` | Every committed evaluation run |
+| `deploy` | Start-up scripts for the Docker services |
 | `docs/specs` | One numbered folder per feature: `spec.md`, `plan.md` |
 | `docs/decisions` | Architecture decision records |
 | `docs/guides` | The guides above |

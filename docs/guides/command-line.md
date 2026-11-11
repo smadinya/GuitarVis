@@ -64,7 +64,7 @@ Shortened:
   fretboard invariant, checked on every note leaving stage 4
   ([`fretboard.py`](../../packages/core/src/guitarvis_core/fretboard.py)).
 - `confidence` runs from 0 to 1. The player fades notes below 0.6, and hides
-  runs of three or more notes at 0.5 and below.
+  runs of three or more notes below 0.5.
 
 ### Running the worker
 

@@ -81,7 +81,9 @@ then how it works, then why it is built well, then how to run it.
    - accuracy measured against GuitarSet and committed to `eval/results/`.
      The latest test-split run (2026-10-20, commit `7c8641c`) is quoted in
      full, with each figure labelled by its mode and file:
-     - end to end (full mode), note F1 0.81 and string accuracy 59%;
+     - transcription through fretboard on solo guitar (full mode; GuitarSet
+       has no band, so separation is not measured), note F1 0.81 and string
+       accuracy 59%;
      - stage 4 alone (oracle mode, true pitches in), string accuracy 67%
        against a 38% lowest-fret baseline.
 

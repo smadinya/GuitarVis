@@ -1,7 +1,7 @@
 # Run it locally
 
-From a clean clone to a song playing in your browser, in about ten minutes.
-Most of that time is downloads.
+From a clean clone to a song playing in your browser. Most of the time is
+downloads, several GB of them, so it depends on your connection.
 
 > **Verified on** Ubuntu 24.04 under WSL2, 2026-11-10. Every command below
 > was run from a fresh clone, in this order. The record is in
@@ -27,8 +27,9 @@ make install          # Python and Node packages, and the git hooks
 uv sync --extra ml    # PyTorch, Demucs and basic-pitch, for the worker
 ```
 
-The ML extra is large: PyTorch alone is several hundred MB. It is separate
-so that the API and CI never need it.
+The ML extra is large. On Linux it brings PyTorch's CUDA builds, and the
+environment comes to about 6 GB on disk. It is separate so that the API and
+CI never need it.
 
 > **Running `make install` again removes the ML extra.** `uv sync` makes the
 > environment match exactly what you asked for, and `make install` doesn't
@@ -95,14 +96,19 @@ docker compose down -v  # also deletes the database and every uploaded song
 
 ## Troubleshooting
 
-**`make services` fails with `Bind for 127.0.0.1:5432 failed: port is already allocated`.**
-Something else is using one of the ports: a local Postgres, or the stack from
-another GuitarVis checkout. The stack needs 5432, 6379, 9000 and 9001.
-Stop the other one (`docker compose stop` in its folder) and try again.
+**`make services` fails with `port is already allocated` or `address already in use`.**
+Something else is using one of the ports. The first message means another
+Docker container has it, such as the stack from another GuitarVis checkout:
+`Bind for 127.0.0.1:5432 failed: port is already allocated`. The second
+means a program outside Docker has it, such as a local Postgres. The stack
+needs 5432, 6379, 9000 and 9001. Stop the other one (for another checkout,
+`docker compose stop` in its folder) and try again.
 
 **`uv sync --extra ml` fails while building numpy.** uv is using Python
-3.13 or later, where the pinned numpy has no prebuilt wheel. Run it from the
-repository root, so uv sees `.python-version`.
+3.13 or later, where the pinned numpy has no prebuilt wheel. The repo pins
+3.12 in `.python-version`, so something is overriding it, usually a
+`UV_PYTHON` environment variable. Unset it, or run
+`uv sync --extra ml --python 3.12`.
 
 **A job fails with `No module named demucs`, or `torch` is missing.** The
 ML extra is not installed. This usually happens after re-running

@@ -56,8 +56,9 @@ From the top down:
   pan the flat fretboard; **Reset view** puts the camera back.
 - **The chord lane.** The current chord is outlined.
 - **The tab strip.** Six lines, high e at the top. The numbers are frets,
-  the bar after each one is how long it rings, and the red line is now.
-- **Sections and chords**, at the right. Click a section to jump to it.
+  the bar after each one is how long it rings, and the orange line is now.
+- **Sections and chords**, at the right. The pipeline doesn't label
+  sections yet, so for now this lists the song's chords.
 
 The same moment in the other two views, **Fretboard** and **Tab only**:
 
