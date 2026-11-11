@@ -75,46 +75,46 @@ Chromium (captures, throwaway), ffmpeg (GIF), Pillow (PNG quantising, via
   columns are `Step | Command | Result | Doc change`. It also holds the list
   of doc defects that Tasks 3–4 fix, and any issue numbers filed.
 
-- [ ] **Step 1: Start the fresh stack with the dev stack still running**,
+- [x] **Step 1: Start the fresh stack with the dev stack still running**,
   for Review Focus 5. Clone with
   `git clone --branch 013-readme-showcase /home/smadinya/GuitarVis $SCRATCH/guitarvis-fresh`,
   then run `make services` inside the clone. Expected: it fails on a port
   conflict. Record the exact error line.
-- [ ] **Step 2: Stop the dev stack** with `docker compose stop` in
+- [x] **Step 2: Stop the dev stack** with `docker compose stop` in
   `/home/smadinya/GuitarVis`. Then stop the background `make api`,
   `make worker` and `make web` tasks.
-- [ ] **Step 3: Follow README *Getting started* literally** in the clone:
+- [x] **Step 3: Follow README *Getting started* literally** in the clone:
   `make install`, `make check`. Expected: both pass. The integration tests
   skip without services; record the skip count.
-- [ ] **Step 4: Follow *Running the pipeline* literally.** Run
+- [x] **Step 4: Follow *Running the pipeline* literally.** Run
   `uv sync --extra ml`, then the `process` command on a copy of
   `tmp/nutshell.mp3`, then the `--stems-dir` variant. Run the first job with
   `TORCH_HOME` and `XDG_CACHE_HOME` pointed at an empty directory, for a cold
   model cache. Record the wall time and that directory's size afterwards
   (Review Focus 4).
-- [ ] **Step 5: Test the extra-drop.** Run `make install` again, then
+- [x] **Step 5: Test the extra-drop.** Run `make install` again, then
   `uv run python -c "import torch"`. Record whether it fails (Review
   Focus 3). Run `uv sync --extra ml` again afterwards.
-- [ ] **Step 6: Follow *Running the service* literally.** Run
+- [x] **Step 6: Follow *Running the service* literally.** Run
   `make services`, `make migrate`, `make api`, `make worker` and `make web`,
   then each curl in the README in order. Expected: `202` and a job id; the
   job reaches `succeeded`; the document and the audio redirect come back.
   Then run `make check` with `GUITARVIS_REQUIRE_SERVICES=1` and record that
   nothing skips.
-- [ ] **Step 7: Links, live.** Run `make smoke-url` with Deno on `PATH`
+- [x] **Step 7: Links, live.** Run `make smoke-url` with Deno on `PATH`
   (`export PATH="$HOME/.deno/bin:$PATH"`), then the README's `from-url` curl.
   Also run the curl once with a worker started without Deno on `PATH`, to
   record what a reader without it sees. Expected: smoke passes, the link job
   succeeds, and the Deno-less job fails as `fetch_failed`.
-- [ ] **Step 8: Check the README's other claims against the code.** Check
+- [x] **Step 8: Check the README's other claims against the code.** Check
   the keys (`web/src/player/keys.ts`), the progress bands
   (`apps/worker/src/guitarvis_worker/pipeline.py`), the layout table against
   `ls`, and the `curl` paths against `apps/api/src/guitarvis_api/routes.py`.
   Each mismatch is a defect row.
-- [ ] **Step 9: Tear down the fresh stack** with `docker compose down -v`
+- [x] **Step 9: Tear down the fresh stack** with `docker compose down -v`
   inside `$SCRATCH/guitarvis-fresh` only. Restart the dev stack:
   `docker compose start`, `make api`, `make worker`, `make web`.
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add docs/specs/013-readme-showcase/
@@ -137,24 +137,24 @@ git commit -m "docs(013): spec, plan, and pass 1 of the setup check"
 - Produces: the image files above at those exact names, which Tasks 3–4
   reference.
 
-- [ ] **Step 1: Set up Playwright in the scratchpad.** Run `npm init -y` and
+- [x] **Step 1: Set up Playwright in the scratchpad.** Run `npm init -y` and
   `npm i playwright` in `$SCRATCH/capture`. Use the Chromium already in
   `~/.cache/ms-playwright` if its revision matches; otherwise run
   `npx playwright install chromium`. Smoke test: open
   `http://localhost:5173`, and screenshot it with a non-blank result.
-- [ ] **Step 2: Upload the demo song through the page.** Make a byte-distinct
+- [x] **Step 2: Upload the demo song through the page.** Make a byte-distinct
   copy with `ffmpeg -c copy -metadata comment="013 demo"` named
   `Nutshell (cover).mp3`, so it is a new job and not the dedupe of an
   earlier one. Upload it with the page's file input. Take `upload.png` before
   choosing the file. Take `processing.png` while the stage label reads
   *Isolating the guitar* or *Transcribing notes*.
-- [ ] **Step 3: Take the player shots** at `/songs/<id>`, paused at 0:13,
+- [x] **Step 3: Take the player shots** at `/songs/<id>`, paused at 0:13,
   one per view: `player-3d.png` (3D), `player-fretboard.png` (Fretboard) and
   `player-tab.png` (Tab only). Expected: the 3D shot shows the guitar
   model, not an empty canvas. If WebGL is blank, retry with
   `--enable-unsafe-swiftshader`, then `--use-angle=swiftshader`, then headed
   Chromium under WSLg.
-- [ ] **Step 4: Take the detail shots.**
+- [x] **Step 4: Take the detail shots.**
   - `low-confidence.png`: an element screenshot of the tab strip at a time
     with notes under 0.5 confidence. The document's notes give the times.
   - `transport.png`: an element screenshot of the transport, with a loop
@@ -164,20 +164,20 @@ git commit -m "docs(013): spec, plan, and pass 1 of the setup check"
     audio*. Make the input with
     `ffmpeg -f lavfi -i anullsrc=r=44100:cl=stereo -t 10 silence.mp3`,
     named `Silence.mp3`.
-- [ ] **Step 5: Record `demo.gif`.** Record a video of the 3D view at a
+- [x] **Step 5: Record `demo.gif`.** Record a video of the 3D view at a
   1280×720 viewport with `recordVideo`, seek to 0:10, press Play, and wait
   10.5 s. Trim to the playing span. Convert with
   `ffmpeg -vf "fps=12,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer"`.
   Expected: the guitar's highlighted notes move and the tab scrolls. File
   size under 5 MB: if over, step fps down to 10, then width to 800.
-- [ ] **Step 6: Optimise the PNGs and check the budget.** Quantise any PNG
+- [x] **Step 6: Optimise the PNGs and check the budget.** Quantise any PNG
   over 400 KB with Pillow (`uv run --with pillow`, 256-colour adaptive).
   Run `du -cb docs/images/*` and expect a total under 10,000,000.
-- [ ] **Step 7: Write `docs/images/README.md`.** It gives the song (the
+- [x] **Step 7: Write `docs/images/README.md`.** It gives the song (the
   owner's *Nutshell* cover, not committed; any song works for a retake), the
   commit, the viewport and scale, each image's state (time, view, controls),
   the GIF recipe from Step 5, and the Chromium flags that worked.
-- [ ] **Step 8: Look at every image** with the Read tool. Expected: no blank
+- [x] **Step 8: Look at every image** with the Read tool. Expected: no blank
   canvas, no dev overlay, no cursor, no "Untitled". Commit.
 
 ```bash
@@ -197,7 +197,7 @@ git commit -m "docs(013): captures of the app playing the demo song"
   names.
 - Produces: the three guide paths, which Task 4 links to.
 
-- [ ] **Step 1: `run-locally.md`.** Sections:
+- [x] **Step 1: `run-locally.md`.** Sections:
   - *What you need*: Python 3.12+, Node 22+, uv, Docker, ffmpeg, and Deno
     2.3+ for links. Each links to its official install page.
   - *Install*: `make install`, then `uv sync --extra ml`, with the
@@ -210,21 +210,21 @@ git commit -m "docs(013): captures of the app playing the demo song"
   - *Troubleshooting*: the port-conflict line from Task 1 Step 1, the Deno
     `PATH` case, and the `make migrate` case from CLAUDE.md.
   - *Verified on*, from the Global Constraints.
-- [ ] **Step 2: `using-the-player.md`.** A screenshot tour in the order a
+- [x] **Step 2: `using-the-player.md`.** A screenshot tour in the order a
   user meets things: upload or link (`upload.png`, `link.png`), processing
   and its five labels (`processing.png`), the three views (the three player
   shots), the transport (`transport.png`), and the keys: Space, ←, →, `[`,
   `]`. It also covers confidence shading (`low-confidence.png`) and a failed
   job (`failure.png`). The label text is copied from
   `web/src/pages/progress.ts` and `web/src/player/*.tsx`, not paraphrased.
-- [ ] **Step 3: `command-line.md`.** Cover `process` with `-o`, `--device`
+- [x] **Step 3: `command-line.md`.** Cover `process` with `-o`, `--device`
   (marked not verified here) and `--stems-dir`. Give a 10-line excerpt of
   the JSON output, taken from Task 1's run, with a pointer to
   `schema/tab-document.schema.json`. Then the curl walkthrough, as verified
   in Task 1 Step 6, including `audio/guitar`.
-- [ ] **Step 4: Fix `CONTRIBUTING.md`** where `acceptance.md` lists a
+- [x] **Step 4: Fix `CONTRIBUTING.md`** where `acceptance.md` lists a
   defect that also appears there. Nothing else changes.
-- [ ] **Step 5: Run the link check.** Write it in `$SCRATCH/linkcheck.py`:
+- [x] **Step 5: Run the link check.** Write it in `$SCRATCH/linkcheck.py`:
   for every `](path)` and `src="path"` in the changed `.md` files, the
   target exists relative to the file (anchors stripped, `http` skipped).
   Run it with `python3 -I $SCRATCH/linkcheck.py README.md CONTRIBUTING.md docs/guides/*.md docs/images/README.md`.
@@ -244,7 +244,7 @@ git commit -m "docs(013): run-locally, using-the-player and command-line guides"
 - Consumes: Task 2's images, Task 3's guide paths, and the eval figures in
   the Global Constraints.
 
-- [ ] **Step 1: Write the sections in the spec's order** (*The page, top to
+- [x] **Step 1: Write the sections in the spec's order** (*The page, top to
   bottom*, 1–7).
   - First screen: `# GuitarVis`, the one sentence, and badges. CI is
     `https://github.com/smadinya/GuitarVis/actions/workflows/ci.yml/badge.svg?branch=main`.
@@ -262,9 +262,9 @@ git commit -m "docs(013): run-locally, using-the-player and command-line guides"
     `make migrate`, then the three `make` servers. It links all three
     guides.
   - Layout, Documentation and the licence line.
-- [ ] **Step 2: Run the link check** from Task 3 Step 5 on `README.md`.
+- [x] **Step 2: Run the link check** from Task 3 Step 5 on `README.md`.
   Expected: `0 broken`.
-- [ ] **Step 3: Grep for forbidden content.**
+- [x] **Step 3: Grep for forbidden content.**
   `grep -n -i -E 'MIT|commits|[0-9]+ tests' README.md` should find
   nothing. Commit.
 
@@ -280,16 +280,16 @@ git commit -m "docs(013): a recruiter-first README with the demo up front"
   (`## Pass 2 — shipped docs`, `## GitHub render`)
 - Modify: `docs/specs/013-readme-showcase/plan.md` (checkboxes)
 
-- [ ] **Step 1: Run pass 2.** Make a fresh clone of the branch at HEAD in
+- [x] **Step 1: Run pass 2.** Make a fresh clone of the branch at HEAD in
   `$SCRATCH/guitarvis-fresh` (delete pass 1's first) and stop the dev stack.
   Then follow `docs/guides/run-locally.md` top to bottom, literally, through
   one upload in the browser. Then run `command-line.md`'s commands. Record
   each in the pass 2 table. Any failure means fixing the guide and
   re-running that step. Tear down as in Task 1 Step 9.
-- [ ] **Step 2: Run `make check`** in the working copy with
+- [x] **Step 2: Run `make check`** in the working copy with
   `GUITARVIS_REQUIRE_SERVICES=1` and the dev stack up. Expected: pass,
   with no skips other than the mir_eval tests.
-- [ ] **Step 3: Check the GitHub render.** Run
+- [x] **Step 3: Check the GitHub render.** Run
   `git push -u origin 013-readme-showcase`, then use Playwright to open
   `https://github.com/smadinya/GuitarVis/blob/013-readme-showcase/README.md`
   at 1280 px, at 390 px, and at 1280 px with
@@ -302,7 +302,7 @@ git commit -m "docs(013): a recruiter-first README with the demo up front"
 
   Fix and re-push until all four hold. Record the result and keep the
   screenshots in `$SCRATCH`.
-- [ ] **Step 4: Tick this plan's checkboxes and commit.**
+- [x] **Step 4: Tick this plan's checkboxes and commit.**
 
 ```bash
 git add docs/specs/013-readme-showcase/

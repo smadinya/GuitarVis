@@ -67,3 +67,46 @@ the spec's success condition 4 needs the documented commands to work as
 written. A known-issue note on step two of the quick start would defeat the
 spec's purpose. CI never installs the ML extra, so it could not have caught
 this. The cost if wrong is one file to delete, in its own commit.
+
+## Pass 2 — shipped docs
+
+The branch at `de2731e`, cloned from GitHub
+(`git clone --branch 013-readme-showcase https://github.com/smadinya/GuitarVis.git guitarvis-fresh`;
+the folder name is the only departure from the guide, for isolation). The
+steps follow [`run-locally.md`](../../guides/run-locally.md) and
+[`command-line.md`](../../guides/command-line.md) top to bottom.
+
+| Guide step | Command | Result |
+|---|---|---|
+| Install | `make install`, `uv sync --extra ml` | Pass; uv chose CPython 3.12.15 from `.python-version` with no flag |
+| Services | `make services`, `make migrate` | Pass |
+| Run | `make api`, `make worker`, `make web` (Deno on `PATH`) | Pass |
+| First upload | a song dropped on the page, in Chromium | The page showed *Waiting for a worker* → *Isolating the guitar* → *Transcribing notes* → *Finding the beat and chords*, then the player; Play ran |
+| Links | `deno --version`; `make smoke-url` | 2.9.8; 3 passed |
+| CLI | `process song.mp3 -o song.json` | Pass, with the "notes … dropped" warning |
+| | `--tuning D2,A2,D3,G3,B3,E4` | Pass; the document's tuning is drop D |
+| | `--stems-dir ./stems` | Pass; six WAV stems |
+| | `--max-duration 10` | `too_long`, "longer than 0 minutes": [#57](https://github.com/smadinya/GuitarVis/issues/57), noted in the guide |
+| | `serve --burst` | Exits once the queue is empty |
+| HTTP | `POST /jobs` | 202; `succeeded`; the same file again gives 200 and the same job |
+| | `GET …/document`, `…/audio/mix`, `…/audio/guitar` | The document; one redirect each, to MP3 and WAV |
+| | `GET /features`, `GET /health` | `{"url_ingestion":true}`; all three services `ok` |
+| | `POST /jobs/from-url` (the CC video) | 202, *Elephants Dream - 10 years of open movies*, `succeeded` |
+| Clean up | `docker compose stop`, `docker compose down -v` in `guitarvis-fresh` | Its volumes removed; the dev stack's untouched and restarted |
+| Checks | `GUITARVIS_REQUIRE_SERVICES=1 make check` (working copy) | Pass: 1,304 passed, 0 skipped; vitest 495 passed |
+
+Not run: `--device cuda` (no GPU, marked in the guides). The
+troubleshooting entries for the port clash, the numpy build and the
+Deno-less api come from pass 1, where each happened.
+
+## GitHub render
+
+`https://github.com/smadinya/GuitarVis/blob/<sha>/README.md`, rendered by
+GitHub and captured with Playwright.
+
+| Check | At `de2731e` | At `76ed171` |
+|---|---|---|
+| 1280 px: title, sentence, badges and GIF on the README's first screen | Pass | Pass |
+| Mermaid renders as an SVG, not code | Pass | Pass |
+| 390 px: the three view shots read | **Fail**: a three-column table squeezed them to 54–111 px | Pass: stacked, 324 px each |
+| Dark theme: nothing dark-on-dark | Pass | Pass |
