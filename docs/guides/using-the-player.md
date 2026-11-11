@@ -59,9 +59,11 @@ From the top down:
   the bar after each one is how long it rings, and the red line is now.
 - **Sections and chords**, at the right. Click a section to jump to it.
 
-| 3D | Fretboard | Tab only |
-|---|---|---|
-| ![](../images/player-3d.png) | ![](../images/player-fretboard.png) | ![](../images/player-tab.png) |
+The same moment in the other two views, **Fretboard** and **Tab only**:
+
+![The player in its Fretboard view](../images/player-fretboard.png)
+
+![The player in its Tab only view](../images/player-tab.png)
 
 ## 4. Practise a passage
 

@@ -16,9 +16,17 @@ all in sync with the music.
 
 ## What it does
 
-| 3D guitar | Fretboard | Tab |
-|---|---|---|
-| ![The 3D guitar, with the sounding notes lit on their strings and frets](docs/images/view-3d.png) | ![The same moment on a flat fretboard](docs/images/view-fretboard.png) | ![The chord lane and the scrolling tab strip](docs/images/view-tab.png) |
+**A 3D guitar** lights up every note on the string and fret to play it.
+
+![The 3D guitar, with the sounding notes lit on their strings and frets](docs/images/view-3d.png)
+
+**A flat fretboard** shows the same moment straight on.
+
+![The same moment on a flat fretboard](docs/images/view-fretboard.png)
+
+**A scrolling tab** runs under a chord lane, with the playhead in red.
+
+![The chord lane and the scrolling tab strip](docs/images/view-tab.png)
 
 - **Bring a song.** Upload an audio file or paste a YouTube link.
 - **The guitar is separated** from the vocals, drums and bass.
